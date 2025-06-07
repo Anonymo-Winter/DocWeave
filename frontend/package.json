@@ -10,14 +10,43 @@
         "preview": "vite preview"
     },
     "dependencies": {
+        "@floating-ui/react": "^0.27.12",
+        "@hocuspocus/provider": "^3.1.2",
+        "@radix-ui/react-slot": "^1.2.3",
         "@tailwindcss/vite": "^4.1.8",
+        "@tiptap/extension-collaboration": "^2.13.0",
+        "@tiptap/extension-color": "^2.12.0",
+        "@tiptap/extension-highlight": "^2.13.0",
+        "@tiptap/extension-image": "^2.13.0",
+        "@tiptap/extension-link": "^2.13.0",
+        "@tiptap/extension-subscript": "^2.13.0",
+        "@tiptap/extension-superscript": "^2.13.0",
+        "@tiptap/extension-task-item": "^2.13.0",
+        "@tiptap/extension-task-list": "^2.13.0",
+        "@tiptap/extension-text-align": "^2.13.0",
+        "@tiptap/extension-typography": "^2.13.0",
+        "@tiptap/extension-underline": "^2.13.0",
+        "@tiptap/pm": "^2.13.0",
+        "@tiptap/react": "^2.13.0",
+        "@tiptap/starter-kit": "^2.12.0",
+        "class-variance-authority": "^0.7.1",
+        "clsx": "^2.1.1",
         "lucide-react": "^0.513.0",
+        "prosemirror-keymap": "^1.2.3",
         "react": "^19.1.0",
         "react-dom": "^19.1.0",
-        "tailwindcss": "^4.1.8"
+        "react-router-dom": "^7.6.2",
+        "socket.io-client": "^4.8.1",
+        "tailwind-merge": "^3.3.0",
+        "tailwindcss": "^4.1.8",
+        "y-prosemirror": "^1.3.5",
+        "y-quill": "^1.0.0",
+        "y-webrtc": "^10.3.0",
+        "yjs": "^13.6.27"
     },
     "devDependencies": {
         "@eslint/js": "^9.25.0",
+        "@types/node": "^22.15.29",
         "@types/react": "^19.1.2",
         "@types/react-dom": "^19.1.2",
         "@vitejs/plugin-react": "^4.4.1",
@@ -25,6 +54,8 @@
         "eslint-plugin-react-hooks": "^5.2.0",
         "eslint-plugin-react-refresh": "^0.4.19",
         "globals": "^16.0.0",
+        "sass-embedded": "^1.89.1",
+        "tw-animate-css": "^1.3.4",
         "vite": "^6.3.5"
     }
 }
