@@ -62,7 +62,7 @@ import '@/components/tiptap-templates/simple/simple-editor.scss';
 
 import { setupYjs } from '@/util/y-socket-provider.js';
 
-const MainToolbarContent = ({ onHighlighterClick, onLinkClick, isMobile }) => {
+const MainToolbarContent = ({ onHighlighterClick, onLinkClick, isMobile, editor }) => {
     return (
         <>
             <Spacer />
@@ -170,7 +170,7 @@ export function SimpleEditor() {
             TrailingNode,
             Link.configure({ openOnClick: false }),
         ],
-        content: 'start typing...',
+        content: '<span className="yjs-cursor"></span>',
     });
 
     const bodyRect = useCursorVisibility({
@@ -182,10 +182,10 @@ export function SimpleEditor() {
         if (editor) {
             const roomId = 'doc123';
             const user = {
-                // name: 'Tarun-' + Math.random().toString().slice(2, 5),
-                // color: '#' + Math.floor(Math.random() * 16777215).toString(16),
-                name: 'Tarun',
-                color: '#ff0000', // Fixed color for demonstration
+                name: 'Tarun-' + Math.random().toString().slice(2, 5),
+                color: '#' + Math.floor(Math.random() * 16777215).toString(16),
+                // name: 'Tarun',
+                // color: '#ff0000', // Fixed color for demonstration
             };
             setupYjs(editor, roomId, user);
         }
@@ -228,7 +228,7 @@ export function SimpleEditor() {
                 )}
             </Toolbar>
             <div className='content-wrapper'>
-                <EditorContent editor={editor} role='presentation' className='simple-editor-content' />
+                <EditorContent editor={editor} content='hello' role='presentation' className='simple-editor-content' />
             </div>
         </EditorContext>
     );
