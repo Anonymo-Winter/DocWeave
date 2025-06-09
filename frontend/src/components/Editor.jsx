@@ -62,7 +62,7 @@ import '@/components/tiptap-templates/simple/simple-editor.scss';
 
 import { setupYjs } from '@/util/y-socket-provider.js';
 
-const MainToolbarContent = ({ onHighlighterClick, onLinkClick, isMobile, editor }) => {
+const MainToolbarContent = ({ onHighlighterClick, onLinkClick, isMobile }) => {
     return (
         <>
             <Spacer />

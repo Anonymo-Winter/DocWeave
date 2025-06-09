@@ -96,12 +96,11 @@ body,
         content: '';
         position: absolute;
         left: 0px;
-        top: -2px;
-        width: 6px;
-        height: 6px;
+        top: 0px;
+        width: 4px;
+        height: 4px;
         background-color: var(--user-color, gray);
         transition: transform 0.3s ease, opacity 0.3s ease;
-        opacity: 0.6;
     }
 
     &:hover {
@@ -152,26 +151,3 @@ body,
     pointer-events: none;
     z-index: 15;
 }
-// .cursor-label {
-//     position: absolute;
-//     top: -1.8em;
-//     left: 50%;
-//     transform: translateX(-50%);
-//     background-color: var(--user-color, gray);
-//     color: white;
-//     padding: 2px 8px;
-//     border-radius: 4px;
-//     font-size: 12px;
-//     white-space: nowrap;
-//     pointer-events: none;
-//     user-select: none;
-//     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-//     z-index: 20;
-//     opacity: 0;
-//     transition: opacity 0.3s ease;
-// }
-
-// // Show label only on hover of cursor wrapper
-// .yjs-cursor-wrapper:hover .cursor-label {
-//     opacity: 1;
-// }
