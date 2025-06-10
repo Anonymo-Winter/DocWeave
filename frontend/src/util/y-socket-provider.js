@@ -88,7 +88,7 @@ export function setupYjs(editor, roomId, user) {
             const local = awareness.getLocalState();
             if (local?.typing) {
                 console.log('typing stopped');
-                awareness.setLocalStateField('typing', null); // 👈 set to 0, not null
+                awareness.setLocalStateField('typing', 0); // 👈 set to 0, not null
             }
         }, 3000);
     });
