@@ -1,65 +1,56 @@
+// socket-server.js
 import { Server } from 'socket.io';
 import * as Y from 'yjs';
-import { Awareness } from 'y-protocols/awareness';
+import { Awareness, encodeAwarenessUpdate, applyAwarenessUpdate } from 'y-protocols/awareness';
 
 const docsMap = new Map();
 
 export function setupSocketIo(server) {
     const io = new Server(server, {
         cors: {
-            origin: 'http://localhost:5173',
+            origin: '*',
             methods: ['GET', 'POST'],
             credentials: true,
         },
     });
 
     io.on('connection', (socket) => {
-        console.log('New client connected:', socket.id);
         let currentRoomId = null;
 
         socket.on('join-room', ({ roomId }) => {
             currentRoomId = roomId;
-            socket.join(currentRoomId);
+            socket.join(roomId);
 
-            // Create doc + awareness if not present
-            if (!docsMap.has(currentRoomId)) {
+            if (!docsMap.has(roomId)) {
                 const doc = new Y.Doc();
                 const awareness = new Awareness(doc);
-                docsMap.set(currentRoomId, { doc, awareness });
+                docsMap.set(roomId, { doc, awareness });
             }
 
-            const { doc, awareness } = docsMap.get(currentRoomId);
+            const { doc, awareness } = docsMap.get(roomId);
 
-            // Send initial sync state
-            const state = Y.encodeStateAsUpdate(doc);
-            socket.emit('sync', state);
+            // Send current Yjs document state
+            socket.emit('sync', Y.encodeStateAsUpdate(doc));
 
-            // --- Yjs document updates ---
+            // Send initial awareness
+            socket.emit('awareness-update', encodeAwarenessUpdate(awareness, Array.from(awareness.getStates().keys())));
+
             socket.on('update', (update) => {
-                try {
-                    const binary = update instanceof Uint8Array ? update : new Uint8Array(update);
-                    Y.applyUpdate(doc, binary);
-                    socket.to(currentRoomId).emit('update', binary);
-                } catch (err) {
-                    console.error('Failed to apply update:', err);
-                }
+                Y.applyUpdate(doc, new Uint8Array(update));
+                socket.to(roomId).emit('update', update);
             });
 
-            // --- Awareness: Receive and broadcast awareness updates ---
             socket.on('awareness-update', (update) => {
-                // broadcast to others in the room
-                socket.to(currentRoomId).emit('awareness-update', update);
+                applyAwarenessUpdate(awareness, new Uint8Array(update), socket.id);
+                socket.to(roomId).emit('awareness-update', update);
             });
 
-            // --- Handle disconnects (optional: cleanup awareness states) ---
             socket.on('disconnect', () => {
-                if (currentRoomId) {
-                    socket.leave(currentRoomId);
-                    console.log('Disconnected from room:', currentRoomId);
-                }
+                // awareness.removeStates([socket.id], 'disconnect');
+                const update = encodeAwarenessUpdate(awareness, [], [], [socket.id]);
+                socket.to(roomId).emit('awareness-update', update);
+                socket.leave(roomId);
             });
         });
     });
-
-    return io;
 }
