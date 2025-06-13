@@ -39,7 +39,7 @@ import { HighlightPopover, HighlightContent, HighlighterButton } from '@/compone
 import { LinkPopover, LinkContent, LinkButton } from '@/components/tiptap-ui/link-popover';
 import { MarkButton } from '@/components/tiptap-ui/mark-button';
 import { TextAlignButton } from '@/components/tiptap-ui/text-align-button';
-import { UndoRedoButton } from '@/components/tiptap-ui/undo-redo-button';
+// import { UndoRedoButton } from '@/components/tiptap-ui/undo-redo-button';
 
 // --- Icons ---
 import { ArrowLeftIcon } from '@/components/tiptap-icons/arrow-left-icon';
@@ -61,14 +61,26 @@ import { handleImageUpload, MAX_FILE_SIZE } from '@/lib/tiptap-utils';
 import '@/components/tiptap-templates/simple/simple-editor.scss';
 
 import { setupYjs } from '@/util/y-socket-provider.js';
+import { Redo2, Undo2 } from 'lucide-react';
 
-const MainToolbarContent = ({ onHighlighterClick, onLinkClick, isMobile }) => {
+const MainToolbarContent = ({ onHighlighterClick, onLinkClick, isMobile, editor }) => {
     return (
         <>
             <Spacer />
             <ToolbarGroup>
-                <UndoRedoButton action='undo' className='text-red-500' />
-                <UndoRedoButton action='redo' />
+                <Button
+                    disabled={!editor.storage.undoManager?.canUndo()}
+                    onClick={() => editor.storage.undoManager.undo()}
+                >
+                    <Undo2 className='size-4' />
+                </Button>
+
+                <Button
+                    disabled={!editor.storage.undoManager?.canRedo()}
+                    onClick={() => editor.storage.undoManager.redo()}
+                >
+                    <Redo2 className='size-4' />
+                </Button>
             </ToolbarGroup>
             <ToolbarSeparator />
             <ToolbarGroup>
@@ -148,7 +160,9 @@ export function SimpleEditor() {
             },
         },
         extensions: [
-            StarterKit,
+            StarterKit.configure({
+                history: false,
+            }),
             TextAlign.configure({ types: ['heading', 'paragraph'] }),
             Underline,
             TaskList,
@@ -170,7 +184,7 @@ export function SimpleEditor() {
             TrailingNode,
             Link.configure({ openOnClick: false }),
         ],
-        content: '<span className="yjs-cursor"></span>',
+        content: 'type',
     });
 
     const bodyRect = useCursorVisibility({
@@ -181,13 +195,28 @@ export function SimpleEditor() {
     React.useEffect(() => {
         if (editor) {
             const roomId = 'doc123';
-            const user = {
-                name: 'Tarun-' + Math.random().toString().slice(2, 5),
+            const userMeta = JSON.parse(localStorage.getItem('user-detail') || 'null') || {
+                name: 'Tarun' + Math.floor(Math.random() * 1000),
                 color: '#' + Math.floor(Math.random() * 16777215).toString(16),
-                // name: 'Tarun',
-                // color: '#ff0000', // Fixed color for demonstration
             };
-            setupYjs(editor, roomId, user);
+            localStorage.setItem('user-detail', JSON.stringify(userMeta));
+
+            const cleanup = () => {
+                awareness.setLocalState(null);
+            };
+
+            const { socket, awareness, ydoc } = setupYjs(editor, roomId, userMeta);
+
+            window.addEventListener('beforeunload', cleanup);
+
+            return () => {
+                if (socket && socket.connected) {
+                    socket.disconnect();
+                }
+                awareness.destroy();
+                ydoc.destroy();
+                window.removeEventListener('beforeunload', cleanup);
+            };
         }
     }, [editor]);
 

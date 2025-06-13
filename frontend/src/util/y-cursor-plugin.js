@@ -30,7 +30,6 @@ export function yCursorPlugin(awareness, clientID, showOwnCursor = false) {
 
                     // Selection highlight
                     if (from !== to) {
-                        console.log('text selected');
                         decorations.push(
                             Decoration.inline(from, to, {
                                 style: `background-color: ${user.color}33`,

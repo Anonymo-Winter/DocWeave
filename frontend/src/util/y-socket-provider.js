@@ -1,11 +1,13 @@
 import * as Y from 'yjs';
 import { io } from 'socket.io-client';
-import { ySyncPlugin, yUndoPlugin } from 'y-prosemirror';
+import { ySyncPlugin, ySyncPluginKey, yUndoPlugin } from 'y-prosemirror';
 import { Awareness } from 'y-protocols/awareness';
 import { encodeAwarenessUpdate, applyAwarenessUpdate } from 'y-protocols/awareness';
+import { undo as yUndo, redo as yRedo } from 'y-prosemirror';
 
 import { selectionAwarenessPlugin } from './selection-awareness-plugin';
 import { yCursorPlugin } from './y-cursor-plugin';
+import { keymap } from 'prosemirror-keymap';
 
 export function setupYjs(editor, roomId, user) {
     const ydoc = new Y.Doc();
@@ -43,16 +45,24 @@ export function setupYjs(editor, roomId, user) {
     });
 
     socket.on('update', (update) => {
-        Y.applyUpdate(ydoc, new Uint8Array(update));
+        Y.applyUpdate(ydoc, new Uint8Array(update), 'remote');
     });
 
-    ydoc.on('update', (update) => {
+    ydoc.on('update', (update, origin) => {
         socket.emit('update', update);
     });
-
     // Register Yjs plugins
     editor.registerPlugin(ySyncPlugin(type));
-    // editor.registerPlugin(yUndoPlugin());
+
+    const origDispatchTransaction = editor.view.dispatchTransaction;
+
+    editor.view.dispatchTransaction = (tr) => {
+        ydoc.transact(() => {
+            origDispatchTransaction(tr);
+        }, ySyncPluginKey); // ✅ This tags the origin as 'local'
+    };
+
+    editor.registerPlugin(yUndoPlugin());
     editor.registerPlugin(selectionAwarenessPlugin(awareness));
 
     // ⚠️ IMPORTANT: Use `awareness.clientID`, not socket.id
@@ -87,11 +97,24 @@ export function setupYjs(editor, roomId, user) {
         typingTimeout = setTimeout(() => {
             const local = awareness.getLocalState();
             if (local?.typing) {
-                console.log('typing stopped');
                 awareness.setLocalStateField('typing', 0); // 👈 set to 0, not null
             }
         }, 3000);
     });
 
-    return { ydoc, awareness, socket };
+    const undoManager = new Y.UndoManager(type, {
+        trackedOrigins: new Set([ySyncPluginKey]),
+    });
+
+    editor.storage.undoManager = undoManager;
+
+    editor.registerPlugin(
+        keymap({
+            'Mod-z': () => undoManager.undo(),
+            'Mod-y': () => undoManager.redo(),
+            'Mod-Shift-z': () => undoManager.redo(),
+        }),
+    );
+
+    return { ydoc, awareness, socket, undoManager };
 }
