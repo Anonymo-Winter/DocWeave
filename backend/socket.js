@@ -14,6 +14,7 @@ export function setupSocketIo(server) {
     });
 
     io.on('connection', (socket) => {
+        console.log('a user connected');
         let currentRoomId = null;
 
         socket.on('join-room', ({ roomId, clientID }) => {
@@ -55,6 +56,10 @@ export function setupSocketIo(server) {
                 });
             });
 
+            socket.on('message-notification', (message) => {
+                socket.to(roomId).emit('message-notification', { message, type: 'info' });
+            });
+
             socket.on('disconnect', () => {
                 if (!docsMap.has(currentRoomId)) return;
 
@@ -63,10 +68,9 @@ export function setupSocketIo(server) {
                 if (typeof socket.awarenessClientID === 'number') {
                     const update = encodeAwarenessUpdate(awareness, [], [], [socket.awarenessClientID]);
                     socket.to(currentRoomId).emit('awareness-update', update);
-
-                    // ❌ Remove this line — it's causing the error
-                    // awareness.removeStates([socket.awarenessClientID]);
                 }
+
+                socket.to(currentRoomId).emit('message-notification', { message: `User has left`, type: 'info' });
 
                 socket.leave(currentRoomId);
 
@@ -75,6 +79,10 @@ export function setupSocketIo(server) {
                     docsMap.delete(currentRoomId);
                 }
             });
+        });
+
+        io.on('disconnect', () => {
+            console.log('a user disconnected');
         });
     });
 }
