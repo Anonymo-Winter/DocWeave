@@ -26,7 +26,7 @@ const EditorPage = () => {
             </section>
             {/* Chat Section */}
             {/* //  border-gray-200 */}
-            <aside className='active-chats w-full shadow-xl shadow-gray-200 dark:shadow-gray-800 md:w-[400px] max-w-[400px] min-w-[280px] bg-gray-50 dark:bg-[#18181b] flex flex-col h-full overflow-hidden'>
+            <aside className='active-chats w-full shadow-xl shadow-gray-200 dark:shadow-gray-800 md:w-[360px] max-w-[400px] min-w-[280px] bg-gray-50 dark:bg-[#18181b] flex flex-col h-full overflow-hidden hidden'>
                 <Chat handleMessageSubmit={handleMessageSubmit} />
             </aside>
         </div>

@@ -1,5 +1,6 @@
 import { Plugin, PluginKey } from 'prosemirror-state';
 import { Decoration, DecorationSet } from 'prosemirror-view';
+import { getTailwindColorClasses } from './colorMapper';
 
 export function yCursorPlugin(awareness, clientID, showOwnCursor = false) {
     return new Plugin({
@@ -24,6 +25,7 @@ export function yCursorPlugin(awareness, clientID, showOwnCursor = false) {
                     const user = userState.user || { name: 'Anonymous', color: 'gray' };
                     const typingTimestamp = userState.typing || 0;
                     const isTyping = now - typingTimestamp < 3000;
+                    const colors = getTailwindColorClasses(user.color);
 
                     const from = Math.min(anchor, head);
                     const to = Math.max(anchor, head);
@@ -32,7 +34,7 @@ export function yCursorPlugin(awareness, clientID, showOwnCursor = false) {
                     if (from !== to) {
                         decorations.push(
                             Decoration.inline(from, to, {
-                                style: `background-color: ${user.color}33`,
+                                style: `background-color: ${colors[500]}`,
                                 class: 'yjs-selection-highlight',
                             }),
                         );
@@ -41,8 +43,7 @@ export function yCursorPlugin(awareness, clientID, showOwnCursor = false) {
                     // Cursor and label
                     const cursorEl = document.createElement('div');
                     cursorEl.className = 'yjs-cursor';
-                    // Pass dynamic user color as CSS variable for border color
-                    cursorEl.style.setProperty('--user-color', user.color);
+                    cursorEl.style.setProperty('--user-color', colors[500]);
                     cursorEl.setAttribute('data-user-name', user.name);
                     cursorEl.title = user.name;
 
@@ -51,7 +52,7 @@ export function yCursorPlugin(awareness, clientID, showOwnCursor = false) {
                         const labelEl = document.createElement('span');
                         labelEl.className = 'cursor-label';
                         labelEl.textContent = user.name;
-                        labelEl.style.setProperty('--user-color', user.color);
+                        labelEl.style.setProperty('--user-color', colors[500]);
                         const wrapper = document.createElement('span');
                         wrapper.style.position = 'relative';
                         wrapper.className = 'yjs-cursor-wrapper';

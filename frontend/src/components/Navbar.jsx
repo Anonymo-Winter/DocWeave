@@ -1,9 +1,10 @@
 import React from 'react';
+import { MessageSquareMore } from 'lucide-react';
 
 const Navbar = () => {
     return (
-        <div className='h-12 bg-blue-500'>
-            NavBar
+        <div className='h-12 bg-blue-500 flex items-center justify-between px-10'>
+            <span className='font-bold text-xl'>NavBar</span>
             <button
                 onClick={() => {
                     const el = document.querySelector('.active-chats');
@@ -17,9 +18,9 @@ const Navbar = () => {
                         el.style.visibility = 'hidden';
                     }
                 }}
-                className='bg-red-500 p-2'
+                className='border bg-white text-blue-500 rounded-full p-2 me-10'
             >
-                show me
+                <MessageSquareMore size='16' />
             </button>
         </div>
     );

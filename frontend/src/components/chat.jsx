@@ -39,7 +39,6 @@ const Chat = ({ handleMessageSubmit }) => {
             setInput('');
         }
     };
-    console.log(messages);
 
     return (
         <div className='flex flex-col h-[calc(100vh-3rem)] w-full z-50'>
@@ -63,7 +62,11 @@ const Chat = ({ handleMessageSubmit }) => {
             <div className='h-0 flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50 dark:bg-[#18181b] chat-messages'>
                 {messages.map((msg, i) => {
                     if (msg?.type === 'info') {
-                        return <p className='text-xs text-gray-500'>{msg.message}</p>;
+                        return (
+                            <p key={i} className='text-xs text-gray-500 text-center'>
+                                {msg.message}
+                            </p>
+                        );
                     }
                     const color = getTailwindColorClasses(msg.user.color || 'grey');
                     return (
