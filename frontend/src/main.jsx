@@ -8,16 +8,13 @@ import './index.css';
 import App from './App.jsx';
 import { BrowserRouter } from 'react-router-dom';
 import { Toaster } from 'sonner';
-import { SocketProvider } from './context/socketContext.jsx';
 
 createRoot(document.getElementById('root')).render(
-    <SocketProvider>
-        <Provider store={store}>
-            <PersistGate loading={null} persistor={persistor}>
-                <BrowserRouter>
-                    <Toaster position='top-left' richColors closeButton visibleToasts={5} expand={true} /> <App />
-                </BrowserRouter>
-            </PersistGate>
-        </Provider>
-    </SocketProvider>,
+    <Provider store={store}>
+        <PersistGate loading={null} persistor={persistor}>
+            <BrowserRouter>
+                <Toaster position='top-left' richColors closeButton visibleToasts={5} expand={true} /> <App />
+            </BrowserRouter>
+        </PersistGate>
+    </Provider>,
 );

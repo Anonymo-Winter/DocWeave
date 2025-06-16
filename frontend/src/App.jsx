@@ -2,6 +2,7 @@ import ThemeToggle from './components/ThemeToggle';
 import EditorPage from './pages/EditorPage';
 import Navbar from './components/Navbar';
 import { Routes, Route } from 'react-router-dom';
+import { SocketProvider } from './context/socketContext';
 
 export default function App() {
     return (
@@ -9,7 +10,14 @@ export default function App() {
             <Navbar />
             <main className='flex flex-1 overflow-hidden'>
                 <Routes>
-                    <Route path='/' element={<EditorPage />} />
+                    <Route
+                        path='/'
+                        element={
+                            <SocketProvider>
+                                <EditorPage />
+                            </SocketProvider>
+                        }
+                    />
                 </Routes>
             </main>
         </div>

@@ -9,7 +9,6 @@ const Navbar = () => {
                 onClick={() => {
                     const el = document.querySelector('.active-chats');
                     const isHidden = el.style.display === 'none' || getComputedStyle(el).display === 'none';
-                    console.log(el);
                     if (isHidden) {
                         el.style.display = 'block';
                         el.style.visibility = 'visible';
