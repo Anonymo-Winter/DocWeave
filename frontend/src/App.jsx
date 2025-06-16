@@ -1,24 +1,17 @@
-import ThemeToggle from "./components/ThemeToggle";
-import Editor2 from "./components/Editor2";
-import Editor from "./components/Editor";
-import { BrowserRouter as Router, Routes, Route, BrowserRouter } from "react-router-dom";
+import ThemeToggle from './components/ThemeToggle';
+import EditorPage from './pages/EditorPage';
+import Navbar from './components/Navbar';
+import { Routes, Route } from 'react-router-dom';
 
 export default function App() {
     return (
-        <div className="min-h-screen p-1 bg-white text-black dark:bg-[#242424] dark:text-white transition-colors duration-500">
-            <BrowserRouter>
+        <div className='h-screen flex flex-col bg-white text-black dark:bg-[#242424] dark:text-white transition-colors duration-500'>
+            <Navbar />
+            <main className='flex flex-1 overflow-hidden'>
                 <Routes>
-                    <Route
-                        path="/"
-                        element={
-                            <div className="flex-col items-start justify-start">
-                                <Editor />
-                            </div>
-                        }
-                    />
-                    <Route path="/2" element={<Editor2 />} />
+                    <Route path='/' element={<EditorPage />} />
                 </Routes>
-            </BrowserRouter>
+            </main>
         </div>
     );
 }

@@ -62,6 +62,10 @@ import '@/components/tiptap-templates/simple/simple-editor.scss';
 
 import { setupYjs } from '@/util/y-socket-provider.js';
 import { Redo2, Undo2 } from 'lucide-react';
+import { useSocket } from '../context/socketContext.jsx';
+import { toast } from 'sonner';
+import { tailwindColorNames } from '../util/colorMapper.js';
+import { encodeAwarenessUpdate } from 'y-protocols/awareness.js';
 
 const MainToolbarContent = ({ onHighlighterClick, onLinkClick, isMobile, editor }) => {
     return (
@@ -148,7 +152,7 @@ export function SimpleEditor() {
     const windowSize = useWindowSize();
     const [mobileView, setMobileView] = React.useState('main');
     const toolbarRef = React.useRef(null);
-
+    const { socket, isConnected } = useSocket();
     const editor = useEditor({
         immediatelyRender: false,
         editorProps: {
@@ -184,7 +188,7 @@ export function SimpleEditor() {
             TrailingNode,
             Link.configure({ openOnClick: false }),
         ],
-        content: 'type',
+        content: '<p>Start writing...</p>',
     });
 
     const bodyRect = useCursorVisibility({
@@ -192,29 +196,48 @@ export function SimpleEditor() {
         overlayHeight: toolbarRef.current?.getBoundingClientRect().height ?? 0,
     });
 
+    const editorRef = React.useRef(null);
+
     React.useEffect(() => {
-        if (editor) {
+        if (editor && editorRef.current !== editor) {
+            editorRef.current = editor; // Mark that we’ve already initialized Yjs on this instance
+
             const roomId = 'doc123';
+
+            const colorNames = Object.keys(tailwindColorNames);
+
+            // Pick a random name
+            const randomColorName = colorNames[Math.floor(Math.random() * colorNames.length)];
+
+            // Create or retrieve user metadata
             const userMeta = JSON.parse(localStorage.getItem('user-detail') || 'null') || {
                 name: 'Tarun' + Math.floor(Math.random() * 1000),
-                color: '#' + Math.floor(Math.random() * 16777215).toString(16),
+                color: randomColorName,
             };
+
             localStorage.setItem('user-detail', JSON.stringify(userMeta));
+
+            const { awareness, ydoc } = setupYjs(editor, roomId, userMeta, socket.current);
 
             const cleanup = () => {
                 awareness.setLocalState(null);
             };
 
-            const { socket, awareness, ydoc } = setupYjs(editor, roomId, userMeta);
-
             window.addEventListener('beforeunload', cleanup);
 
             return () => {
-                if (socket && socket.connected) {
-                    socket.disconnect();
-                }
-                awareness.destroy();
+                const update = encodeAwarenessUpdate(awareness, [], [], [awareness.clientID]);
+                socket.current?.emit('awareness-update', update);
+                awareness.setLocalState(null);
                 ydoc.destroy();
+
+                if (socket.current) {
+                    socket.current.off('sync');
+                    socket.current.off('update');
+                    socket.current.off('awareness-update');
+                    socket.current.emit('leave-room', { roomId });
+                }
+
                 window.removeEventListener('beforeunload', cleanup);
             };
         }
@@ -225,6 +248,12 @@ export function SimpleEditor() {
             setMobileView('main');
         }
     }, [isMobile, mobileView]);
+
+    React.useEffect(() => {
+        if (editor) {
+            editor.commands.focus('end'); // You can use 'start' or a number too
+        }
+    }, [editor]);
 
     if (!editor) {
         return 'loading...';
@@ -256,8 +285,8 @@ export function SimpleEditor() {
                     />
                 )}
             </Toolbar>
-            <div className='content-wrapper'>
-                <EditorContent editor={editor} content='hello' role='presentation' className='simple-editor-content' />
+            <div className='w-full flex-1 overflow-auto h-full' onClick={() => editor.commands.focus()}>
+                <EditorContent editor={editor} role='presentation' className='z-10 sm:m-1 md:m-3 lg:m-5 xl:m-10' />
             </div>
         </EditorContext>
     );
