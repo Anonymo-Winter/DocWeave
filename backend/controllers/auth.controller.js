@@ -1,8 +1,8 @@
-import { compare } from "bcryptjs";
-import User from "../models/user.model.js";
-import Document from "../models/document.model.js";
+import { compare } from 'bcryptjs';
+import User from '../models/user.model.js';
+import Document from '../models/document.model.js';
 
-import jwt from "jsonwebtoken";
+import jwt from 'jsonwebtoken';
 const createToken = (email, id) => {
     return jwt.sign({ email, id }, process.env.JWT_KEY, { expiresIn: 1 * 24 * 60 * 60 * 1000 });
 };
@@ -11,30 +11,31 @@ export const login = async (req, res) => {
     const { email, password } = req.body;
     try {
         if (!email || !password) {
-            return res.status(400).json({ error: "All fields are required" });
+            return res.status(400).json({ message: 'All fields are required' });
         }
-        const user = await User.findOne({ email }).populate("recentDocs.document").exec();
+        const user = await User.findOne({ email }).populate('recentDocs.document').exec();
         if (!user) {
-            return res.status(400).json({ error: "Invalid credentials" });
+            return res.status(400).json({ message: 'Invalid credentials. Please check your email and password.' });
         }
         const isPassword = await compare(password, user.password);
         if (!isPassword) {
-            return res.status(400).json({ error: "Invalid credentials" });
+            return res.status(400).json({ message: 'Invalid credentials. Please check your email and password.' });
         }
-        res.cookie("token", createToken(email, user.id), {
+        res.cookie('token', createToken(email, user.id), {
             maxAge: 1 * 24 * 60 * 60 * 1000,
             httpOnly: true,
             secure: true,
-            sameSite: "strict",
+            sameSite: 'strict',
         });
         user.password = undefined;
         return res.status(200).json({
-            message: "Login Successfull",
+            message: 'Login Successfull',
             user: user,
+            success: true,
         });
     } catch (error) {
-        console.warn("Failed to Login :", error.message);
-        return res.status(500).json({ error: "Internal server error" });
+        console.warn('Failed to Login :', error.message);
+        return res.status(500).json({ message: 'Internal server error' });
     }
 };
 
@@ -42,47 +43,56 @@ export const register = async (req, res) => {
     const { email, password, name } = req.body;
     try {
         if (!email || !password || !name) {
-            return res.status(400).json({ error: "All fields are required" });
+            return res.status(400).json({ message: 'Please provide name, email, and password.' });
         }
-        if (password.length < 8) {
-            return res.status(400).json({ error: "Password must be atleast 8 characters long" });
+
+        if (password.length < 6) {
+            return res.status(400).json({ message: 'Password must be at least 8 characters long.' });
         }
+
         const userExists = await User.findOne({ email });
         if (userExists) {
-            return res.status(400).json({ error: "Email already in use" });
+            return res.status(400).json({ message: 'An account with this email already exists.' });
         }
+
         const user = await User.create({ email, name, password });
+
         if (!user) {
-            return res.status(400).json({ error: "Failed to create user" });
+            return res.status(500).json({ message: 'Unable to create user. Please try again.' });
         }
-        res.cookie("token", createToken(email, user.id), {
-            maxAge: 1 * 24 * 60 * 60 * 1000,
+
+        // // Set secure cookie
+        res.cookie('token', createToken(email, user.id), {
+            maxAge: 24 * 60 * 60 * 1000, // 1 day
             httpOnly: true,
             secure: true,
-            sameSite: "strict",
+            sameSite: 'strict',
         });
+
+        // Do not expose password
         user.password = undefined;
+
         return res.status(201).json({
-            message: "Registration Successfull",
-            user: user,
+            success: true,
+            message: 'Registration successful! Welcome aboard.',
+            user,
         });
     } catch (error) {
-        await User.deleteOne({ email });
-        console.warn("Failed to register :", error.message);
-        return res.status(500).json({ error: "Internal server error" });
+        await User.deleteOne({ email }); // Optional cleanup
+        console.warn('[REGISTER ERROR]', error.message);
+        return res.status(500).json({ message: 'Something went wrong during registration. Please try again later.' });
     }
 };
 
 export const checkAuth = async (req, res) => {
     try {
-        const user = await User.findById(req.userId).select("-password").populate("recentDocs.document").exec();
+        const user = await User.findById(req.userId).select('-password').populate('recentDocs.document').exec();
         if (!user) {
-            return res.status(400).json({ error: "User not found" });
+            return res.status(400).json({ error: 'User not found' });
         }
-
         return res.status(200).json({ success: true, user });
     } catch (error) {
-        console.log("Failed to check auth : ", error.message);
-        return res.status(500).json({ error: "Internal server error" });
+        console.log('Failed to check auth : ', error.message);
+        return res.status(500).json({ error: 'Internal server error' });
     }
 };

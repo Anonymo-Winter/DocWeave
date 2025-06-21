@@ -1,28 +1,28 @@
-import mongoose from "mongoose";
-import { genSalt, hash } from "bcryptjs";
+import mongoose from 'mongoose';
+import { genSalt, hash } from 'bcryptjs';
 
 const userSchema = new mongoose.Schema({
     name: {
         type: String,
-        required: [true, "Name is required"],
+        required: [true, 'Name is required'],
         trim: true,
     },
     email: {
         type: String,
-        required: [true, "Email is required"],
+        required: [true, 'Email is required'],
         trim: true,
         unique: true,
     },
     password: {
         type: String,
-        required: [true, "Password is required"],
-        minlength: [8, "Password must be atleast 8 characters long"],
+        required: [true, 'Password is required'],
+        minlength: [6, 'Password must be atleast 8 characters long'],
     },
     recentDocs: [
         {
             document: {
                 type: mongoose.Schema.Types.ObjectId,
-                ref: "Document",
+                ref: 'Document',
             },
             accessed: {
                 type: Date,
@@ -32,13 +32,13 @@ const userSchema = new mongoose.Schema({
     ],
 });
 
-userSchema.pre("save", async function (next) {
-    if (this.isModified("password")) {
+userSchema.pre('save', async function (next) {
+    if (this.isModified('password')) {
         const salt = await genSalt(10);
         this.password = await hash(this.password, salt);
     }
     next();
 });
 
-const User = mongoose.model("User", userSchema);
+const User = mongoose.model('User', userSchema);
 export default User;

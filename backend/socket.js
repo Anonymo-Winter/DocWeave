@@ -7,7 +7,7 @@ const docsMap = new Map();
 export function setupSocketIo(server) {
     const io = new Server(server, {
         cors: {
-            origin: '*',
+            origin: 'http://localhost:5173',
             methods: ['GET', 'POST'],
             credentials: true,
         },
@@ -81,7 +81,7 @@ export function setupSocketIo(server) {
             });
         });
 
-        io.on('disconnect', () => {
+        socket.on('disconnect', () => {
             console.log('a user disconnected');
         });
     });
