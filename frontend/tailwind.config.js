@@ -2,7 +2,7 @@
 
 export default {
     darkMode: 'class',
-    content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+    content: ['./src/**/*.{js,ts,jsx,tsx,css}'],
     safelist: [
         {
             pattern:
@@ -29,14 +29,5 @@ export default {
                 /ring-offset-(red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-200/,
         },
     ],
-
-    theme: {
-        extend: {
-            fontFamily: {
-                sans: ['Inter', 'sans-serif'],
-                mono: ['JetBrains Mono', 'monospace'],
-            },
-        },
-    },
     plugins: [],
 };

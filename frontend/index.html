@@ -2,18 +2,19 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
-        <link rel="icon" type="image/svg+xml" href="./src/assets/google-docs-app.svg" />
+        <link rel="icon" type="image/svg+xml" href="./src/assets/logo3.svg" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
         <!-- 🧠 Add this BEFORE tailwind/main.jsx loads -->
+
         <script>
-            const theme = localStorage.getItem("theme");
-            if (theme === "dark" || (!theme && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
-                document.documentElement.classList.add("dark");
+            const theme = localStorage.getItem('theme');
+            if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
             }
         </script>
 
-        <title>Collab Docs</title>
+        <title>Collab_Docs</title>
     </head>
     <body>
         <div id="root"></div>

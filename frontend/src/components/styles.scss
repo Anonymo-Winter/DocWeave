@@ -122,7 +122,25 @@
     }
 }
 
-// html,
 // body {
-//     overflow: hidden;
+//     font-family: 'Poppins', sans-serif;
 // }
+
+/* Input box styling */
+input,
+textarea {
+    font-family: 'Inter', sans-serif; /* A clean, widely used font */
+    font-size: 16px;
+    font-weight: 400;
+    padding: 10px;
+    border: 1px solid #ccc; /* Subtle border */
+    border-radius: 5px; /* Smooth edges */
+    outline: none;
+    transition: border-color 0.2s ease-in-out;
+}
+
+/* Highlight on focus */
+input:focus,
+textarea:focus {
+    border-color: #0078d4; /* A nice blue shade for active focus */
+}
