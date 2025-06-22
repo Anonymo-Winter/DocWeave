@@ -1,165 +1,13 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, EyeOff, AlertCircle, Mail, Lock, CheckCircle } from 'lucide-react';
-import { FaGithub } from 'react-icons/fa';
-import { FcGoogle } from 'react-icons/fc';
+import { motion } from 'framer-motion';
+import { Mail } from 'lucide-react';
 import AnimatedBlob from '../components/Blob';
 import { useNavigate } from 'react-router-dom';
-// Theme Toggle Component
-const ThemeToggle = ({ className }) => {
-    const [isDark, setIsDark] = useState(false);
 
-    useEffect(() => {
-        const root = document.documentElement;
-        if (isDark) {
-            root.classList.add('dark');
-        } else {
-            root.classList.remove('dark');
-        }
-    }, [isDark]);
-
-    return (
-        <motion.button
-            onClick={() => setIsDark(!isDark)}
-            className={`${className} m-4 p-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-all`}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-        >
-            {isDark ? '☀️' : '🌙'}
-        </motion.button>
-    );
-};
-
-// Error Component
-const ErrorAlert = ({ message, onClose }) => (
-    <AnimatePresence>
-        {message && (
-            <motion.div
-                initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                transition={{ duration: 0.2 }}
-                className='mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700/50 flex items-start gap-2'
-            >
-                <AlertCircle className='w-4 h-4 text-red-500 dark:text-red-400 mt-0.5 flex-shrink-0' />
-                <div className='flex-1'>
-                    <p className='text-sm text-red-700 dark:text-red-300'>{message}</p>
-                </div>
-                {onClose && (
-                    <button
-                        onClick={onClose}
-                        className='text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors'
-                    >
-                        ×
-                    </button>
-                )}
-            </motion.div>
-        )}
-    </AnimatePresence>
-);
-
-// Success Component
-const SuccessAlert = ({ message, onClose }) => (
-    <AnimatePresence>
-        {message && (
-            <motion.div
-                initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                transition={{ duration: 0.2 }}
-                className='mb-4 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700/50 flex items-start gap-2'
-            >
-                <CheckCircle className='w-4 h-4 text-green-500 dark:text-green-400 mt-0.5 flex-shrink-0' />
-                <div className='flex-1'>
-                    <p className='text-sm text-green-700 dark:text-green-300'>{message}</p>
-                </div>
-                {onClose && (
-                    <button
-                        onClick={onClose}
-                        className='text-green-500 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 transition-colors'
-                    >
-                        ×
-                    </button>
-                )}
-            </motion.div>
-        )}
-    </AnimatePresence>
-);
-
-const InputField = ({
-    type,
-    placeholder,
-    value,
-    onChange,
-    error,
-    icon: Icon,
-    showPasswordToggle = false,
-    ...props
-}) => {
-    const [showPassword, setShowPassword] = useState(false);
-    const [isFocused, setIsFocused] = useState(false);
-
-    const inputType = type === 'password' && showPassword ? 'text' : type;
-    return (
-        <div className='relative'>
-            <div
-                className={`relative flex items-center transition-all duration-200 rounded-sm ${
-                    error
-                        ? 'ring-2 ring-red-500/50 dark:ring-red-400/50'
-                        : isFocused
-                        ? 'ring-2 ring-blue-500/50 dark:ring-blue-400/50'
-                        : ''
-                }`}
-            >
-                {Icon && (
-                    <Icon
-                        className={`absolute left-3 w-5 h-5 transition-colors z-10 ${
-                            error
-                                ? 'text-red-500 dark:text-red-400'
-                                : isFocused
-                                ? 'text-blue-500 dark:text-blue-400'
-                                : 'text-gray-400 dark:text-gray-500'
-                        }`}
-                    />
-                )}
-                <input
-                    type={inputType}
-                    placeholder={placeholder}
-                    value={value}
-                    onChange={onChange}
-                    onFocus={() => setIsFocused(true)}
-                    onBlur={() => setIsFocused(false)}
-                    className={`w-full ${Icon ? 'pl-10' : 'pl-4'} ${
-                        showPasswordToggle ? 'pr-10' : 'pr-4'
-                    } py-3 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-0 rounded-lg text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none transition-all duration-200`}
-                    {...props}
-                />
-                {showPasswordToggle && (
-                    <button
-                        type='button'
-                        onClick={() => setShowPassword(!showPassword)}
-                        className='absolute right-3 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors'
-                    >
-                        {showPassword ? <EyeOff className='w-5 h-5' /> : <Eye className='w-5 h-5' />}
-                    </button>
-                )}
-            </div>
-            <AnimatePresence>
-                {error && (
-                    <motion.p
-                        initial={{ opacity: 0, height: 0, y: -5 }}
-                        animate={{ opacity: 1, height: 'auto', y: 0 }}
-                        exit={{ opacity: 0, height: 0, y: -5 }}
-                        transition={{ duration: 0.2 }}
-                        className='text-xs text-red-500 dark:text-red-400 mt-1 ml-1'
-                    >
-                        {error}
-                    </motion.p>
-                )}
-            </AnimatePresence>
-        </div>
-    );
-};
+import ThemeToggle from '../components/ThemeToggleTool';
+import { ErrorAlert, SuccessAlert } from '../components/Alert';
+import { InputField } from '../components/InputField';
+import { FaEnvelope } from 'react-icons/fa';
 
 // Main Login Component
 const ForgotPassword = () => {
@@ -327,6 +175,7 @@ const ForgotPassword = () => {
                                     value={formData.email}
                                     onChange={handleInputChange('email')}
                                     error={errors.email}
+                                    icon={FaEnvelope}
                                     autoComplete='email'
                                 />
 

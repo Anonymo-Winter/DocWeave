@@ -2,11 +2,21 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 import { clearCredentials, setCredentials } from '../store/userSlice';
 
+const hostname = window.location.hostname;
+const backendUrl = hostname === 'localhost' ? 'http://localhost:5000/api' : 'http://192.168.200.30:5000/api';
+
 export const userApi = createApi({
     reducerPath: 'userApi',
     baseQuery: fetchBaseQuery({
-        baseUrl: 'http://localhost:5000/api',
+        baseUrl: backendUrl,
         credentials: 'include',
+        prepareHeaders: (headers, { getState }) => {
+            const token = getState().user.token;
+            if (token) {
+                headers.set('authorization', `Bearer ${token}`);
+            }
+            return headers;
+        },
     }),
     tagTypes: ['User'],
     endpoints: (builder) => ({
@@ -19,11 +29,12 @@ export const userApi = createApi({
             async onQueryStarted(arg, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
-                    dispatch(setCredentials(data.user));
+                    setTimeout(() => dispatch(setCredentials(data.user)), 3000);
                 } catch (err) {
                     console.error('Login error:', err);
                 }
             },
+            invalidatesTags: ['User'],
         }),
         register: builder.mutation({
             query: ({ email, password, name }) => ({
@@ -42,16 +53,32 @@ export const userApi = createApi({
         }),
         checkAuth: builder.query({
             query: () => '/auth/check-auth',
+            providesTags: ['User'],
             async onQueryStarted(args, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
-                    dispatch(setCredentials(data.user)); // optional
+                    setTimeout(() => dispatch(setCredentials(data.user)), 2000);
                 } catch (error) {
                     dispatch(clearCredentials());
                 }
             },
         }),
+        logout: builder.mutation({
+            query: () => ({
+                url: '/auth/logout',
+                method: 'POST',
+            }),
+            async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+                try {
+                    await queryFulfilled;
+                    dispatch(clearCredentials());
+                } catch (err) {
+                    console.error('Logout error:', err);
+                }
+            },
+            invalidatesTags: ['User'],
+        }),
     }),
 });
 
-export const { useLoginMutation, useRegisterMutation, useCheckAuthQuery } = userApi;
+export const { useLoginMutation, useRegisterMutation, useCheckAuthQuery, useLogoutMutation } = userApi;

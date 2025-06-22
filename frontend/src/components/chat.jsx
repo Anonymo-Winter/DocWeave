@@ -2,8 +2,7 @@ import { useEffect, useState } from 'react';
 import './styles.scss';
 import { useSocket } from '../context/socketContext';
 import { getTailwindColorClasses } from '../util/colorMapper';
-import clsx from 'clsx';
-import { Send, SendHorizonal, X } from 'lucide-react';
+import { SendHorizonal, X } from 'lucide-react';
 
 const Chat = ({ handleMessageSubmit }) => {
     const { socket } = useSocket();

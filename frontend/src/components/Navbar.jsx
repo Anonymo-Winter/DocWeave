@@ -1,4 +1,3 @@
-import React from 'react';
 import { MessageSquareMore } from 'lucide-react';
 
 const Navbar = () => {

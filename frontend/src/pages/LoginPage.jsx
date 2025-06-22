@@ -1,158 +1,29 @@
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, EyeOff, AlertCircle, Mail, Lock, CheckCircle } from 'lucide-react';
-import { FaGithub } from 'react-icons/fa';
+import { useState } from 'react';
+import { FaEnvelope, FaGithub, FaLock } from 'react-icons/fa';
 import { FcGoogle } from 'react-icons/fc';
 import AnimatedBlob from '../components/Blob';
 import { useNavigate } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggleTool';
-
+import { ErrorAlert, SuccessAlert } from '../components/Alert';
 import { useLoginMutation } from '../api/userApi';
-
-// Error Component
-const ErrorAlert = ({ message, onClose }) => (
-    <AnimatePresence>
-        {message && (
-            <motion.div
-                initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                transition={{ duration: 0.2 }}
-                className='mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700/50 flex items-start gap-2'
-            >
-                <AlertCircle className='w-4 h-4 text-red-500 dark:text-red-400 mt-0.5 flex-shrink-0' />
-                <div className='flex-1'>
-                    <p className='text-sm text-red-700 dark:text-red-300'>{message}</p>
-                </div>
-                {onClose && (
-                    <button
-                        onClick={onClose}
-                        className='text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors'
-                    >
-                        ×
-                    </button>
-                )}
-            </motion.div>
-        )}
-    </AnimatePresence>
-);
-
-// Success Component
-const SuccessAlert = ({ message, onClose }) => (
-    <AnimatePresence>
-        {message && (
-            <motion.div
-                initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                transition={{ duration: 0.2 }}
-                className='mb-4 p-3 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700/50 flex items-start gap-2'
-            >
-                <CheckCircle className='w-4 h-4 text-green-500 dark:text-green-400 mt-0.5 flex-shrink-0' />
-                <div className='flex-1'>
-                    <p className='text-sm text-green-700 dark:text-green-300'>{message}</p>
-                </div>
-                {onClose && (
-                    <button
-                        onClick={onClose}
-                        className='text-green-500 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 transition-colors'
-                    >
-                        ×
-                    </button>
-                )}
-            </motion.div>
-        )}
-    </AnimatePresence>
-);
-
-const InputField = ({
-    type,
-    placeholder,
-    value,
-    onChange,
-    error,
-    icon: Icon,
-    showPasswordToggle = false,
-    ...props
-}) => {
-    const [showPassword, setShowPassword] = useState(false);
-    const [isFocused, setIsFocused] = useState(false);
-
-    const inputType = type === 'password' && showPassword ? 'text' : type;
-    return (
-        <div className='relative'>
-            <div
-                className={`relative flex items-center transition-all duration-200 rounded-sm ${
-                    error
-                        ? 'ring-2 ring-red-500/50 dark:ring-red-400/50'
-                        : isFocused
-                        ? 'ring-2 ring-blue-500/50 dark:ring-blue-400/50'
-                        : ''
-                }`}
-            >
-                {Icon && (
-                    <Icon
-                        className={`absolute left-3 w-5 h-5 transition-colors z-10 ${
-                            error
-                                ? 'text-red-500 dark:text-red-400'
-                                : isFocused
-                                ? 'text-blue-500 dark:text-blue-400'
-                                : 'text-gray-400 dark:text-gray-500'
-                        }`}
-                    />
-                )}
-                <input
-                    type={inputType}
-                    placeholder={placeholder}
-                    value={value}
-                    onChange={onChange}
-                    onFocus={() => setIsFocused(true)}
-                    onBlur={() => setIsFocused(false)}
-                    className={`w-full ${Icon ? 'pl-10' : 'pl-4'} ${
-                        showPasswordToggle ? 'pr-10' : 'pr-4'
-                    } py-3 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border-0 rounded-lg text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none transition-all duration-200`}
-                    {...props}
-                />
-                {showPasswordToggle && (
-                    <button
-                        type='button'
-                        onClick={() => setShowPassword(!showPassword)}
-                        className='absolute right-3 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors'
-                    >
-                        {showPassword ? <EyeOff className='w-5 h-5' /> : <Eye className='w-5 h-5' />}
-                    </button>
-                )}
-            </div>
-            <AnimatePresence>
-                {error && (
-                    <motion.p
-                        initial={{ opacity: 0, height: 0, y: -5 }}
-                        animate={{ opacity: 1, height: 'auto', y: 0 }}
-                        exit={{ opacity: 0, height: 0, y: -5 }}
-                        transition={{ duration: 0.2 }}
-                        className='text-xs text-red-500 dark:text-red-400 mt-1 ml-1'
-                    >
-                        {error}
-                    </motion.p>
-                )}
-            </AnimatePresence>
-        </div>
-    );
-};
+import { InputField } from '../components/InputField';
+import { motion } from 'framer-motion';
+import { useDispatch } from 'react-redux';
+import { setCredentials } from '../store/userSlice';
 
 // Main Login Component
 const LoginComponent = () => {
+    const dispatch = useDispatch();
     const [formData, setFormData] = useState({
         email: 'pulitarun2432@gmail.com',
         password: '123123',
     });
     const [errors, setErrors] = useState({});
-    const [isLoading, setIsLoading] = useState(false);
     const [generalError, setGeneralError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
     const navigate = useNavigate();
 
-    const [handleLogin, { isLoading: isLoginLoading }] = useLoginMutation();
+    const [handleLogin, { isLoading }] = useLoginMutation();
 
     const validateForm = () => {
         const newErrors = {};
@@ -196,25 +67,21 @@ const LoginComponent = () => {
 
         if (!validateForm()) return;
 
-        setIsLoading(true);
         setGeneralError('');
 
         try {
             const res = await handleLogin({ email: formData.email, password: formData.password });
-
             // Simulate random success/failure for demo
             if (res?.data?.success === true) {
                 setSuccessMessage('Login successful! Redirecting...');
                 setTimeout(() => {
-                    navigate('/user-profile');
+                    navigate('/dashboard');
                 }, 2000);
             } else {
                 throw new Error(res?.error?.data?.message || 'Something went wrong. Please try again.');
             }
         } catch (error) {
             setGeneralError(error.message);
-        } finally {
-            setIsLoading(false);
         }
     };
 
@@ -302,7 +169,7 @@ const LoginComponent = () => {
                                 value={formData.email}
                                 onChange={handleInputChange('email')}
                                 error={errors.email}
-                                // icon={Mail}
+                                icon={FaEnvelope}
                                 autoComplete='email'
                             />
 
@@ -312,7 +179,7 @@ const LoginComponent = () => {
                                 value={formData.password}
                                 onChange={handleInputChange('password')}
                                 error={errors.password}
-                                // icon={Lock}
+                                icon={FaLock}
                                 showPasswordToggle={true}
                                 autoComplete='current-password'
                             />
@@ -321,7 +188,7 @@ const LoginComponent = () => {
                             <motion.button
                                 type='button'
                                 onClick={handleSubmit}
-                                disabled={isLoading}
+                                disabled={isLoading || successMessage.length > 0}
                                 className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 ${
                                     isLoading
                                         ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed'

@@ -409,6 +409,7 @@ const GridBackground = () => (
         />
     </div>
 );
+
 // Main Login Component
 const LoginComponent = () => {
     const [currentBg, setCurrentBg] = useState('blobs');

@@ -9,11 +9,13 @@ import SignUpPage from './pages/SignUpPage.jsx';
 import ForgetPasswordPage from './pages/ForgotPasswordPage.jsx';
 import ThemeToggle from './components/ThemeToggleTool.jsx';
 import { BiError } from 'react-icons/bi';
-import { TbLoader2 } from 'react-icons/tb';
 import { useCheckAuthQuery } from './api/userApi';
+import DashBoard from './pages/DashBoard.jsx';
+import Loader from './components/Loader.jsx';
 
-import { useSelector } from 'react-redux';
-import { setCredentials } from './store/userSlice.js';
+import { useDispatch, useSelector } from 'react-redux';
+import { clearCredentials, setCredentials } from './store/userSlice.js';
+import { useEffect } from 'react';
 
 const ErrorComponent = () => (
     <div className='relative min-h-[calc(100vh-3rem)] flex items-center justify-center bg-transparent overflow-hidden px-4'>
@@ -50,49 +52,61 @@ const ErrorComponent = () => (
     </div>
 );
 
-const Loader = () => {
-    return (
-        <div className='min-h-screen flex items-center justify-center'>
-            <TbLoader2 className='animate-spin size-10 text-blue-500' />
-        </div>
-    );
-};
+// const PrivateRoute = ({ children }) => {
+//     const user = useSelector((state) => state.user.user);
+//     const location = useLocation();
+
+//     if (!user) {
+//         return <Navigate to='/login' state={{ from: location }} replace />;
+//     }
+
+//     return children;
+// };
+
+// const RedirectAuthUser = ({ children }) => {
+//     const user = useSelector((state) => state.user.user);
+
+//     if (user) {
+//         const fallbackPath = '/dashboard';
+//         return <Navigate to={location.state?.from?.pathname || fallbackPath} replace />;
+//     }
+
+//     return children;
+// };
 
 const PrivateRoute = ({ children }) => {
-    // const user = useSelector((state) => state.user_api.user);
-    // console.log(user);
-    const { data, error, isLoading } = useCheckAuthQuery();
-
-    if (isLoading) return <Loader />;
-    if (error?.status === 401 || error?.status === 403) {
-        return <Navigate to='/login' replace />;
-    }
-    if (error) return <ErrorComponent />;
-
-    return data ? children : <Navigate to='/login' replace />;
+    const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
+    return isAuthenticated ? children : <Navigate to='/login' replace />;
 };
 
 const RedirectAuthUser = ({ children }) => {
-    const { data, error, isLoading } = useCheckAuthQuery();
+    const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
+    return isAuthenticated ? <Navigate to='/dashboard' replace /> : children;
+};
+
+const AuthCheck = ({ children }) => {
+    const user = useSelector((state) => state.user.user);
+    const { isLoading } = useCheckAuthQuery();
 
     if (isLoading) return <Loader />;
-    if (error?.status === 401 || error?.status === 403) return children;
-
-    return data ? <Navigate to='/k' replace /> : children;
+    if (user) return <Navigate to='/dashboard' replace />;
+    return children;
 };
 
 export default function App() {
-    const location = useLocation();
-    const hideNavbarRoutes = ['/', '/k', '/login', '/signup', '/forgot-password'];
+    const { isLoading } = useCheckAuthQuery(); // triggers setCredentials or clear
 
+    const hideNavbarRoutes = ['/', '/k', '/login', '/signup', '/forgot-password', '/dashboard'];
     const shouldShowNavbar = !hideNavbarRoutes.includes(location.pathname);
+
+    if (isLoading) return <Loader />;
 
     return (
         <div className='min-h-screen w-full flex flex-col bg-white text-black dark:bg-[#242424] dark:text-white transition-colors duration-500'>
             {shouldShowNavbar && <Navbar />}
             <main className='flex flex-1 w-full'>
+                <ThemeToggle className='absolute top-1/2 right-4 z-[200]' />
                 <div className='w-full relative'>
-                    <ThemeToggle className='absolute z-10' />
                     <Routes>
                         <Route path='/' element={<HomePage />} />
                         <Route
@@ -127,6 +141,14 @@ export default function App() {
                                 <RedirectAuthUser>
                                     <ForgetPasswordPage />
                                 </RedirectAuthUser>
+                            }
+                        />
+                        <Route
+                            path='/dashboard'
+                            element={
+                                <PrivateRoute>
+                                    <DashBoard />
+                                </PrivateRoute>
                             }
                         />
                         <Route path='/user-profile' element={<PrivateRoute>{'User Profile'}</PrivateRoute>} />

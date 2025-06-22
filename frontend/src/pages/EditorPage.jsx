@@ -1,4 +1,3 @@
-import React from 'react';
 import Editor from '../components/Editor';
 import Chat from '../components/chat';
 import Navbar from '../components/Navbar';
