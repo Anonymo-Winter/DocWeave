@@ -16,7 +16,12 @@ const mongo_url = process.env.MONGO_URL;
 
 app.use(
     cors({
-        origin: 'http://localhost:5173',
+        origin: [
+            'http://localhost:5173',
+            'http://localhost:5174',
+            'http://192.168.200.30:5173',
+            'http://192.168.200.30:5174',
+        ],
         methods: ['GET', 'POST'],
         credentials: true,
     }),
@@ -35,7 +40,7 @@ app.get('/', verifyToken, (req, res) => {
 const server = createServer(app);
 setupSocketIo(server);
 
-server.listen(port, () => {
+server.listen(port, '0.0.0.0', () => {
     connectDB(mongo_url);
     console.log('⚡ server is running on port:' + port);
 });

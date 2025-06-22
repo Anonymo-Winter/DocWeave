@@ -22,10 +22,10 @@ export const login = async (req, res) => {
             return res.status(400).json({ message: 'Invalid credentials. Please check your email and password.' });
         }
         res.cookie('token', createToken(email, user.id), {
-            maxAge: 1 * 24 * 60 * 60 * 1000,
+            maxAge: 1 * 24 * 60 * 60 * 1000, // 1 day
             httpOnly: true,
-            secure: true,
-            sameSite: 'strict',
+            secure: false, // ⛔ must be false for HTTP (local testing on LAN)
+            sameSite: 'Lax', // ✅ allows cross-origin from mobile if origins match
         });
         user.password = undefined;
         return res.status(200).json({
@@ -41,6 +41,7 @@ export const login = async (req, res) => {
 
 export const register = async (req, res) => {
     const { email, password, name } = req.body;
+    console.log(req.body);
     try {
         if (!email || !password || !name) {
             return res.status(400).json({ message: 'Please provide name, email, and password.' });
@@ -63,10 +64,10 @@ export const register = async (req, res) => {
 
         // // Set secure cookie
         res.cookie('token', createToken(email, user.id), {
-            maxAge: 24 * 60 * 60 * 1000, // 1 day
+            maxAge: 1 * 24 * 60 * 60 * 1000, // 1 day
             httpOnly: true,
-            secure: true,
-            sameSite: 'strict',
+            secure: false, // ⛔ must be false for HTTP (local testing on LAN)
+            sameSite: 'Lax', // ✅ allows cross-origin from mobile if origins match
         });
 
         // Do not expose password
@@ -94,5 +95,16 @@ export const checkAuth = async (req, res) => {
     } catch (error) {
         console.log('Failed to check auth : ', error.message);
         return res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+export const logout = async (req, res) => {
+    try {
+        res.clearCookie('token');
+
+        return res.status(200).json({ success: true, message: 'Logout successful' });
+    } catch (error) {
+        console.log('Failed to logout : ', error.message);
+        return res.status(500).json({ message: 'Internal server error' });
     }
 };
