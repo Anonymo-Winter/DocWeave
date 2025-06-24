@@ -3,8 +3,8 @@ import User from '../models/user.model.js';
 import Document from '../models/document.model.js';
 
 import jwt from 'jsonwebtoken';
-const createToken = (email, id) => {
-    return jwt.sign({ email, id }, process.env.JWT_KEY, { expiresIn: 1 * 24 * 60 * 60 * 1000 });
+const createToken = (email, name, id) => {
+    return jwt.sign({ email, name, id }, process.env.JWT_KEY, { expiresIn: '1d' });
 };
 
 export const login = async (req, res) => {
@@ -21,7 +21,8 @@ export const login = async (req, res) => {
         if (!isPassword) {
             return res.status(400).json({ message: 'Invalid credentials. Please check your email and password.' });
         }
-        res.cookie('token', createToken(email, user.id), {
+        const token = createToken(email, user.name, user.id);
+        res.cookie('token', token, {
             maxAge: 1 * 24 * 60 * 60 * 1000, // 1 day
             httpOnly: true,
             secure: false, // ⛔ must be false for HTTP (local testing on LAN)
@@ -31,6 +32,7 @@ export const login = async (req, res) => {
         return res.status(200).json({
             message: 'Login Successfull',
             user: user,
+            token: token,
             success: true,
         });
     } catch (error) {
@@ -63,7 +65,8 @@ export const register = async (req, res) => {
         }
 
         // // Set secure cookie
-        res.cookie('token', createToken(email, user.id), {
+        const token = createToken(email, name, user.id);
+        res.cookie('token', token, {
             maxAge: 1 * 24 * 60 * 60 * 1000, // 1 day
             httpOnly: true,
             secure: false, // ⛔ must be false for HTTP (local testing on LAN)
@@ -76,6 +79,7 @@ export const register = async (req, res) => {
         return res.status(201).json({
             success: true,
             message: 'Registration successful! Welcome aboard.',
+            token,
             user,
         });
     } catch (error) {
@@ -100,7 +104,11 @@ export const checkAuth = async (req, res) => {
 
 export const logout = async (req, res) => {
     try {
-        res.clearCookie('token');
+        res.clearCookie('token', {
+            httpOnly: true,
+            secure: false,
+            sameSite: 'Lax',
+        });
 
         return res.status(200).json({ success: true, message: 'Logout successful' });
     } catch (error) {
