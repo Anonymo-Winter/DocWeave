@@ -4,7 +4,7 @@ import { useSocket } from '../context/socketContext';
 import { getTailwindColorClasses } from '../util/colorMapper';
 import { SendHorizonal, X } from 'lucide-react';
 
-const Chat = ({ handleMessageSubmit }) => {
+const Chat = ({ handleMessageSubmit, setIsChatVisible }) => {
     const { socket } = useSocket();
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
@@ -52,6 +52,7 @@ const Chat = ({ handleMessageSubmit }) => {
                 <X
                     className='cursor-pointer text-white'
                     onClick={() => {
+                        setIsChatVisible(false);
                         document.querySelector('.active-chats').style.display = 'none';
                         document.querySelector('.active-chats').style.visibility = 'hidden';
                     }}

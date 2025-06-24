@@ -65,7 +65,10 @@ import { Redo2, Undo2 } from 'lucide-react';
 import { useSocket } from '../context/socketContext.jsx';
 import { toast } from 'sonner';
 import { tailwindColorNames } from '../util/colorMapper.js';
-import { encodeAwarenessUpdate } from 'y-protocols/awareness.js';
+import { Awareness, encodeAwarenessUpdate } from 'y-protocols/awareness.js';
+import { useSelector } from 'react-redux';
+
+import * as Y from 'yjs';
 
 const MainToolbarContent = ({ onHighlighterClick, onLinkClick, isMobile, editor }) => {
     return (
@@ -148,6 +151,7 @@ const MobileToolbarContent = ({ type, onBack }) => (
 );
 
 export function SimpleEditor() {
+    const user = useSelector((state) => state.user.user);
     const isMobile = useMobile();
     const windowSize = useWindowSize();
     const [mobileView, setMobileView] = React.useState('main');
@@ -197,51 +201,79 @@ export function SimpleEditor() {
     });
 
     const editorRef = React.useRef(null);
+    const [assignedColor, setAssignedColor] = React.useState(null);
 
     React.useEffect(() => {
-        if (editor && editorRef.current !== editor) {
-            editorRef.current = editor; // Mark that we’ve already initialized Yjs on this instance
+        if (!editor) {
+            console.warn('[❌] Editor not ready yet');
+            return;
+        }
 
-            const roomId = 'doc123';
+        if (!socket?.current) {
+            console.warn('[❌] Socket not ready yet');
+            return;
+        }
 
-            const colorNames = Object.keys(tailwindColorNames);
+        if (editorRef.current === editor) {
+            console.warn('[❌] Editor already set up');
+            return;
+        }
 
-            // Pick a random name
-            const randomColorName = colorNames[Math.floor(Math.random() * colorNames.length)];
+        const roomId = 'doc123';
+        const ydoc = new Y.Doc();
+        const awareness = new Awareness(ydoc);
 
-            // Create or retrieve user metadata
-            const userMeta = JSON.parse(localStorage.getItem('user-detail') || 'null') || {
-                name: 'Tarun' + Math.floor(Math.random() * 1000),
-                color: randomColorName,
+        // Request color first
+        socket.current.emit('request-color', { roomId }, ({ color, error }) => {
+            if (error) {
+                console.error('Failed to get color:', error);
+                return;
+            }
+
+            console.log('✅ Color received:', color);
+            setAssignedColor(color); // store in state if needed
+
+            const userMeta = {
+                name: user?.name || 'Anonymous',
+                color,
             };
 
-            localStorage.setItem('user-detail', JSON.stringify(userMeta));
+            console.log('🧠 Setting up Yjs with userMeta:', userMeta);
 
-            const { awareness, ydoc } = setupYjs(editor, roomId, userMeta, socket.current);
+            socket.current.emit('join-room', { roomId, clientID: awareness.clientID });
 
-            const cleanup = () => {
-                awareness.setLocalState(null);
-            };
+            awareness.setLocalStateField('user', userMeta);
 
+            // Setup Yjs after color received
+            setupYjs(editor, roomId, userMeta, socket.current, ydoc);
+
+            // Set cleanup handlers
+            const cleanup = () => awareness.setLocalState(null);
             window.addEventListener('beforeunload', cleanup);
 
-            return () => {
-                const update = encodeAwarenessUpdate(awareness, [], [], [awareness.clientID]);
-                socket.current?.emit('awareness-update', update);
-                awareness.setLocalState(null);
-                ydoc.destroy();
+            // Track and store cleanup
+            editorRef.current = {
+                destroy: () => {
+                    const update = encodeAwarenessUpdate(awareness, [], [], [awareness.clientID]);
+                    socket.current?.emit('awareness-update', update);
+                    awareness.setLocalState(null);
+                    ydoc.destroy();
 
-                if (socket.current) {
-                    socket.current.off('sync');
-                    socket.current.off('update');
-                    socket.current.off('awareness-update');
-                    socket.current.emit('leave-room', { roomId });
-                }
+                    socket.current?.off('sync');
+                    socket.current?.off('update');
+                    socket.current?.off('awareness-update');
+                    socket.current?.emit('leave-room', { roomId });
 
-                window.removeEventListener('beforeunload', cleanup);
+                    window.removeEventListener('beforeunload', cleanup);
+                },
             };
-        }
-    }, [editor]);
+        });
+
+        // Cleanup on unmount
+        return () => {
+            editorRef.current?.destroy?.();
+        };
+    }, [editor, socket.current]);
 
     React.useEffect(() => {
         if (!isMobile && mobileView !== 'main') {

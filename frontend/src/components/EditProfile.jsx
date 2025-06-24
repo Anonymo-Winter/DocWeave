@@ -17,8 +17,6 @@ const ProfileEditModal = ({ user }) => {
     const [generalError, setGeneralError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    console.log(user);
-
     // Maximum file size: 2MB (industry standard for profile pictures)
     const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB in bytes
 

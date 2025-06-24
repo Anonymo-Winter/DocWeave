@@ -5,8 +5,7 @@ import { keymap } from 'prosemirror-keymap';
 import { yCursorPlugin } from './y-cursor-plugin';
 import { selectionAwarenessPlugin } from './selection-awareness-plugin';
 
-export function setupYjs(editor, roomId, user, socket) {
-    const ydoc = new Y.Doc();
+export function setupYjs(editor, roomId, user, socket, ydoc) {
     const type = ydoc.getXmlFragment('prosemirror');
     const awareness = new Awareness(ydoc);
 
@@ -20,20 +19,13 @@ export function setupYjs(editor, roomId, user, socket) {
     });
 
     // Trigger re-render of decorations
-    awareness.on('change', () => {
-        editor.view.dispatch(editor.view.state.tr);
-    });
 
     // Handle incoming awareness update
     socket.on('awareness-update', (update) => {
         applyAwarenessUpdate(awareness, new Uint8Array(update));
     });
 
-    // Join room and send clientID
-    socket.emit('join-room', {
-        roomId,
-        clientID: awareness.clientID,
-    });
+    console.log('🔌 [setupYjs] Emitting join-room:', roomId, 'ClientID:', awareness.clientID);
 
     socket.on('sync', (update) => {
         Y.applyUpdate(ydoc, new Uint8Array(update));
@@ -46,6 +38,11 @@ export function setupYjs(editor, roomId, user, socket) {
     socket.on('disconnect', () => {
         const update = encodeAwarenessUpdate(awareness, [], [], [awareness.clientID]);
         socket.emit('awareness-update', update);
+    });
+    awareness.on('change', () => {
+        // setTimeout(() => {
+        editor.view.dispatch(editor.view.state.tr);
+        // }, 30); // 30–50ms usually works well
     });
 
     ydoc.on('update', (update, origin) => {

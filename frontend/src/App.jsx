@@ -13,9 +13,7 @@ import { useCheckAuthQuery } from './api/userApi';
 import DashBoard from './pages/DashBoard.jsx';
 import Loader from './components/Loader.jsx';
 
-import { useDispatch, useSelector } from 'react-redux';
-import { clearCredentials, setCredentials } from './store/userSlice.js';
-import { useEffect } from 'react';
+import { useSelector } from 'react-redux';
 
 const ErrorComponent = () => (
     <div className='relative min-h-[calc(100vh-3rem)] flex items-center justify-center bg-transparent overflow-hidden px-4'>
@@ -52,28 +50,6 @@ const ErrorComponent = () => (
     </div>
 );
 
-// const PrivateRoute = ({ children }) => {
-//     const user = useSelector((state) => state.user.user);
-//     const location = useLocation();
-
-//     if (!user) {
-//         return <Navigate to='/login' state={{ from: location }} replace />;
-//     }
-
-//     return children;
-// };
-
-// const RedirectAuthUser = ({ children }) => {
-//     const user = useSelector((state) => state.user.user);
-
-//     if (user) {
-//         const fallbackPath = '/dashboard';
-//         return <Navigate to={location.state?.from?.pathname || fallbackPath} replace />;
-//     }
-
-//     return children;
-// };
-
 const PrivateRoute = ({ children }) => {
     const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
     return isAuthenticated ? children : <Navigate to='/login' replace />;
@@ -96,7 +72,16 @@ const AuthCheck = ({ children }) => {
 export default function App() {
     const { isLoading } = useCheckAuthQuery(); // triggers setCredentials or clear
 
-    const hideNavbarRoutes = ['/', '/k', '/login', '/signup', '/forgot-password', '/dashboard'];
+    const hideNavbarRoutes = [
+        '/',
+        '/k',
+        '/login',
+        '/signup',
+        '/forgot-password',
+        '/dashboard',
+        '/editor',
+        '/editor/:id',
+    ];
     const shouldShowNavbar = !hideNavbarRoutes.includes(location.pathname);
 
     if (isLoading) return <Loader />;

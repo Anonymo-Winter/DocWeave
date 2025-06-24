@@ -30,4 +30,11 @@ export default {
         },
     ],
     plugins: [],
+    extend: {
+        colors: {
+            popover: 'hsl(var(--popover))',
+            'popover-foreground': 'hsl(var(--popover-foreground))',
+            border: 'hsl(var(--border))',
+        },
+    },
 };

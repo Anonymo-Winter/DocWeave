@@ -1,92 +1,3 @@
-// const DropDown = ({ user, handleLogout }) => {
-//     useEffect(() => {
-//         if (!user) {
-//             toast.info('Your details are missing. Please login again.');
-//         }
-//     }, [user]);
-
-//     if (!user) return null;
-//     return (
-//         <DropdownMenu>
-//             <DropdownMenuTrigger
-//                 asChild
-//                 className='border-3 border-transparent hover:ring-1 hover:ring-gray-700 hover:dark:ring-gray-400 h-[90%] w-11 cursor-pointer'
-//             >
-//                 <Avatar className='h-11'>
-//                     <AvatarImage src='https://github.com/evilrabbit.png' />
-//                     <AvatarFallback className='bg-gray-700 dark:bg-gray-400 text-2xl font-semibold text-white'>
-//                         {user?.name.split(' ').length > 1
-//                             ? user?.name.split(' ')[0][0].toUpperCase() + user?.name.split(' ')[1][0]
-//                             : user?.name.split(' ')[0][0].toUpperCase()}
-//                     </AvatarFallback>
-//                 </Avatar>
-//             </DropdownMenuTrigger>
-//             <DropdownMenuContent className='w-56' align='center'>
-//                 <DropdownMenuLabel className='font-normal'>
-//                     <p className='font-semibold'>{user?.name}</p>
-//                     <span className='text-sm'>{user?.email}</span>
-//                 </DropdownMenuLabel>
-//                 <DropdownMenuSeparator />
-//                 <DropdownMenuItem
-//                     className='flex items-center justify-start gap-0'
-//                     onSelect={(e) => e.preventDefault()}
-//                     asChild
-//                 >
-//                     <ProfileEditModal user={user} />
-//                 </DropdownMenuItem>
-
-//                 <DropdownMenuItem className='flex items-center justify-start gap-0'>
-//                     <button
-//                         className='flex items-center gap-2 w-full px-2 py-1 text-left cursor-pointer'
-//                         onClick={handleLogout} // optional extra safety
-//                     >
-//                         <LogOut className='mr-1 size-5 text-red-500' />
-//                         <span>Logout</span>
-//                     </button>
-//                 </DropdownMenuItem>
-//             </DropdownMenuContent>
-//         </DropdownMenu>
-//     );
-// };
-
-// const NavBar = ({ className }) => {
-//     const user = useSelector((state) => state.user.user);
-//     const [logout] = useLogoutMutation();
-//     const navigate = useNavigate();
-
-//     const handleLogout = async () => {
-//         try {
-//             const res = await logout().unwrap();
-//             if (res?.success) {
-//                 toast.success('Logout successful...');
-//                 setTimeout(() => navigate('/login'), 2000);
-//             } else {
-//                 toast.error('Logout failed.');
-//             }
-//         } catch (error) {
-//             toast.error('Something went wrong.');
-//         }
-//     };
-
-//     return (
-//         <div
-//             className={`${className} bg-white border border-stone-200 dark:bg-neutral-800 dark:border-neutral-700 flex items-center justify-between px-20 shadow`}
-//         >
-//             <div className='flex items-center justify-center gap-2'>
-//                 <img src={logo3} alt='logo' className='h-11 w-11' />
-//                 <span className='text-2xl font-semibold ' style={{ fontFamily: 'cursive' }}>
-//                     CollabDocs
-//                 </span>
-//             </div>
-//             {user && (
-//                 <div className='flex gap-2 items-center'>
-//                     <DropDown user={user} handleLogout={handleLogout} />
-//                 </div>
-//             )}
-//         </div>
-//     );
-// };
-
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -129,12 +40,7 @@ import { useNavigate } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggleTool';
 import { TbFileTypeDoc } from 'react-icons/tb';
 
-// Mock user data
-const mockUser = {
-    name: 'Alex Johnson',
-    email: 'alex.johnson@example.com',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
-};
+import { cn } from '@/lib/utils';
 
 // Mock documents data
 const mockDocuments = [
@@ -236,8 +142,25 @@ const templates = [
     { id: 4, name: 'Report', icon: '📈', description: 'Detailed report template' },
 ];
 
-// // Dropdown Menu Component
-const DropDown = ({ user, handleLogout }) => {
+export const DropDown = () => {
+    const user = useSelector((state) => state.user.user);
+    const [logout] = useLogoutMutation();
+    const navigate = useNavigate();
+
+    const handleLogout = async () => {
+        try {
+            const res = await logout().unwrap();
+            if (res?.success) {
+                toast.success('Logout successful');
+                setTimeout(() => navigate('/login'), 1500);
+            } else {
+                toast.error('Logout failed');
+            }
+        } catch {
+            toast.error('Something went wrong.');
+        }
+    };
+
     useEffect(() => {
         if (!user) {
             toast.info('Your details are missing. Please login again.');
@@ -245,42 +168,53 @@ const DropDown = ({ user, handleLogout }) => {
     }, [user]);
 
     if (!user) return null;
+
+    const getInitials = () => {
+        const names = user?.name.split(' ');
+        return names.length >= 2 ? names[0][0].toUpperCase() + names[1][0].toUpperCase() : names[0][0].toUpperCase();
+    };
+
     return (
         <DropdownMenu>
-            <DropdownMenuTrigger
-                asChild
-                className='border-3 border-transparent hover:ring-1 hover:ring-gray-700 hover:dark:ring-gray-400 h-[90%] w-11 cursor-pointer'
-            >
-                <Avatar className='h-11'>
-                    <AvatarImage src='https://github.com/evilrabbit.png' />
-                    <AvatarFallback className='bg-gray-700 dark:bg-gray-400 text-2xl font-semibold text-white'>
-                        {user?.name.split(' ').length > 1
-                            ? user?.name.split(' ')[0][0].toUpperCase() + user?.name.split(' ')[1][0]
-                            : user?.name.split(' ')[0][0].toUpperCase()}
-                    </AvatarFallback>
-                </Avatar>
+            <DropdownMenuTrigger asChild>
+                <button
+                    aria-label='User menu'
+                    className={cn(
+                        `w-10 h-10 rounded-full
+                        flex items-center justify-center focus:outline-none
+                        transition-all duration-200 ease-in-out
+                        hover:bg-green-600/30 hover:dark:bg-green-400/20`,
+                        'data-[state=open]:bg-green-600/30 data-[state=open]:dark:bg-green-400/20 data-[state=closed]:bg-transparent',
+                    )}
+                >
+                    <Avatar>
+                        <AvatarFallback className='bg-gradient-to-br from-green-400 to-blue-500 text-white font-medium'>
+                            {getInitials()}
+                        </AvatarFallback>
+                    </Avatar>
+                </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className='w-56' align='center'>
+
+            <DropdownMenuContent className='w-56' align='end'>
                 <DropdownMenuLabel className='font-normal'>
                     <p className='font-semibold'>{user?.name}</p>
-                    <span className='text-sm'>{user?.email}</span>
+                    <span className='text-sm text-muted-foreground'>{user?.email}</span>
                 </DropdownMenuLabel>
+
                 <DropdownMenuSeparator />
-                <DropdownMenuItem
-                    className='flex items-center justify-start gap-0'
-                    onSelect={(e) => e.preventDefault()}
-                    asChild
-                >
+
+                <DropdownMenuItem asChild onSelect={(e) => e.preventDefault()}>
                     <ProfileEditModal user={user} />
                 </DropdownMenuItem>
 
-                <DropdownMenuItem className='flex items-center justify-start gap-0'>
+                <DropdownMenuItem>
                     <button
-                        className='flex items-center gap-2 w-full px-2 py-1 text-left cursor-pointer'
-                        onClick={handleLogout} // optional extra safety
+                        onClick={handleLogout}
+                        className='flex items-center gap-2 w-full text-left focus:outline-none'
+                        aria-label='Logout from your account'
                     >
-                        <LogOut className='mr-1 size-5 text-red-500' />
-                        <span>Logout</span>
+                        <LogOut className='size-5 text-red-500' />
+                        <span className='text-sm font-medium'>Logout</span>
                     </button>
                 </DropdownMenuItem>
             </DropdownMenuContent>
@@ -290,45 +224,65 @@ const DropDown = ({ user, handleLogout }) => {
 
 // Navigation Bar
 const NavBar = () => {
-    const user = useSelector((state) => state.user.user);
-    const [logout] = useLogoutMutation();
     const navigate = useNavigate();
-
-    const handleLogout = async () => {
-        try {
-            const res = await logout().unwrap();
-            if (res?.success) {
-                toast.success('Logout successful...');
-                setTimeout(() => navigate('/login'), 2000);
-            } else {
-                toast.error('Logout failed.');
-            }
-        } catch (error) {
-            toast.error('Something went wrong.');
-        }
-    };
 
     return (
         <nav className='h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-6 lg:px-8'>
             <div className='flex items-center gap-3 cursor-pointer' onClick={() => navigate('/')}>
-                <div className='w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center'>
-                    {/* <span className='text-white font-bold text-sm'>CD</span> */}
-                    <TbFileTypeDoc className='text-white w-6 h-6' />
-
-                    {/* <img src={logo3} alt='logo' className='h-11 w-11' /> */}
+                <div className='flex items-center gap-3'>
+                    <div className='w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center'>
+                        <TbFileTypeDoc className='text-white size-7' />
+                    </div>
+                    <span
+                        className='font-bold text-xl text-gray-900 dark:text-white tracking-tight'
+                        style={{ fontFamily: 'cursive' }}
+                    >
+                        CollabDocs
+                    </span>
                 </div>
-                <h1 className='text-xl font-bold text-gray-900 dark:text-white' style={{ fontFamily: 'cursive' }}>
-                    CollabDocs
-                </h1>
             </div>
 
             <div className='flex items-center gap-2'>
                 <ThemeToggle />
-                <DropDown user={user} handleLogout={handleLogout} />
+                <DropDown />
             </div>
         </nav>
     );
 };
+
+// const NavBar = () => {
+//     const navigate = useNavigate();
+
+//     return (
+//         <nav className='h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between bg-white dark:bg-gray-900 border-b border-border'>
+//             <div
+//                 className='flex items-center gap-3 cursor-pointer'
+//                 onClick={() => navigate('/')}
+//                 aria-label='Go to homepage'
+//             >
+//                 <div className='w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center'>
+//                     <TbFileTypeDoc className='text-white size-6' />
+//                 </div>
+//                 <div className='flex items-center gap-2'>
+//                     <span
+//                         className='font-bold text-xl text-gray-900 dark:text-white tracking-tight'
+//                         style={{ fontFamily: 'cursive' }}
+//                     >
+//                         CollabDocs
+//                     </span>
+//                     <span className='text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full font-medium'>
+//                         Editor
+//                     </span>
+//                 </div>
+//             </div>
+
+//             <div className='flex items-center gap-4'>
+//                 <ThemeToggle />
+//                 <DropDown />
+//             </div>
+//         </nav>
+//     );
+// };
 
 // Template Card
 const TemplateCard = ({ template, onClick }) => (

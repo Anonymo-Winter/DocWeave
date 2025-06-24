@@ -1,6 +1,6 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
-import { clearCredentials, setCredentials } from '../store/userSlice';
+import { clearCredentials, setCredentials, setToken } from '../store/userSlice';
 
 const hostname = window.location.hostname;
 const backendUrl = hostname === 'localhost' ? 'http://localhost:5000/api' : 'http://192.168.200.30:5000/api';
@@ -30,6 +30,7 @@ export const userApi = createApi({
                 try {
                     const { data } = await queryFulfilled;
                     setTimeout(() => dispatch(setCredentials(data.user)), 3000);
+                    dispatch(setToken(data.token));
                 } catch (err) {
                     console.error('Login error:', err);
                 }
@@ -46,6 +47,7 @@ export const userApi = createApi({
                 try {
                     const { data } = await queryFulfilled;
                     dispatch(setCredentials(data.user));
+                    dispatch(setToken(data.token));
                 } catch (err) {
                     console.error('Signup error:', err);
                 }
@@ -58,8 +60,8 @@ export const userApi = createApi({
                 try {
                     const { data } = await queryFulfilled;
                     setTimeout(() => dispatch(setCredentials(data.user)), 2000);
-                } catch (error) {
-                    dispatch(clearCredentials());
+                } catch (e) {
+                    // console.error('Check auth error:', error);
                 }
             },
         }),
