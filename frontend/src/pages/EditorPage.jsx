@@ -2,12 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
     MessageSquareMore,
     Share2,
-    Users,
     History,
-    Settings,
     Eye,
     Edit,
-    Crown,
     Copy,
     Check,
     X,
@@ -16,19 +13,23 @@ import {
     Smile,
     Send,
     Paperclip,
-    MoreVertical,
-    Download,
-    FileText,
     Lock,
-    Unlock,
     Menu,
     CheckCheck,
 } from 'lucide-react';
 import { TbFileTypeDoc } from 'react-icons/tb';
-import { cn } from '../lib/utils';
 import ConnectionStatus from '../components/ConnectionStatus';
 import { IoMdInformationCircle } from 'react-icons/io';
-
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuLabel,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '../components/ui/dropdown-menu';
+import { Button } from '../components/ui/button';
 // Mock data for collaborators
 const mockCollaborators = [
     {
@@ -130,22 +131,6 @@ const emojiCategories = {
         '📊',
     ],
 };
-
-// const ConnectionStatusIndicator = ({ connectionStatus = {} }) => {
-//     const status = connectionStatus.connected ? 'connected' : 'disconnected';
-//     const statusColors = {
-//         connected: 'bg-green-500',
-//         disconnected: 'bg-red-500',
-//     };
-
-//     return (
-//         <div className='flex items-center gap-2'>
-//             <div className={`w-2 h-2 rounded-full ${statusColors[status]}`}></div>
-//             <span className='text-xs text-gray-600 dark:text-gray-400 capitalize hidden sm:inline'>{status}</span>
-//         </div>
-//     );
-// };
-
 const ShareModal = ({ isOpen, onClose }) => {
     const [shareLink] = useState('https://collabdocs.app/doc/abc123xyz');
     const [copied, setCopied] = useState(false);
@@ -297,50 +282,49 @@ const VersionHistoryModal = ({ isOpen, onClose }) => {
 };
 
 const UserRoleSelector = ({ currentRole, onRoleChange }) => {
-    const [isOpen, setIsOpen] = useState(false);
-
     const roles = [
         { value: 'viewer', label: 'Viewer', icon: Eye, description: 'Can only view the document' },
-        { value: 'commenter', label: 'Commenter', icon: MessageSquareMore, description: 'Can view and comment' },
         { value: 'editor', label: 'Editor', icon: Edit, description: 'Can view, comment, and edit' },
     ];
 
     const CurrentRole = roles.find((role) => role.value === currentRole);
 
     return (
-        <div className='relative'>
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className='flex items-center gap-2 px-2 sm:px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors'
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <button className='flex items-center gap-2 px-2 sm:px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors'>
+                    <CurrentRole.icon size={16} />
+                    <span className='text-sm font-medium hidden lg:inline'>{CurrentRole.label}</span>
+                    <ChevronDown size={14} className='hidden sm:block' />
+                </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+                // className='w-56'
+                className='bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-10 min-w-48'
             >
-                <CurrentRole.icon size={16} />
-                <span className='text-sm font-medium hidden lg:inline'>{CurrentRole.label}</span>
-                <ChevronDown size={14} className='hidden sm:block' />
-            </button>
-
-            {isOpen && (
-                <div className='absolute top-full mt-1 right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-10 min-w-48'>
+                <DropdownMenuRadioGroup>
                     {roles.map((role) => (
-                        <button
-                            key={role.value}
-                            onClick={() => {
-                                onRoleChange(role.value);
-                                setIsOpen(false);
-                            }}
-                            className={`w-full flex items-start gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
-                                role.value === currentRole ? 'bg-blue-50 dark:bg-blue-900/20' : ''
-                            }`}
-                        >
-                            <role.icon size={16} className='mt-0.5' />
-                            <div className='text-left'>
-                                <div className='text-sm font-medium'>{role.label}</div>
-                                <div className='text-xs text-gray-500'>{role.description}</div>
-                            </div>
-                        </button>
+                        <DropdownMenuItem>
+                            <button
+                                key={role.value}
+                                onClick={() => {
+                                    onRoleChange(role.value);
+                                }}
+                                className={`w-full flex items-start gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
+                                    role.value === currentRole ? 'bg-gray-100 dark:bg-gray-600' : ''
+                                }`}
+                            >
+                                <role.icon size={16} className='mt-0.5' />
+                                <div className='text-left'>
+                                    <div className='text-sm font-medium'>{role.label}</div>
+                                    <div className='text-xs text-gray-500'>{role.description}</div>
+                                </div>
+                            </button>
+                        </DropdownMenuItem>
                     ))}
-                </div>
-            )}
-        </div>
+                </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+        </DropdownMenu>
     );
 };
 
@@ -385,22 +369,13 @@ const EmojiPicker = ({ isOpen, onSelect, onClose }) => {
     );
 };
 
-const EnhancedChat = ({ setIsChatVisible, currentUserRole, activeUsers }) => {
-    const { socket, isConnected, assignedColor } = useSocket();
+const EnhancedChat = ({ setIsChatVisible, currentUserRole, activeUsers, messages, setMessages }) => {
     const user = useSelector((state) => state.user.user);
-    const [messages, setMessages] = useState([
-        {
-            id: 1,
-            message: 'Welcome to the collaboration! 🎉',
-            user: { name: 'System', color: '#6B7280' },
-            timestamp: new Date().toISOString(),
-            type: 'system',
-        },
-    ]);
     const [input, setInput] = useState('');
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
+    const { socket, isConnected, assignedColor } = useSocket();
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -409,24 +384,6 @@ const EnhancedChat = ({ setIsChatVisible, currentUserRole, activeUsers }) => {
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
-
-    useEffect(() => {
-        if (socket.current) {
-            socket.current.on('message', (data) => {
-                setMessages((prev) => [...prev, data]);
-            });
-
-            socket.current.on('message-notification', (data) => {
-                setMessages((prev) => [...prev, data]);
-            });
-        }
-        return () => {
-            if (socket.current) {
-                socket.current.off('message');
-                socket.current.off('message-notification');
-            }
-        };
-    }, [socket.current]);
 
     const handleSend = async () => {
         if (input.trim() && currentUserRole !== 'viewer') {
@@ -488,7 +445,7 @@ const EnhancedChat = ({ setIsChatVisible, currentUserRole, activeUsers }) => {
     return (
         <div className='flex flex-col justify-between h-full bg-white dark:bg-gray-900'>
             {/* Enhanced Header */}
-            <div className='bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-3 flex items-center justify-between'>
+            <div className='bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-3 flex items-center rounded-t-lg justify-between'>
                 <div className='flex items-center gap-3'>
                     <MessageSquareMore className='text-white' size={20} />
                     <div>
@@ -703,9 +660,9 @@ const EnhancedNavbar = ({
                             defaultValue='Untitled Document'
                             className='ml-2 bg-transparent text-gray-900 dark:text-white font-medium focus:outline-none focus:bg-gray-50 dark:focus:bg-gray-800 px-2 py-1 rounded'
                         />
-                        {/* <span className='text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full font-medium'>
+                        <span className='text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full font-medium'>
                             Editor
-                        </span> */}
+                        </span>
                     </div>
                 </div>
 
@@ -718,7 +675,7 @@ const EnhancedNavbar = ({
                             <button
                                 aria-label='Show collaborators'
                                 onClick={() => setShowCollaborators((show) => !show)}
-                                className='flex -space-x-2 space-x-0 hover:space-x-1 transition-all duration-200'
+                                className='flex space-x-0 hover:space-x-1 transition-all duration-200'
                             >
                                 {mockCollaborators.slice(0, 3).map((c, i) => (
                                     <Avatar key={c.id} collab={c} index={i} />
@@ -894,18 +851,53 @@ import Editor from '../components/Editor';
 import { useSocket } from '../context/socketContext';
 import { useSelector } from 'react-redux';
 import { toast } from 'sonner';
-import { set } from 'mongoose';
+import { DropdownMenuItem } from '@radix-ui/react-dropdown-menu';
 
 const EnhancedEditorLayout = () => {
-    const [isChatVisible, setIsChatVisible] = useState(true);
+    const [isChatVisible, setIsChatVisible] = useState(false);
+    const isChatVisibleRef = useRef(isChatVisible);
     const [currentUserRole, setCurrentUserRole] = useState('editor');
     const [showShareModal, setShowShareModal] = useState(false);
     const [showVersionHistory, setShowVersionHistory] = useState(false);
-    const { activeUsers } = useSocket();
+    const { socket, isConnected, assignedColor, activeUsers } = useSocket();
 
-    const handleMessageSubmit = (data, user) => {
-        console.log('Message submitted:', data, user);
-    };
+    const [messages, setMessages] = useState([
+        {
+            message: 'Welcome to the collaboration! 🎉',
+            user: { name: 'System', color: '#6B7280' },
+            type: 'system',
+        },
+    ]);
+
+    // Keep ref in sync with latest state
+    useEffect(() => {
+        isChatVisibleRef.current = isChatVisible;
+    }, [isChatVisible]);
+
+    console.log(isChatVisible);
+    useEffect(() => {
+        if (socket.current) {
+            socket.current.on('message', (data) => {
+                if (isChatVisibleRef.current === false) {
+                    toast.info(`📢 New message from ${data.user?.name || 'Anonymous'}`, {
+                        description: data.message,
+                        duration: 5000,
+                    });
+                }
+                setMessages((prev) => [...prev, data]);
+            });
+
+            socket.current.on('message-notification', (data) => {
+                setMessages((prev) => [...prev, data]);
+            });
+        }
+        return () => {
+            if (socket.current) {
+                socket.current.off('message');
+                socket.current.off('message-notification');
+            }
+        };
+    }, [socket.current]);
 
     return (
         <div className='min-h-screen w-full flex flex-col bg-white text-black dark:bg-gray-900 dark:text-white transition-colors duration-300'>
@@ -920,7 +912,7 @@ const EnhancedEditorLayout = () => {
 
             <div className='flex flex-1 h-full w-full overflow-hidden'>
                 {/* Editor Section */}
-                <section className='flex-1 border min-w-0 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex flex-col p-2 sm:p-4 '>
+                <section className='flex-1 min-w-0 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex flex-col p-2 sm:p-4 '>
                     <Editor />
                 </section>
 
@@ -929,9 +921,11 @@ const EnhancedEditorLayout = () => {
                     <aside className='active-chats w-full shadow-xl shadow-gray-200 dark:shadow-gray-800 md:w-[400px] max-w-[450px] min-w-[320px] bg-gray-50 dark:bg-gray-800 flex flex-col h-full overflow-hidden'>
                         <EnhancedChat
                             activeUsers={activeUsers}
-                            handleMessageSubmit={handleMessageSubmit}
+                            isChatVisible={isChatVisible}
                             setIsChatVisible={setIsChatVisible}
                             currentUserRole={currentUserRole}
+                            messages={messages}
+                            setMessages={setMessages}
                         />
                     </aside>
                 )}
