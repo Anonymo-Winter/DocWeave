@@ -1,28 +1,28 @@
-import * as React from "react";
-import { isNodeSelection, type Editor } from "@tiptap/react";
+import * as React from 'react';
+import { isNodeSelection, type Editor } from '@tiptap/react';
 
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor";
+import { useTiptapEditor } from '@/hooks/use-tiptap-editor';
 
 // --- Icons ---
-import { BoldIcon } from "@/components/tiptap-icons/bold-icon";
-import { Code2Icon } from "@/components/tiptap-icons/code2-icon";
-import { ItalicIcon } from "@/components/tiptap-icons/italic-icon";
-import { StrikeIcon } from "@/components/tiptap-icons/strike-icon";
-import { SubscriptIcon } from "@/components/tiptap-icons/subscript-icon";
-import { SuperscriptIcon } from "@/components/tiptap-icons/superscript-icon";
-import { UnderlineIcon } from "@/components/tiptap-icons/underline-icon";
+import { BoldIcon } from '@/components/tiptap-icons/bold-icon';
+import { Code2Icon } from '@/components/tiptap-icons/code2-icon';
+import { ItalicIcon } from '@/components/tiptap-icons/italic-icon';
+import { StrikeIcon } from '@/components/tiptap-icons/strike-icon';
+import { SubscriptIcon } from '@/components/tiptap-icons/subscript-icon';
+import { SuperscriptIcon } from '@/components/tiptap-icons/superscript-icon';
+import { UnderlineIcon } from '@/components/tiptap-icons/underline-icon';
 
 // --- Lib ---
-import { isMarkInSchema } from "@/lib/tiptap-utils";
+import { isMarkInSchema } from '@/lib/tiptap-utils';
 
 // --- UI Primitives ---
-import type { ButtonProps } from "@/components/tiptap-ui-primitive/button";
-import { Button } from "@/components/tiptap-ui-primitive/button";
+import type { ButtonProps } from '@/components/tiptap-ui-primitive/button';
+import { Button } from '@/components/tiptap-ui-primitive/button';
 
-export type Mark = "bold" | "italic" | "strike" | "code" | "underline" | "superscript" | "subscript";
+export type Mark = 'bold' | 'italic' | 'strike' | 'code' | 'underline' | 'superscript' | 'subscript';
 
-export interface MarkButtonProps extends Omit<ButtonProps, "type"> {
+export interface MarkButtonProps extends Omit<ButtonProps, 'type'> {
     /**
      * The type of mark to toggle
      */
@@ -52,13 +52,13 @@ export const markIcons = {
 };
 
 export const markShortcutKeys: Partial<Record<Mark, string>> = {
-    bold: "Ctrl-b",
-    italic: "Ctrl-i",
-    underline: "Ctrl-u",
-    strike: "Ctrl-Shift-s",
-    code: "Ctrl-e",
-    superscript: "Ctrl-.",
-    subscript: "Ctrl-,",
+    bold: 'Ctrl-b',
+    italic: 'Ctrl-i',
+    underline: 'Ctrl-u',
+    strike: 'Ctrl-Shift-s',
+    code: 'Ctrl-e',
+    superscript: 'Ctrl-.',
+    subscript: 'Ctrl-,',
 };
 
 export function canToggleMark(editor: Editor | null, type: Mark): boolean {
@@ -84,7 +84,7 @@ export function toggleMark(editor: Editor | null, type: Mark): void {
 export function isMarkButtonDisabled(editor: Editor | null, type: Mark, userDisabled: boolean = false): boolean {
     if (!editor) return true;
     if (userDisabled) return true;
-    if (editor.isActive("codeBlock")) return true;
+    if (editor.isActive('codeBlock')) return true;
     if (!canToggleMark(editor, type)) return true;
     return false;
 }
@@ -114,11 +114,47 @@ export function getFormattedMarkName(type: Mark): string {
     return type.charAt(0).toUpperCase() + type.slice(1);
 }
 
+// export function useMarkState(editor: Editor | null, type: Mark, disabled: boolean = false) {
+//     const markInSchema = isMarkInSchema(type, editor);
+//     const isDisabled = isMarkButtonDisabled(editor, type, disabled);
+//     const isActive = isMarkActive(editor, type);
+
+//     const Icon = markIcons[type];
+//     const shortcutKey = markShortcutKeys[type];
+//     const formattedName = getFormattedMarkName(type);
+
+//     return {
+//         markInSchema,
+//         isDisabled,
+//         isActive,
+//         Icon,
+//         shortcutKey,
+//         formattedName,
+//     };
+// }
+
 export function useMarkState(editor: Editor | null, type: Mark, disabled: boolean = false) {
+    const [isActive, setIsActive] = React.useState(false);
+
+    React.useEffect(() => {
+        if (!editor) return;
+
+        const update = () => {
+            setIsActive(editor.isActive(type));
+        };
+
+        update(); // initial
+        editor.on('selectionUpdate', update);
+        editor.on('transaction', update); // optional
+
+        return () => {
+            editor.off('selectionUpdate', update);
+            editor.off('transaction', update);
+        };
+    }, [editor, type]);
+
     const markInSchema = isMarkInSchema(type, editor);
     const isDisabled = isMarkButtonDisabled(editor, type, disabled);
-    const isActive = isMarkActive(editor, type);
-
     const Icon = markIcons[type];
     const shortcutKey = markShortcutKeys[type];
     const formattedName = getFormattedMarkName(type);
@@ -140,20 +176,20 @@ export const MarkButton = React.forwardRef<HTMLButtonElement, MarkButtonProps>(
             type,
             text,
             hideWhenUnavailable = false,
-            className = "",
+            className = '',
             disabled,
             onClick,
             children,
             ...buttonProps
         },
-        ref
+        ref,
     ) => {
         const editor = useTiptapEditor(providedEditor);
 
         const { markInSchema, isDisabled, isActive, Icon, shortcutKey, formattedName } = useMarkState(
             editor,
             type,
-            disabled
+            disabled,
         );
 
         const handleClick = React.useCallback(
@@ -164,7 +200,7 @@ export const MarkButton = React.forwardRef<HTMLButtonElement, MarkButtonProps>(
                     toggleMark(editor, type);
                 }
             },
-            [onClick, isDisabled, editor, type]
+            [onClick, isDisabled, editor, type],
         );
 
         const show = React.useMemo(() => {
@@ -182,13 +218,13 @@ export const MarkButton = React.forwardRef<HTMLButtonElement, MarkButtonProps>(
 
         return (
             <Button
-                type="button"
+                type='button'
                 className={className.trim()}
                 disabled={isDisabled}
-                data-style="ghost"
-                data-active-state={isActive ? "on" : "off"}
+                data-style='ghost'
+                data-active-state={isActive ? 'on' : 'off'}
                 data-disabled={isDisabled}
-                role="button"
+                role='button'
                 tabIndex={-1}
                 aria-label={type}
                 aria-pressed={isActive}
@@ -200,15 +236,15 @@ export const MarkButton = React.forwardRef<HTMLButtonElement, MarkButtonProps>(
             >
                 {children || (
                     <>
-                        <Icon className="tiptap-button-icon" />
-                        {text && <span className="tiptap-button-text">{text}</span>}
+                        <Icon className='tiptap-button-icon' />
+                        {text && <span className='tiptap-button-text'>{text}</span>}
                     </>
                 )}
             </Button>
         );
-    }
+    },
 );
 
-MarkButton.displayName = "MarkButton";
+MarkButton.displayName = 'MarkButton';
 
 export default MarkButton;

@@ -92,35 +92,8 @@
     }
 }
 
-.custom-scrollbar {
-    overflow-y: scroll;
+/* styles.scss or tailwind.scss */
 
-    // Optional: customize the scrollbar appearance
-    &::-webkit-scrollbar {
-        width: 8px;
-    }
-
-    &::-webkit-scrollbar-track {
-        background: transparent;
-    }
-
-    &::-webkit-scrollbar-thumb {
-        background-color: #888;
-        border-radius: 4px;
-    }
-
-    // ✅ Hide scrollbar arrows (triangles)
-    &::-webkit-scrollbar-button {
-        display: none;
-        width: 0;
-        height: 0;
-    }
-
-    // Optional: disable hover effect on scrollbar buttons
-    &::-webkit-scrollbar-button:hover {
-        background-color: transparent;
-    }
-}
 .yjs-cursor {
     transition: none !important;
 }

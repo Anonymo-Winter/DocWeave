@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { EditorContent, EditorContext, useEditor } from '@tiptap/react';
+import { Editor } from '@tiptap/react';
 
-// --- Tiptap Core Extensions ---
 import { StarterKit } from '@tiptap/starter-kit';
 import { Image } from '@tiptap/extension-image';
 import { TaskItem } from '@tiptap/extension-task-item';
@@ -12,6 +12,10 @@ import { Highlight } from '@tiptap/extension-highlight';
 import { Subscript } from '@tiptap/extension-subscript';
 import { Superscript } from '@tiptap/extension-superscript';
 import { Underline } from '@tiptap/extension-underline';
+
+// --- Tiptap Core Extensions ---
+import { Collaboration } from '@tiptap/extension-collaboration';
+import { CollaborationCursor } from '@tiptap/extension-collaboration-cursor';
 
 // --- Custom Extensions ---
 import { Link } from '@/components/tiptap-extension/link-extension';
@@ -59,13 +63,20 @@ import { handleImageUpload, MAX_FILE_SIZE } from '@/lib/tiptap-utils';
 
 // --- Styles ---
 import '@/components/tiptap-templates/simple/simple-editor.scss';
+import '@/components/tiptap-node/code-block-node/code-block-node.scss';
+import '@/components/tiptap-node/list-node/list-node.scss';
+import '@/components/tiptap-node/image-node/image-node.scss';
+import '@/components/tiptap-node/paragraph-node/paragraph-node.scss';
+import '@/components/tiptap-ui-primitive/button/button.scss';
 
-import { setupYjs } from '@/util/y-socket-provider.js';
+// --- Tiptap Node ---
+// import { UndoRedoButton } from '@/components/tiptap-ui/undo-redo-button';
+
+// --- Styles ---
+import '@/components/tiptap-templates/simple/simple-editor.scss';
+
 import { Redo2, Undo2 } from 'lucide-react';
 import { useSocket } from '../context/socketContext.jsx';
-import { toast } from 'sonner';
-import { tailwindColorNames } from '../util/colorMapper.js';
-import { Awareness, encodeAwarenessUpdate } from 'y-protocols/awareness.js';
 import { useSelector } from 'react-redux';
 
 import * as Y from 'yjs';
@@ -73,7 +84,6 @@ import * as Y from 'yjs';
 const MainToolbarContent = ({ onHighlighterClick, onLinkClick, isMobile, editor }) => {
     return (
         <>
-            <Spacer />
             <ToolbarGroup>
                 <Button
                     disabled={!editor.storage.undoManager?.canUndo()}
@@ -152,25 +162,25 @@ const MobileToolbarContent = ({ type, onBack }) => (
 
 export function SimpleEditor() {
     const user = useSelector((state) => state.user.user);
+    const { ydoc, awareness, assignedColor } = useSocket();
+    const [editor, setEditor] = React.useState(null);
+    const mock = { awareness };
     const isMobile = useMobile();
     const windowSize = useWindowSize();
     const [mobileView, setMobileView] = React.useState('main');
     const toolbarRef = React.useRef(null);
-    const { socket, isConnected } = useSocket();
-    const editor = useEditor({
-        immediatelyRender: false,
-        editorProps: {
-            attributes: {
-                autocomplete: 'off',
-                autocorrect: 'off',
-                autocapitalize: 'off',
-                'aria-label': 'Main content area, start typing to enter text.',
-            },
-        },
-        extensions: [
-            StarterKit.configure({
-                history: false,
-            }),
+
+    const bodyRect = useCursorVisibility({
+        editor,
+        overlayHeight: toolbarRef.current?.getBoundingClientRect().height ?? 0,
+    });
+
+    // Stable references to prevent recreation
+    const extensions = React.useMemo(() => {
+        if (!ydoc || !awareness || !assignedColor) return null;
+
+        return [
+            StarterKit.configure({ history: false }),
             TextAlign.configure({ types: ['heading', 'paragraph'] }),
             Underline,
             TaskList,
@@ -191,89 +201,35 @@ export function SimpleEditor() {
             }),
             TrailingNode,
             Link.configure({ openOnClick: false }),
-        ],
-        content: '<p>Start writing...</p>',
-    });
-
-    const bodyRect = useCursorVisibility({
-        editor,
-        overlayHeight: toolbarRef.current?.getBoundingClientRect().height ?? 0,
-    });
-
-    const editorRef = React.useRef(null);
-    const [assignedColor, setAssignedColor] = React.useState(null);
+            Collaboration.configure({
+                document: ydoc,
+                field: 'default',
+            }),
+            CollaborationCursor.configure({
+                provider: { awareness },
+                user: {
+                    name: user?.name || 'Anonymous',
+                    color: assignedColor,
+                    clientId: user?._id || 'anonymous-id',
+                },
+            }),
+        ];
+    }, [ydoc, awareness, assignedColor, user?.name]);
 
     React.useEffect(() => {
-        if (!editor) {
-            console.warn('[❌] Editor not ready yet');
-            return;
-        }
+        if (!extensions) return;
 
-        if (!socket?.current) {
-            console.warn('[❌] Socket not ready yet');
-            return;
-        }
-
-        if (editorRef.current === editor) {
-            console.warn('[❌] Editor already set up');
-            return;
-        }
-
-        const roomId = 'doc123';
-        const ydoc = new Y.Doc();
-        const awareness = new Awareness(ydoc);
-
-        // Request color first
-        socket.current.emit('request-color', { roomId }, ({ color, error }) => {
-            if (error) {
-                console.error('Failed to get color:', error);
-                return;
-            }
-
-            console.log('✅ Color received:', color);
-            setAssignedColor(color); // store in state if needed
-
-            const userMeta = {
-                name: user?.name || 'Anonymous',
-                color,
-            };
-
-            console.log('🧠 Setting up Yjs with userMeta:', userMeta);
-
-            socket.current.emit('join-room', { roomId, clientID: awareness.clientID });
-
-            awareness.setLocalStateField('user', userMeta);
-
-            // Setup Yjs after color received
-            setupYjs(editor, roomId, userMeta, socket.current, ydoc);
-
-            // Set cleanup handlers
-            const cleanup = () => awareness.setLocalState(null);
-            window.addEventListener('beforeunload', cleanup);
-
-            // Track and store cleanup
-            editorRef.current = {
-                destroy: () => {
-                    const update = encodeAwarenessUpdate(awareness, [], [], [awareness.clientID]);
-                    socket.current?.emit('awareness-update', update);
-                    awareness.setLocalState(null);
-                    ydoc.destroy();
-
-                    socket.current?.off('sync');
-                    socket.current?.off('update');
-                    socket.current?.off('awareness-update');
-                    socket.current?.emit('leave-room', { roomId });
-
-                    window.removeEventListener('beforeunload', cleanup);
-                },
-            };
+        const newEditor = new Editor({
+            extensions,
+            content: '<p>Start collaborating!</p>',
         });
 
-        // Cleanup on unmount
+        setEditor(newEditor);
+
         return () => {
-            editorRef.current?.destroy?.();
+            newEditor?.destroy();
         };
-    }, [editor, socket.current]);
+    }, [extensions]);
 
     React.useEffect(() => {
         if (!isMobile && mobileView !== 'main') {
@@ -288,39 +244,64 @@ export function SimpleEditor() {
     }, [editor]);
 
     if (!editor) {
-        return 'loading...';
-    }
-
-    return (
-        <EditorContext value={{ editor }}>
-            <Toolbar
-                ref={toolbarRef}
-                style={
-                    isMobile
-                        ? {
-                              bottom: `calc(100% - ${windowSize.height - bodyRect.y}px)`,
-                          }
-                        : {}
-                }
-            >
-                {mobileView === 'main' ? (
-                    <MainToolbarContent
-                        editor={editor}
-                        onHighlighterClick={() => setMobileView('highlighter')}
-                        onLinkClick={() => setMobileView('link')}
-                        isMobile={isMobile}
-                    />
-                ) : (
-                    <MobileToolbarContent
-                        type={mobileView === 'highlighter' ? 'highlighter' : 'link'}
-                        onBack={() => setMobileView('main')}
-                    />
-                )}
-            </Toolbar>
-            <div className='w-full flex-1 overflow-auto h-full' onClick={() => editor.commands.focus()}>
-                <EditorContent editor={editor} role='presentation' className='z-10 sm:m-1 md:m-3 lg:m-5 xl:m-10' />
+        return (
+            <div className='h-full w-full bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-slate-900/10 flex items-center justify-center'>
+                <div className='flex flex-col items-center space-y-4'>
+                    <div className='relative'>
+                        <div className='w-12 h-12 border-4 border-slate-200 dark:border-slate-700 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin'></div>
+                        <div className='absolute inset-0 w-12 h-12 border-4 border-transparent border-r-blue-400 dark:border-r-blue-300 rounded-full animate-spin animation-delay-150'></div>
+                    </div>
+                    <div className='text-center'>
+                        <h3 className='text-lg font-semibold text-slate-700 dark:text-slate-200 mb-1'>
+                            Initializing Editor
+                        </h3>
+                        <p className='text-sm text-slate-500 dark:text-slate-400 animate-pulse'>
+                            Setting up your workspace...
+                        </p>
+                    </div>
+                    <div className='w-48 h-1 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden'>
+                        <div className='h-full bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-400 dark:to-blue-500 rounded-full animate-pulse'></div>
+                    </div>
+                </div>
             </div>
-        </EditorContext>
+        );
+    }
+    return (
+        <div className='max-h-[calc(100vh-6rem)] h-full w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden flex flex-col'>
+            <EditorContext value={{ editor }}>
+                <Toolbar
+                    ref={toolbarRef}
+                    style={
+                        isMobile
+                            ? {
+                                  bottom: `calc(100% - ${windowSize.height - bodyRect.y}px)`,
+                              }
+                            : {}
+                    }
+                    className='h-16 border-b border-gray-200 dark:border-gray-700 p-2 sm:p-3 bg-gray-50 dark:bg-gray-800'
+                >
+                    {mobileView === 'main' ? (
+                        <MainToolbarContent
+                            editor={editor}
+                            onHighlighterClick={() => setMobileView('highlighter')}
+                            onLinkClick={() => setMobileView('link')}
+                            isMobile={isMobile}
+                        />
+                    ) : (
+                        <MobileToolbarContent
+                            type={mobileView === 'highlighter' ? 'highlighter' : 'link'}
+                            onBack={() => setMobileView('main')}
+                        />
+                    )}
+                </Toolbar>
+                <div className='h-full overflow-y-auto custom-scrollbar'>
+                    {/* // ${isReadOnly ? 'select-text' : ''} */}
+                    <div className={`prose dark:prose-invert max-w-none p-4 `}>
+                        <EditorContent editor={editor} role='presentation' />
+                    </div>
+                </div>
+            </EditorContext>
+        </div>
     );
 }
 

@@ -79,7 +79,7 @@ const ConnectionStatusIndicator = () => {
                 <motion.button
                     className={cn(
                         'relative flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all duration-200 text-xs sm:text-sm',
-                        'hover:shadow-sm hover:ring-2 focus:outline-none',
+                        'hover:shadow-sm hover:ring-2 focus:outline-none p-1.5 md:px-3 py-1.5',
                         status.bgColor,
                         status.borderColor,
                         status.color,

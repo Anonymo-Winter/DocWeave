@@ -1,5 +1,5 @@
 const tailwindColorNames = {
-    red: {
+    '#ef4444': {
         50: '#fef2f2',
         100: '#fee2e2',
         200: '#fecaca',
@@ -11,7 +11,7 @@ const tailwindColorNames = {
         800: '#991b1b',
         900: '#7f1d1d',
     },
-    orange: {
+    '#f97316': {
         50: '#fff7ed',
         100: '#ffedd5',
         200: '#fed7aa',
@@ -23,7 +23,7 @@ const tailwindColorNames = {
         800: '#9a3412',
         900: '#7c2d12',
     },
-    amber: {
+    '#f59e0b': {
         50: '#fffbeb',
         100: '#fef3c7',
         200: '#fde68a',
@@ -35,7 +35,7 @@ const tailwindColorNames = {
         800: '#92400e',
         900: '#78350f',
     },
-    yellow: {
+    '#eab308': {
         50: '#fefce8',
         100: '#fef9c3',
         200: '#fef08a',
@@ -47,7 +47,7 @@ const tailwindColorNames = {
         800: '#854d0e',
         900: '#713f12',
     },
-    lime: {
+    '#84cc16': {
         50: '#f7fee7',
         100: '#ecfccb',
         200: '#d9f99d',
@@ -59,7 +59,7 @@ const tailwindColorNames = {
         800: '#3f6212',
         900: '#365314',
     },
-    green: {
+    '#22c55e': {
         50: '#f0fdf4',
         100: '#dcfce7',
         200: '#bbf7d0',
@@ -71,7 +71,7 @@ const tailwindColorNames = {
         800: '#166534',
         900: '#14532d',
     },
-    emerald: {
+    '#10b981': {
         50: '#ecfdf5',
         100: '#d1fae5',
         200: '#a7f3d0',
@@ -83,7 +83,7 @@ const tailwindColorNames = {
         800: '#065f46',
         900: '#064e3b',
     },
-    teal: {
+    '#14b8a6': {
         50: '#f0fdfa',
         100: '#ccfbf1',
         200: '#99f6e4',
@@ -95,7 +95,7 @@ const tailwindColorNames = {
         800: '#115e59',
         900: '#134e4a',
     },
-    cyan: {
+    '#06b6d4': {
         50: '#ecfeff',
         100: '#cffafe',
         200: '#a5f3fc',
@@ -107,7 +107,7 @@ const tailwindColorNames = {
         800: '#155e75',
         900: '#164e63',
     },
-    sky: {
+    '#0ea5e9': {
         50: '#f0f9ff',
         100: '#e0f2fe',
         200: '#bae6fd',
@@ -119,7 +119,7 @@ const tailwindColorNames = {
         800: '#075985',
         900: '#0c4a6e',
     },
-    blue: {
+    '#3b82f6': {
         50: '#eff6ff',
         100: '#dbeafe',
         200: '#bfdbfe',
@@ -131,7 +131,7 @@ const tailwindColorNames = {
         800: '#1e40af',
         900: '#1e3a8a',
     },
-    indigo: {
+    '#6366f1': {
         50: '#eef2ff',
         100: '#e0e7ff',
         200: '#c7d2fe',
@@ -143,7 +143,7 @@ const tailwindColorNames = {
         800: '#3730a0',
         900: '#312e81',
     },
-    violet: {
+    '#8b5cf6': {
         50: '#f5f3ff',
         100: '#ede9fe',
         200: '#ddd6fe',
@@ -155,7 +155,7 @@ const tailwindColorNames = {
         800: '#5b21b6',
         900: '#4c1d95',
     },
-    purple: {
+    '#a855f7': {
         50: '#faf5ff',
         100: '#f3e8ff',
         200: '#e9d5ff',
@@ -167,7 +167,7 @@ const tailwindColorNames = {
         800: '#6b21a8',
         900: '#581c87',
     },
-    fuchsia: {
+    '#d946ef': {
         50: '#fdf4ff',
         100: '#fae8ff',
         200: '#f5d0fe',
@@ -179,7 +179,7 @@ const tailwindColorNames = {
         800: '#86198f',
         900: '#701a75',
     },
-    pink: {
+    '#ec4899': {
         50: '#fdf2f8',
         100: '#fce7f3',
         200: '#fbcfe8',
@@ -191,7 +191,7 @@ const tailwindColorNames = {
         800: '#9d174d',
         900: '#831843',
     },
-    rose: {
+    '#f43f5e': {
         50: '#fff1f2',
         100: '#ffe4e6',
         200: '#fecdd3',
@@ -203,7 +203,7 @@ const tailwindColorNames = {
         800: '#9f1239',
         900: '#881337',
     },
-    grey: {
+    '#6b7280': {
         50: '#f9fafb',
         100: '#f3f4f6',
         200: '#e5e7eb',

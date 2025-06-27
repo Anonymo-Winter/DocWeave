@@ -3,19 +3,35 @@ import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { io } from 'socket.io-client';
 import { toast } from 'sonner';
+import { applyAwarenessUpdate, Awareness, encodeAwarenessUpdate } from 'y-protocols/awareness.js';
+import * as Y from 'yjs';
+import { useLogoutMutation } from '../api/userApi';
+import { useNavigate } from 'react-router-dom';
 
 const SocketContext = createContext();
 
 export const SocketProvider = ({ children }) => {
     const token = useSelector((state) => state.user.token);
+    const user = useSelector((state) => state.user.user);
     const socketRef = useRef(null);
+    const ydocRef = useRef(null);
+    const awarenessRef = useRef(null);
+    if (!ydocRef.current) ydocRef.current = new Y.Doc();
+    if (!awarenessRef.current) awarenessRef.current = new Awareness(ydocRef.current);
+    const ydoc = ydocRef.current;
+    const awareness = awarenessRef.current;
     const [isConnected, setIsConnected] = useState(false);
+    const [users, setActiveUsers] = useState([]);
     const [connectionStatus, setConnectionStatus] = useState({
         state: 'disconnected',
         message: 'Unable to connect',
     });
+    const [assignedColor, setAssignedColor] = useState(null);
 
     const hasShownInitialConnection = useRef(false);
+    const navigate = useNavigate();
+
+    const [logout] = useLogoutMutation();
 
     useEffect(() => {
         let customReconnectInterval = null;
@@ -31,29 +47,83 @@ export const SocketProvider = ({ children }) => {
         });
 
         socketRef.current = socket;
+        const bc = new BroadcastChannel('collab-tabs');
+        let isPrimaryTab = true;
+
+        // Listen to other tabs
+        bc.onmessage = (event) => {
+            if (event.data === 'active-tab-check') {
+                bc.postMessage('active-tab-exists');
+                isPrimaryTab = false;
+            } else if (event.data === 'active-tab-exists') {
+                isPrimaryTab = false;
+            }
+        };
+
+        // Ask if any other tab is already active
+        bc.postMessage('active-tab-check');
 
         // On connect
+        const roomId = 'doc123';
         socket.on('connect', () => {
             setIsConnected(true);
-            setConnectionStatus({
-                state: 'connected',
-                message: 'Connected to collaboration server. Real-time collaboration is active',
-            });
 
-            socket.emit('message-notification', 'User has opened the document');
+            setTimeout(() => {
+                socket.emit(
+                    'join-room',
+                    {
+                        roomId,
+                        clientID: awareness.clientID,
+                        user: {
+                            name: user.name,
+                            email: user.email,
+                            color: assignedColor + '',
+                            id: user._id,
+                            role: 'editor',
+                        },
+                    },
+                    ({ color }) => {
+                        setConnectionStatus({
+                            state: 'connected',
+                            message: 'Connected to collaboration server. Real-time collaboration is active',
+                        });
+                        setAssignedColor(color);
+                        awareness.setLocalState(null);
+                        awareness.setLocalState({
+                            user: { name: user.name, color, id: user._id, role: 'editor' },
+                        });
 
-            if (!hasShownInitialConnection.current) {
-                toast.success('Connected', {
-                    description: 'Real-time collaboration is active',
-                    duration: 3000,
-                });
-                hasShownInitialConnection.current = true;
-            } else {
-                toast.success('Reconnected', {
-                    description: 'Connection restored successfully',
-                    duration: 2000,
-                });
-            }
+                        socket.emit('sync');
+
+                        if (isPrimaryTab) {
+                            socket.emit('message-notification', {
+                                roomId: 'doc123',
+                                user: { name: 'System', color: '#6B7280' },
+                                message: `${user.name} has opened the document`,
+                                timestamp: new Date().toISOString(),
+                                type: 'system',
+                            });
+                        }
+                    },
+                );
+
+                if (hasShownInitialConnection.current === false) {
+                    toast.success('Connected', {
+                        description: 'Real-time collaboration is active',
+                        duration: 3000,
+                    });
+                    hasShownInitialConnection.current = true;
+                } else {
+                    toast.success('Reconnected', {
+                        description: 'Connection restored successfully',
+                        duration: 2000,
+                    });
+                }
+            }, 200);
+        });
+
+        socket.on('sync', (update) => {
+            Y.applyUpdate(ydoc, new Uint8Array(update), 'sync');
         });
 
         // On disconnect
@@ -63,7 +133,7 @@ export const SocketProvider = ({ children }) => {
             const readableReason =
                 {
                     'transport close': 'Network closed unexpectedly',
-                    'ping timeout': 'Ping timeout – network unstable',
+                    'ping timeout': 'Ping timeout - network unstable',
                     'io server disconnect': 'Disconnected by server',
                     'io client disconnect': 'Disconnected manually',
                     'transport error': 'Network transport error',
@@ -76,6 +146,10 @@ export const SocketProvider = ({ children }) => {
                     description: readableReason,
                 });
             }
+        });
+
+        socket.on('active-users', (users) => {
+            setActiveUsers(users); // optional state hook
         });
 
         // Reconnection attempt
@@ -129,33 +203,94 @@ export const SocketProvider = ({ children }) => {
         });
 
         // Connection error
-        socket.on('connect_error', (err) => {
+        socket.on('connect_error', async (err) => {
             console.error('Connect error:', err.message);
             setConnectionStatus({ state: 'disconnected', message: err.message });
 
-            if (!hasShownInitialConnection.current) {
-                // toast.error('Connection failed', {
-                //     description: 'Unable to reach the server',
-                //     duration: 4000,
-                // });
-            }
-
-            if (err.message.includes('auth')) {
+            if (err.message.includes('Auth')) {
+                socket.disconnect();
                 toast.error('Authentication failed', {
                     description: 'Please log in again',
                     duration: 6000,
                 });
+                await logout().unwrap();
+                navigate('/login');
+            }
+            if (!hasShownInitialConnection.current) {
+                toast.error('Connection failed', {
+                    description: err.message,
+                    duration: 4000,
+                });
             }
         });
 
+        socket.on('awareness-update', (update) => {
+            applyAwarenessUpdate(awareness, new Uint8Array(update));
+        });
+
+        awareness.on('update', ({ added, updated, removed }) => {
+            const update = encodeAwarenessUpdate(awareness, [...added, ...updated, ...removed]);
+            socket?.emit('awareness-update', update);
+        });
+
+        socket.on('update', (update) => {
+            Y.applyUpdate(ydoc, new Uint8Array(update), 'remote');
+        });
+
+        socket.on('error', (data) => {
+            toast.error(data);
+        });
+
+        ydoc.on('update', (update) => {
+            socket.emit('update', update);
+        });
+
+        const handleUnload = () => {
+            awareness.setLocalState(null);
+
+            if (isPrimaryTab) {
+                socket.emit('message-notification', {
+                    roomId: 'doc123',
+                    user: { name: 'System', color: '#6B7280' },
+                    message: `${user.name} has left the document`,
+                    timestamp: new Date().toISOString(),
+                    type: 'system',
+                });
+            }
+            if (isPrimaryTab && user?._id) {
+                const payload = {
+                    userId: user._id,
+                    userName: user.name,
+                    roomId: 'doc123',
+                };
+
+                const blob = new Blob([JSON.stringify(payload)], {
+                    type: 'application/json',
+                });
+
+                navigator.sendBeacon('http://192.168.200.30:5000/user-left', blob);
+            }
+        };
+        window.addEventListener('unload', handleUnload);
+
         return () => {
-            if (socket.connected) {
+            awareness.setLocalState(null);
+            if (socket.connected && isPrimaryTab) {
+                socket.emit('message-notification', {
+                    roomId: 'doc123',
+                    user: { name: 'System', color: '#6B7280' },
+                    message: `${user.name} has left the document`,
+                    timestamp: new Date().toISOString(),
+                    type: 'system',
+                });
                 socket.disconnect();
                 toast.info('Disconnected', {
                     description: 'Left collaboration session',
                     duration: 2000,
                 });
             }
+            window.removeEventListener('unload', handleUnload);
+            bc.close();
         };
     }, [token]);
 
@@ -165,6 +300,11 @@ export const SocketProvider = ({ children }) => {
                 socket: socketRef,
                 isConnected,
                 connectionStatus,
+                ydoc,
+                awareness,
+                awarenessRef,
+                assignedColor,
+                activeUsers: users,
             }}
         >
             {children}

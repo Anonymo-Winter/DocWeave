@@ -141,3 +141,27 @@ h3 {
 h4 {
     @apply text-lg font-bold;
 }
+
+@layer utilities {
+    .custom-scrollbar {
+        &::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        &::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        &::-webkit-scrollbar-thumb {
+            @apply bg-gray-300 rounded-md;
+        }
+
+        .dark &::-webkit-scrollbar-thumb {
+            @apply bg-gray-600;
+        }
+
+        &::-webkit-scrollbar-button {
+            display: none;
+        }
+    }
+}

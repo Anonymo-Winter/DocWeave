@@ -1,5 +1,6 @@
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import EditorPage from './pages/EditorPage';
+import EditorPage2 from './pages/EditorPage2.jsx';
 import Navbar from './components/Navbar';
 import { SocketProvider } from './context/socketContext';
 import HomePage from './pages/HomePage';
@@ -88,7 +89,6 @@ export default function App() {
 
     return (
         <div className='min-h-screen w-full flex flex-col bg-white text-black dark:bg-[#242424] dark:text-white transition-colors duration-500'>
-            {shouldShowNavbar && <Navbar />}
             <main className='flex flex-1 w-full'>
                 <ThemeToggle className='absolute top-1/2 right-4 z-[200]' />
                 <div className='w-full relative'>
@@ -100,6 +100,16 @@ export default function App() {
                                 <PrivateRoute>
                                     <SocketProvider>
                                         <EditorPage />
+                                    </SocketProvider>
+                                </PrivateRoute>
+                            }
+                        />
+                        <Route
+                            path='/editor2'
+                            element={
+                                <PrivateRoute>
+                                    <SocketProvider>
+                                        <EditorPage2 />
                                     </SocketProvider>
                                 </PrivateRoute>
                             }

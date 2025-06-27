@@ -3,9 +3,11 @@ import './styles.scss';
 import { useSocket } from '../context/socketContext';
 import { getTailwindColorClasses } from '../util/colorMapper';
 import { SendHorizonal, X } from 'lucide-react';
+import { useSelector } from 'react-redux';
 
-const Chat = ({ handleMessageSubmit, setIsChatVisible }) => {
+const Chat = ({ handleMessageSubmit, setIsChatVisible, currentUserRole }) => {
     const { socket } = useSocket();
+    const user = useSelector((state) => state.user.user);
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
 
@@ -17,44 +19,49 @@ const Chat = ({ handleMessageSubmit, setIsChatVisible }) => {
     }, [messages]);
 
     useEffect(() => {
+        document.querySelector('textarea').focus();
+    }, []);
+
+    useEffect(() => {
         if (!socket.current) return;
+
         const handleMessages = (data) => {
             setMessages((prev) => [...prev, data]);
         };
-        socket.current.on('message', handleMessages);
-        socket.current.on('message-notification', (data) => {
-            console.log(data);
+
+        const handleNotification = (data) => {
             handleMessages(data);
-        });
+        };
+
+        socket.current.on('message', handleMessages);
+        socket.current.on('message-notification', handleNotification);
 
         return () => {
             socket.current.off('message', handleMessages);
+            socket.current.off('message-notification', handleNotification);
         };
-    }, [socket]);
+    }, [socket.current]);
 
     const handleSend = () => {
         if (input.trim()) {
-            handleMessageSubmit(input, JSON.parse(localStorage.getItem('user-detail') || 'null'));
+            handleMessageSubmit(input, user);
             setInput('');
         }
     };
 
     return (
-        <div className='flex flex-col h-[calc(100vh-3rem)] w-full z-50'>
+        <div className='flex flex-col justify-between h-full bg-white dark:bg-gray-900'>
             {/* Header */}
-            <div className='bg-gray-900 px-4 py-2 flex items-center justify-between border-b border-gray-700'>
-                <div className='flex flex-col'>
-                    <span className='font-semibold sm:text-lg text-white'>Active Chat</span>
-                    <span className='text-[10px] sm:text-xs text-gray-500 dark:text-gray-400'>
-                        These messages aren't saved
-                    </span>
-                </div>
+            <div className='bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-3 flex items-center justify-between'>
                 <X
                     className='cursor-pointer text-white'
                     onClick={() => {
                         setIsChatVisible(false);
-                        document.querySelector('.active-chats').style.display = 'none';
-                        document.querySelector('.active-chats').style.visibility = 'hidden';
+                        const activeChat = document.querySelector('.active-chats');
+                        if (activeChat) {
+                            activeChat.style.display = 'none';
+                            activeChat.style.visibility = 'hidden';
+                        }
                     }}
                 />
             </div>
@@ -68,6 +75,7 @@ const Chat = ({ handleMessageSubmit, setIsChatVisible }) => {
                             </p>
                         );
                     }
+
                     const color = getTailwindColorClasses(msg.user.color || 'grey');
                     return (
                         <div
@@ -122,6 +130,7 @@ const Chat = ({ handleMessageSubmit, setIsChatVisible }) => {
                             handleSend();
                         }
                     }}
+                    autoFocus
                 />
                 <button onClick={handleSend} className='p-3 rounded-full bg-blue-600 text-white hover:bg-blue-700'>
                     <SendHorizonal />
