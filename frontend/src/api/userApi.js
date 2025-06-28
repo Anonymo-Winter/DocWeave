@@ -3,7 +3,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { clearCredentials, setCredentials, setToken } from '../store/userSlice';
 
 const hostname = window.location.hostname;
-const backendUrl = hostname === 'localhost' ? 'http://localhost:5000/api' : 'http://192.168.200.30:5000/api';
+const backendUrl = hostname === 'localhost' ? 'http://localhost:5000/api' : `${import.meta.env.VITE_BACKEND_URL}/api`;
 
 export const userApi = createApi({
     reducerPath: 'userApi',

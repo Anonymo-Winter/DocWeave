@@ -10,6 +10,7 @@ export const InputField = ({
     error,
     icon: Icon,
     showPasswordToggle = false,
+    className,
     ...props
 }) => {
     const [showPassword, setShowPassword] = useState(false);
@@ -47,7 +48,7 @@ export const InputField = ({
                     onBlur={() => setIsFocused(false)}
                     className={`w-full ${Icon ? 'pl-10' : 'pl-4'} ${
                         showPasswordToggle ? 'pr-10' : 'pr-4'
-                    } py-3 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-sm border font-light text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none transition-all duration-200`}
+                    } py-3 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-sm border font-light text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none transition-all duration-200 ${className}`}
                     {...props}
                 />
                 {showPasswordToggle && (

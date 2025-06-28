@@ -16,6 +16,7 @@ import {
     Lock,
     Menu,
     CheckCheck,
+    MailSearch,
 } from 'lucide-react';
 import { TbFileTypeDoc } from 'react-icons/tb';
 import ConnectionStatus from '../components/ConnectionStatus';
@@ -30,6 +31,18 @@ import {
     DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu';
 import { Button } from '../components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '../components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
+import { FaCheckCircle } from 'react-icons/fa';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '../components/ui/hover-card';
+import { useMobile } from '../hooks/use-mobile.ts';
 // Mock data for collaborators
 const mockCollaborators = [
     {
@@ -131,117 +144,549 @@ const emojiCategories = {
         '📊',
     ],
 };
-const ShareModal = ({ isOpen, onClose }) => {
-    const [shareLink] = useState('https://collabdocs.app/doc/abc123xyz');
-    const [copied, setCopied] = useState(false);
-    const [inviteEmail, setInviteEmail] = useState('');
-    const [selectedRole, setSelectedRole] = useState('editor');
 
-    const copyToClipboard = () => {
-        navigator.clipboard.writeText(shareLink);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+import { Mail, Globe, Users, UserPlus } from 'lucide-react';
+
+// Mock data for collaborators
+const mockCollaborator = [
+    {
+        id: 1,
+        name: 'John Doe',
+        email: 'john.doe@example.com',
+        avatar: 'JD',
+        color: '#4F46E5',
+        role: 'editor',
+        isOnline: true,
+        profileImage: null,
+    },
+    {
+        id: 2,
+        name: 'Sarah Wilson',
+        email: 'sarah.wilson@company.com',
+        avatar: 'SW',
+        color: '#DC2626',
+        role: 'viewer',
+        isOnline: false,
+        profileImage: null,
+    },
+    {
+        id: 3,
+        name: 'Mike Johnson',
+        email: 'mike.j@startup.io',
+        avatar: 'MJ',
+        color: '#059669',
+        role: 'commenter',
+        isOnline: true,
+        profileImage: null,
+    },
+    {
+        id: 8,
+        name: 'Lisa Chen',
+        email: 'lisa.chen@design.studio',
+        avatar: 'LC',
+        color: '#7C2D12',
+        role: 'editor',
+        isOnline: true,
+        profileImage: null,
+    },
+];
+
+// Mock users for suggestions
+const mockUsers = [
+    { id: 4, name: 'Alice Brown', email: 'alice@example.com', avatar: 'AB', color: '#7C3AED' },
+    { id: 5, name: 'David Chen', email: 'david.chen@tech.com', avatar: 'DC', color: '#EA580C' },
+    { id: 6, name: 'Emma Davis', email: 'emma.davis@design.co', avatar: 'ED', color: '#DB2777' },
+    { id: 7, name: 'Frank Miller', email: 'frank@creative.agency', avatar: 'FM', color: '#0891B2' },
+];
+
+const MultiSelectInput = ({ selectedUsers, onUserSelect, onUserRemove, placeholder }) => {
+    const [inputValue, setInputValue] = useState('');
+    const [isOpen, setIsOpen] = useState(false);
+    const [filteredUsers, setFilteredUsers] = useState([]);
+    const inputRef = useRef(null);
+    const containerRef = useRef(null);
+
+    useEffect(() => {
+        const filtered = mockUsers.filter(
+            (user) =>
+                !selectedUsers.find((selected) => selected.id === user.id) &&
+                (user.name.toLowerCase().includes(inputValue.toLowerCase()) ||
+                    user.email.toLowerCase().includes(inputValue.toLowerCase())),
+        );
+        setFilteredUsers(filtered);
+    }, [inputValue, selectedUsers]);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (containerRef.current && !containerRef.current.contains(event.target)) {
+                setIsOpen(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleInputChange = (e) => {
+        setInputValue(e.target.value);
+        setIsOpen(true);
     };
 
-    if (!isOpen) return null;
+    const handleUserSelect = (user) => {
+        onUserSelect(user);
+        setInputValue('');
+        setIsOpen(false);
+        inputRef.current?.focus();
+    };
 
     return (
-        <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4'>
-            <div className='bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-md'>
-                <div className='flex justify-between items-center mb-4'>
-                    <h3 className='text-lg font-semibold text-gray-900 dark:text-white'>Share Document</h3>
-                    <button onClick={onClose} className='text-gray-500 hover:text-gray-700'>
-                        <X size={20} />
-                    </button>
-                </div>
-
-                {/* Share Link */}
-                <div className='mb-6'>
-                    <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
-                        Share Link
-                    </label>
-                    <div className='flex gap-2 flex-col sm:flex-row'>
-                        <input
-                            type='text'
-                            value={shareLink}
-                            readOnly
-                            className='flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm bg-gray-50 dark:bg-gray-700'
-                        />
-                        <button
-                            onClick={copyToClipboard}
-                            className='px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center gap-1'
+        <div className='relative' ref={containerRef}>
+            <div className='flex flex-wrap gap-1.5 p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 min-h-[48px] transition-colors focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500'>
+                {selectedUsers.map((user) => (
+                    <div
+                        key={user.id}
+                        className='flex items-center gap-1.5 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 px-2.5 py-1.5 rounded-md text-sm font-medium'
+                    >
+                        <div
+                            className='w-4 h-4 rounded-full flex items-center justify-center text-white text-xs font-semibold'
+                            style={{ backgroundColor: user.color }}
                         >
-                            {copied ? <Check size={16} /> : <Copy size={16} />}
-                            {copied ? 'Copied!' : 'Copy'}
+                            {user.avatar.charAt(0)}
+                        </div>
+                        <span className='max-w-24 truncate'>{user.name}</span>
+                        <button
+                            onClick={() => onUserRemove(user.id)}
+                            className='ml-1 hover:bg-blue-200 dark:hover:bg-blue-800 rounded-full p-0.5 transition-colors'
+                        >
+                            <X size={12} />
                         </button>
                     </div>
-                </div>
+                ))}
+                <input
+                    ref={inputRef}
+                    type='text'
+                    value={inputValue}
+                    onChange={handleInputChange}
+                    onFocus={() => setIsOpen(true)}
+                    placeholder={selectedUsers.length === 0 ? placeholder : ''}
+                    className='flex-1 min-w-[120px] bg-transparent outline-none text-sm placeholder-gray-500 dark:placeholder-gray-400'
+                />
+            </div>
 
-                {/* Invite Collaborators */}
-                <div className='mb-6'>
-                    <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
-                        Invite People
-                    </label>
-                    <div className='flex gap-2 mb-2 flex-col sm:flex-row'>
-                        <input
-                            type='email'
-                            placeholder='Enter email address'
-                            value={inviteEmail}
-                            onChange={(e) => setInviteEmail(e.target.value)}
-                            className='flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm'
-                        />
-                        <select
-                            value={selectedRole}
-                            onChange={(e) => setSelectedRole(e.target.value)}
-                            className='px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm'
+            {isOpen && filteredUsers.length > 0 && (
+                <div className='absolute top-full left-0 right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20 max-h-48 overflow-y-auto mt-1'>
+                    {filteredUsers.map((user) => (
+                        <button
+                            key={user.id}
+                            onClick={() => handleUserSelect(user)}
+                            className='w-full flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 text-left transition-colors first:rounded-t-lg last:rounded-b-lg'
                         >
-                            <option value='viewer'>Viewer</option>
-                            <option value='commenter'>Commenter</option>
-                            <option value='editor'>Editor</option>
-                        </select>
-                    </div>
-                    <button className='w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700'>
-                        Send Invite
-                    </button>
+                            <div
+                                className='w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold'
+                                style={{ backgroundColor: user.color }}
+                            >
+                                {user.avatar}
+                            </div>
+                            <div className='flex-1 min-w-0'>
+                                <div className='text-sm font-medium text-gray-900 dark:text-white truncate'>
+                                    {user.name}
+                                </div>
+                                <div className='text-xs text-gray-600 dark:text-gray-400 truncate'>{user.email}</div>
+                            </div>
+                        </button>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
+
+const ShareModal = () => {
+    const [shareLink] = useState('https://collabdocs.app/doc/abc123xyz');
+    const [copied, setCopied] = useState(false);
+    const [selectedUsers, setSelectedUsers] = useState([]);
+    const [selectedRole, setSelectedRole] = useState('editor');
+    const [generalAccess, setGeneralAccess] = useState('restricted');
+    const [generalAccessRole, setGeneralAccessRole] = useState('viewer');
+    const isMobile = useMobile();
+
+    const copyToClipboard = async () => {
+        try {
+            await navigator.clipboard.writeText(shareLink);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch (err) {
+            console.error('Failed to copy: ', err);
+        }
+    };
+
+    const handleUserSelect = (user) => {
+        setSelectedUsers((prev) => [...prev, user]);
+    };
+
+    const handleUserRemove = (userId) => {
+        setSelectedUsers((prev) => prev.filter((user) => user.id !== userId));
+    };
+
+    const handleEmailClick = (email) => {
+        window.open(`mailto:${email}`, '_blank');
+    };
+
+    const sendInvites = () => {
+        if (selectedUsers.length > 0) {
+            console.log(
+                'Sending invites to:',
+                selectedUsers.map((u) => u.email),
+            );
+            setSelectedUsers([]);
+        }
+    };
+
+    const getAccessIcon = () => {
+        switch (generalAccess) {
+            case 'restricted':
+                return <Lock size={18} className='text-gray-600 dark:text-gray-400' />;
+            case 'anyone-with-link':
+                return <Globe size={18} className='text-green-600 dark:text-green-400' />;
+            default:
+                return <Users size={18} className='text-blue-600 dark:text-blue-400' />;
+        }
+    };
+
+    const getAccessDescription = () => {
+        switch (generalAccess) {
+            case 'restricted':
+                return 'Only people with access can open with the link';
+            case 'anyone-with-link':
+                return 'Anyone on the internet with the link can view';
+            default:
+                return 'Anyone in your organization can view';
+        }
+    };
+
+    return (
+        <div className='w-full max-w-none sm:max-w-lg mx-auto bg-white dark:bg-gray-900 transition-colors'>
+            {/* General Access Section */}
+            {/* <div className='mb-6 p-4 sm:p-5 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700'>
+                <div className='flex items-center gap-3 mb-4'>
+                    {getAccessIcon()}
+                    <h4 className='text-base font-semibold text-gray-900 dark:text-white'>General access</h4>
                 </div>
 
-                {/* Current Collaborators */}
-                <div>
-                    <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>People with access</h4>
-                    <div className='space-y-2 max-h-40 overflow-y-auto'>
-                        {mockCollaborators.map((collab) => (
-                            <div
-                                key={collab.id}
-                                className='flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded'
+                <div className='space-y-3'>
+                    <div className='flex flex-col sm:flex-row gap-2'>
+                        <select
+                            value={generalAccess}
+                            onChange={(e) => setGeneralAccess(e.target.value)}
+                            className='flex-1 px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all'
+                        >
+                            <option value='restricted'>Restricted</option>
+                            <option value='anyone-with-link'>Anyone with the link</option>
+                            <option value='anyone-in-org'>Anyone in organization</option>
+                        </select>
+
+                        {generalAccess !== 'restricted' && (
+                            <select
+                                value={generalAccessRole}
+                                onChange={(e) => setGeneralAccessRole(e.target.value)}
+                                className='px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all'
                             >
-                                <div className='flex items-center gap-2'>
-                                    <div
-                                        className='w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-medium'
-                                        style={{ backgroundColor: collab.color }}
-                                    >
-                                        {collab.avatar}
-                                    </div>
-                                    <div className='truncate'>
-                                        <div className='text-sm font-medium text-gray-900 dark:text-white truncate'>
-                                            {collab.name}
-                                        </div>
-                                        <div className='text-xs text-gray-500 truncate'>{collab.email}</div>
-                                    </div>
-                                    {collab.isOnline && <div className='w-2 h-2 bg-green-500 rounded-full'></div>}
-                                </div>
-                                <select
-                                    value={collab.role}
-                                    className='text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1'
-                                >
-                                    <option value='viewer'>Viewer</option>
-                                    <option value='commenter'>Commenter</option>
-                                    <option value='editor'>Editor</option>
-                                </select>
-                            </div>
-                        ))}
+                                <option value='viewer'>Viewer</option>
+                                <option value='commenter'>Commenter</option>
+                                <option value='editor'>Editor</option>
+                            </select>
+                        )}
                     </div>
+
+                    <p className='text-xs text-gray-600 dark:text-gray-400 leading-relaxed'>{getAccessDescription()}</p>
+                </div>
+            </div> */}
+
+            {/* Invite People */}
+            <div className='mb-3'>
+                <h4 className='text-sm text-gray-900 dark:text-white flex items-center gap-2 mb-2'>
+                    <UserPlus size={16} />
+                    Invite people
+                </h4>
+                <div className='space-y-3'>
+                    <div className='flex flex-col sm:flex-row gap-2'>
+                        <div className='flex-1'>
+                            <MultiSelectInput
+                                selectedUsers={selectedUsers}
+                                onUserSelect={handleUserSelect}
+                                onUserRemove={handleUserRemove}
+                                placeholder='Add people and groups'
+                            />
+                        </div>
+                        <Select value={selectedRole} onValueChange={setSelectedRole}>
+                            <SelectTrigger className='h-fit w-fit py-6 dark:bg-gray-800 border-gray-300 dark:border-gray-600'>
+                                <SelectValue placeholder='Select role' />
+                            </SelectTrigger>
+
+                            <SelectContent className='bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg'>
+                                <SelectItem
+                                    value='viewer'
+                                    className='p-3 m-0 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors mb-0.5
+                                    data-[state=checked]:bg-blue-100 dark:data-[state=checked]:bg-blue-700 data-[state=checked]:text-blue-700 dark:data-[state=checked]:text-white'
+                                >
+                                    Viewer
+                                </SelectItem>
+                                <SelectItem
+                                    value='editor'
+                                    className='p-3 text-gray-800 dark:text-gray-200 hover:bg-blue-100 dark:hover:bg-gray-700 transition-colors
+                                    data-[state=checked]:bg-blue-100 dark:data-[state=checked]:bg-blue-700 data-[state=checked]:text-blue-700 dark:data-[state=checked]:text-white'
+                                >
+                                    Editor
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {selectedUsers.length > 0 && (
+                        <button
+                            onClick={sendInvites}
+                            className='w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-200 font-medium'
+                        >
+                            Send {selectedUsers.length} invitation{selectedUsers.length > 1 ? 's' : ''}
+                        </button>
+                    )}
                 </div>
             </div>
+
+            {/* Current Collaborators */}
+            <div className='mb-6'>
+                <h4 className='text-sm text-gray-900 dark:text-white flex items-center gap-2 mb-2'>
+                    <Users size={16} />
+                    People with access ({mockCollaborator.length})
+                </h4>
+                <div className='space-y-2 max-h-64 overflow-y-auto pr-1'>
+                    {mockCollaborator.map((collab) => (
+                        <div
+                            key={collab.id}
+                            className='flex items-center justify-between p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 group'
+                        >
+                            {isMobile ? (
+                                <Popover className='block md:hidden'>
+                                    <PopoverTrigger>
+                                        <div className='flex items-center gap-3 flex-1 min-w-0'>
+                                            <div className='relative'>
+                                                <div
+                                                    className='w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-semibold shadow-sm'
+                                                    style={{ backgroundColor: collab.color }}
+                                                >
+                                                    {collab.profileImage ? (
+                                                        <img
+                                                            src={collab.profileImage}
+                                                            alt={collab.name}
+                                                            className='w-full h-full rounded-full object-cover'
+                                                        />
+                                                    ) : (
+                                                        collab.avatar
+                                                    )}
+                                                </div>
+                                                {collab.isOnline && (
+                                                    <div className='absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full'></div>
+                                                )}
+                                            </div>
+
+                                            <div className='flex-1 min-w-0'>
+                                                <div className='text-sm font-semibold text-gray-900 dark:text-white truncate'>
+                                                    {collab.name}
+                                                </div>
+                                                <div className='text-xs text-gray-600 dark:text-gray-400 truncate'>
+                                                    {collab.email}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </PopoverTrigger>
+                                    <PopoverContent
+                                        // className='w-fit'
+                                        className='bg-white block md:hidden dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl p-4 w-72'
+                                    >
+                                        <div className='flex items-center gap-3 mb-4'>
+                                            <div
+                                                className='w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-semibold shadow-sm'
+                                                style={{ backgroundColor: collab.color }}
+                                            >
+                                                {collab.profileImage ? (
+                                                    <img
+                                                        src={collab.profileImage}
+                                                        alt={collab.name}
+                                                        className='w-full h-full rounded-full object-cover'
+                                                    />
+                                                ) : (
+                                                    collab.avatar
+                                                )}
+                                            </div>
+                                            <div className='flex-1 min-w-0'>
+                                                <div className='font-semibold text-gray-900 dark:text-white truncate text-sm'>
+                                                    {collab.name}
+                                                </div>
+                                                <div className='text-sm text-gray-600 dark:text-gray-400 truncate'>
+                                                    {collab.email}
+                                                </div>
+                                                {collab.isOnline && (
+                                                    <div className='flex items-center gap-1 mt-1'>
+                                                        <div className='w-2 h-2 bg-green-500 rounded-full'></div>
+                                                        <span className='text-xs text-green-600 dark:text-green-400'>
+                                                            Online
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <button
+                                            // onClick={() => onEmailClick(collab.email)}
+                                            className='w-full flex items-center justify-center gap-2 px-3 py-2.5 border text-sm bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-950/70 transition-all duration-200 font-medium'
+                                        >
+                                            <Mail size={16} />
+                                            Send email
+                                        </button>
+                                    </PopoverContent>
+                                </Popover>
+                            ) : (
+                                <HoverCard className='hidden md:block'>
+                                    <HoverCardTrigger asChild>
+                                        <div className='flex items-center gap-3 flex-1 min-w-0'>
+                                            <div className='relative'>
+                                                <div
+                                                    className='w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-semibold shadow-sm'
+                                                    style={{ backgroundColor: collab.color }}
+                                                >
+                                                    {collab.profileImage ? (
+                                                        <img
+                                                            src={collab.profileImage}
+                                                            alt={collab.name}
+                                                            className='w-full h-full rounded-full object-cover'
+                                                        />
+                                                    ) : (
+                                                        collab.avatar
+                                                    )}
+                                                </div>
+                                                {collab.isOnline && (
+                                                    <div className='absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full'></div>
+                                                )}
+                                            </div>
+
+                                            <div className='flex-1 min-w-0'>
+                                                <div className='text-sm font-semibold text-gray-900 dark:text-white truncate'>
+                                                    {collab.name}
+                                                </div>
+                                                <div className='text-xs text-gray-600 dark:text-gray-400 truncate'>
+                                                    {collab.email}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </HoverCardTrigger>
+                                    <HoverCardContent
+                                        // className='w-fit'
+                                        className='bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl p-4 w-72'
+                                    >
+                                        <div className='flex items-center gap-3 mb-4'>
+                                            <div
+                                                className='w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-semibold shadow-sm'
+                                                style={{ backgroundColor: collab.color }}
+                                            >
+                                                {collab.profileImage ? (
+                                                    <img
+                                                        src={collab.profileImage}
+                                                        alt={collab.name}
+                                                        className='w-full h-full rounded-full object-cover'
+                                                    />
+                                                ) : (
+                                                    collab.avatar
+                                                )}
+                                            </div>
+                                            <div className='flex-1 min-w-0'>
+                                                <div className='font-semibold text-gray-900 dark:text-white truncate text-sm'>
+                                                    {collab.name}
+                                                </div>
+                                                <div className='text-sm text-gray-600 dark:text-gray-400 truncate'>
+                                                    {collab.email}
+                                                </div>
+                                                {collab.isOnline && (
+                                                    <div className='flex items-center gap-1 mt-1'>
+                                                        <div className='w-2 h-2 bg-green-500 rounded-full'></div>
+                                                        <span className='text-xs text-green-600 dark:text-green-400'>
+                                                            Online
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <button
+                                            // onClick={() => onEmailClick(collab.email)}
+                                            className='w-full flex items-center justify-center gap-2 px-3 py-2.5 border text-sm bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-950/70 transition-all duration-200 font-medium'
+                                        >
+                                            <Mail size={16} />
+                                            Send email
+                                        </button>
+                                    </HoverCardContent>
+                                </HoverCard>
+                            )}
+
+                            <Select value={selectedRole} onValueChange={setSelectedRole}>
+                                <SelectTrigger className='h-fit w-fit px-4 py-2 dark:bg-gray-800 bg-white border border-gray-300 dark:border-gray-600 rounded-md shadow-sm hover:border-gray-400 transition-colors'>
+                                    <SelectValue placeholder='Select role' />
+                                </SelectTrigger>
+
+                                <SelectContent className='bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg min-w-[220px]'>
+                                    {/* Role Options */}
+                                    <SelectItem
+                                        value='viewer'
+                                        className='p-3 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors
+      data-[state=checked]:bg-blue-100 dark:data-[state=checked]:bg-blue-700
+      data-[state=checked]:text-blue-700 dark:data-[state=checked]:text-white'
+                                    >
+                                        Viewer
+                                    </SelectItem>
+                                    <SelectItem
+                                        value='editor'
+                                        className='p-3 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors
+      data-[state=checked]:bg-blue-100 dark:data-[state=checked]:bg-blue-700
+      data-[state=checked]:text-blue-700 dark:data-[state=checked]:text-white'
+                                    >
+                                        Editor
+                                    </SelectItem>
+
+                                    {/* Divider */}
+                                    <div className='h-px bg-gray-200 dark:bg-gray-700 my-1 mx-2' />
+
+                                    {/* Action Buttons */}
+                                    <div className='flex flex-col'>
+                                        <button
+                                            onClick={() => console.log('Make Owner')}
+                                            className='text-left w-full px-3 py-2 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors'
+                                        >
+                                            🔑 Make Owner
+                                        </button>
+                                        <button
+                                            onClick={() => console.log('Remove Access')}
+                                            className='text-left w-full px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900 transition-colors'
+                                        >
+                                            ❌ Remove Access
+                                        </button>
+                                    </div>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    ))}
+                </div>
+            </div>
+            {/* Share Link */}
+            <button
+                onClick={copyToClipboard}
+                className={`px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 font-medium min-w-[110px] 
+              transition-colors duration-200    
+              ${
+                  copied
+                      ? 'bg-green-600 hover:bg-green-700 text-white ring-green-500'
+                      : 'bg-blue-600 hover:bg-blue-700 text-white ring-blue-500'
+              }`}
+            >
+                {copied ? <FaCheckCircle size={16} className='' /> : <Copy size={16} />}
+                {copied ? 'Copied!' : 'Copy'}
+            </button>
         </div>
     );
 };
@@ -652,17 +1097,14 @@ const EnhancedNavbar = ({
                         <TbFileTypeDoc className='text-white' size={20} />
                     </div>
                     <div className='hidden lg:flex items-center gap-2'>
-                        {/* <span className='font-bold text-xl text-gray-900 dark:text-white tracking-tight'>
-                            CollabDocs
-                        </span> */}
                         <input
                             type='text'
                             defaultValue='Untitled Document'
                             className='ml-2 bg-transparent text-gray-900 dark:text-white font-medium focus:outline-none focus:bg-gray-50 dark:focus:bg-gray-800 px-2 py-1 rounded'
                         />
-                        <span className='text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full font-medium'>
+                        {/* <span className='text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full font-medium'>
                             Editor
-                        </span>
+                        </span> */}
                     </div>
                 </div>
 
@@ -694,13 +1136,22 @@ const EnhancedNavbar = ({
                             <History size={16} />
                         </ActionButton>
                         {/* Share */}
-                        <button
-                            onClick={onShareClick}
-                            className='flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
-                        >
-                            <Share2 size={16} />
-                            <span className='hidden sm:inline'>Share</span>
-                        </button>
+                        <Dialog>
+                            <DialogTrigger asChild>
+                                <button className='flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'>
+                                    <Share2 size={16} />
+                                    <span className='hidden sm:inline'>Share</span>
+                                </button>
+                            </DialogTrigger>
+                            <DialogContent className='max-w-lg w-full mx-auto dark:bg-gray-900 border border-gray-500 dark:border-gray-700'>
+                                <DialogHeader>
+                                    <DialogTitle className='text-lg font-semibold text-gray-900 dark:text-white mb-4'>
+                                        Share "Collaborative document"
+                                    </DialogTitle>
+                                </DialogHeader>
+                                <ShareModal />
+                            </DialogContent>
+                        </Dialog>
                     </div>
 
                     {/* Chat Toggle */}
@@ -734,21 +1185,21 @@ const EnhancedNavbar = ({
     );
 };
 
-// Reusable components:
+// // Reusable components:
 
-function Avatar({ collab, index }) {
-    return (
-        <div
-            title={`${collab.name} (${collab.role})`}
-            className={`w-8 h-8 rounded-full border-2 border-white dark:border-gray-900 flex items-center justify-center text-xs font-medium transition-all duration-200 ${
-                collab.isOnline ? 'ring-2 ring-green-400' : ''
-            }`}
-            style={{ backgroundColor: collab.color, zIndex: mockCollaborators.length - index }}
-        >
-            {collab.avatar}
-        </div>
-    );
-}
+// function Avatar({ collab, index }) {
+//     return (
+//         <div
+//             title={`${collab.name} (${collab.role})`}
+//             className={`w-8 h-8 rounded-full border-2 border-white dark:border-gray-900 flex items-center justify-center text-xs font-medium transition-all duration-200 ${
+//                 collab.isOnline ? 'ring-2 ring-green-400' : ''
+//             }`}
+//             style={{ backgroundColor: collab.color, zIndex: mockCollaborators.length - index }}
+//         >
+//             {collab.avatar}
+//         </div>
+//     );
+// }
 
 function CollaboratorsDropdown({ list }) {
     return (
@@ -834,13 +1285,29 @@ function MobileMenu({ collaborators, currentUserRole, onRoleChange, onVersionHis
                         <History size={16} />
                         <span className='ml-2'>History</span>
                     </button>
-                    <button
-                        onClick={onShareClick}
-                        className='flex-1 flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition'
-                    >
-                        <Share2 size={16} />
-                        <span className='ml-2'>Share</span>
-                    </button>
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <button
+                                onClick={onShareClick}
+                                className='flex-1 flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition'
+                            >
+                                <Share2 size={16} />
+                                <span className='ml-2'>Share</span>
+                            </button>
+                            {/* <button className='flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'>
+                                <Share2 size={16} />
+                                <span className='hidden sm:inline'>Share</span>
+                            </button> */}
+                        </DialogTrigger>
+                        <DialogContent className='max-w-lg w-full mx-auto dark:bg-gray-900 border border-gray-500 dark:border-gray-700'>
+                            <DialogHeader>
+                                <DialogTitle className='text-lg font-semibold text-gray-900 dark:text-white mb-4'>
+                                    Share "Collaborative document"
+                                </DialogTitle>
+                            </DialogHeader>
+                            <ShareModal />
+                        </DialogContent>
+                    </Dialog>
                 </div>
             </div>
         </>
@@ -852,6 +1319,9 @@ import { useSocket } from '../context/socketContext';
 import { useSelector } from 'react-redux';
 import { toast } from 'sonner';
 import { DropdownMenuItem } from '@radix-ui/react-dropdown-menu';
+import { InputField } from '../components/InputField';
+import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
+import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
 
 const EnhancedEditorLayout = () => {
     const [isChatVisible, setIsChatVisible] = useState(false);
@@ -874,7 +1344,6 @@ const EnhancedEditorLayout = () => {
         isChatVisibleRef.current = isChatVisible;
     }, [isChatVisible]);
 
-    console.log(isChatVisible);
     useEffect(() => {
         if (socket.current) {
             socket.current.on('message', (data) => {
@@ -932,7 +1401,7 @@ const EnhancedEditorLayout = () => {
             </div>
 
             {/* Modals */}
-            <ShareModal isOpen={showShareModal} onClose={() => setShowShareModal(false)} />
+            {/* <ShareModal isOpen={showShareModal} onClose={() => setShowShareModal(false)} /> */}
             <VersionHistoryModal isOpen={showVersionHistory} onClose={() => setShowVersionHistory(false)} />
         </div>
     );

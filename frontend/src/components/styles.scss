@@ -97,3 +97,14 @@
 .yjs-cursor {
     transition: none !important;
 }
+/* Tick icon in light mode */
+[data-state='checked'] svg {
+    color: #1d4ed8; /* Light mode tick color */
+    height: 1.25rem;
+    width: 1.25rem;
+}
+
+/* Tick icon in dark mode */
+.dark [data-state='checked'] svg {
+    color: white; /* Dark mode tick color */
+}

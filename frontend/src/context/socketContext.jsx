@@ -35,7 +35,7 @@ export const SocketProvider = ({ children }) => {
 
     useEffect(() => {
         let customReconnectInterval = null;
-        const socket = io('http://192.168.200.30:5000', {
+        const socket = io(import.meta.env.VITE_BACKEND_URL, {
             transports: ['websocket'],
             autoConnect: true,
             reconnection: true,
@@ -204,7 +204,7 @@ export const SocketProvider = ({ children }) => {
 
         // Connection error
         socket.on('connect_error', async (err) => {
-            console.error('Connect error:', err.message);
+            console.error('Connect error:', err);
             setConnectionStatus({ state: 'disconnected', message: err.message });
 
             if (err.message.includes('Auth')) {
