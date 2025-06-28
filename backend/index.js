@@ -16,12 +16,7 @@ const mongo_url = process.env.MONGO_URL;
 
 app.use(
     cors({
-        origin: [
-            'http://localhost:5173',
-            'http://localhost:5174',
-            'http://192.168.200.30:5173',
-            'http://192.168.200.30:5174',
-        ],
+        origin: ['http://localhost:5173', process.env.FRONTEND_URL],
         methods: ['GET', 'POST'],
         credentials: true,
     }),
@@ -33,7 +28,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use('/api/auth', authRouter);
 
-app.get('/', verifyToken, (req, res) => {
+app.get('/', (req, res) => {
     res.send('HELLo WORLD');
 });
 
