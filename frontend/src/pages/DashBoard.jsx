@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 import { useLogoutMutation } from '../api/userApi';
+import { useCreateDocumentMutation } from '../api/docApi';
 
 import ProfileEditModal from '../components/EditProfile';
 import { useNavigate } from 'react-router-dom';
@@ -136,10 +137,22 @@ const filterOptions = [
 ];
 
 const templates = [
-    { id: 1, name: 'Blank Document', icon: '📄', description: 'Start with a clean slate' },
-    { id: 2, name: 'Meeting Notes', icon: '📋', description: 'Structured meeting template' },
-    { id: 3, name: 'Project Proposal', icon: '📊', description: 'Professional proposal format' },
-    { id: 4, name: 'Report', icon: '📈', description: 'Detailed report template' },
+    { id: 1, name: 'Blank Document', icon: '📄', description: 'Start with a clean slate', templateName: 'blank' },
+    {
+        id: 2,
+        name: 'Meeting Notes',
+        icon: '📋',
+        description: 'Structured meeting template',
+        templateName: 'meeting-notes',
+    },
+    {
+        id: 3,
+        name: 'Project Proposal',
+        icon: '📊',
+        description: 'Professional proposal format',
+        templateName: 'proposal',
+    },
+    { id: 4, name: 'Report', icon: '📈', description: 'Detailed report template', templateName: 'report' },
 ];
 
 export const DropDown = () => {
@@ -249,40 +262,6 @@ const NavBar = () => {
         </nav>
     );
 };
-
-// const NavBar = () => {
-//     const navigate = useNavigate();
-
-//     return (
-//         <nav className='h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between bg-white dark:bg-gray-900 border-b border-border'>
-//             <div
-//                 className='flex items-center gap-3 cursor-pointer'
-//                 onClick={() => navigate('/')}
-//                 aria-label='Go to homepage'
-//             >
-//                 <div className='w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center'>
-//                     <TbFileTypeDoc className='text-white size-6' />
-//                 </div>
-//                 <div className='flex items-center gap-2'>
-//                     <span
-//                         className='font-bold text-xl text-gray-900 dark:text-white tracking-tight'
-//                         style={{ fontFamily: 'cursive' }}
-//                     >
-//                         CollabDocs
-//                     </span>
-//                     <span className='text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full font-medium'>
-//                         Editor
-//                     </span>
-//                 </div>
-//             </div>
-
-//             <div className='flex items-center gap-4'>
-//                 <ThemeToggle />
-//                 <DropDown />
-//             </div>
-//         </nav>
-//     );
-// };
 
 // Template Card
 const TemplateCard = ({ template, onClick }) => (
@@ -455,6 +434,8 @@ const Dashboard = () => {
     const [viewMode, setViewMode] = useState('grid');
     const [selectedFilter, setSelectedFilter] = useState('all');
     const [filteredDocuments, setFilteredDocuments] = useState(mockDocuments);
+    const [createDocument, { isLoading: isDocumentLoading }] = useCreateDocumentMutation();
+    const navigate = useNavigate();
 
     useEffect(() => {
         let filtered = mockDocuments.filter((doc) => doc.title.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -491,6 +472,22 @@ const Dashboard = () => {
 
         const filterLabel = filterOptions.find((option) => option.value === selectedFilter)?.label || '';
         return `${count} of ${total} documents`;
+    };
+
+    const handleCreateDocument = async (templateName) => {
+        try {
+            const res = await createDocument({ templateName }).unwrap();
+            if (!res?.success) {
+                toast.error('Failed to create document');
+                return;
+            } else {
+                navigate(`/editor/${res.documentId}`);
+            }
+            toast.success(templateName);
+        } catch (err) {
+            console.error('Error creating document:', err);
+            toast.error('Failed to create document');
+        }
     };
 
     return (
@@ -535,7 +532,7 @@ const Dashboard = () => {
                             <TemplateCard
                                 key={template.id}
                                 template={template}
-                                onClick={() => console.log('Create from template:', template.name)}
+                                onClick={() => handleCreateDocument(template.templateName)}
                             />
                         ))}
                     </div>

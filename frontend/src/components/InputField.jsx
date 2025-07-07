@@ -26,7 +26,7 @@ export const InputField = ({
                         : isFocused
                         ? 'ring-2 ring-blue-500/50 dark:ring-blue-400/50'
                         : ''
-                }`}
+                } ${className}`}
             >
                 {Icon && (
                     <Icon

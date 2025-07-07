@@ -12,6 +12,7 @@ import { Highlight } from '@tiptap/extension-highlight';
 import { Subscript } from '@tiptap/extension-subscript';
 import { Superscript } from '@tiptap/extension-superscript';
 import { Underline } from '@tiptap/extension-underline';
+import CharacterCount from '@tiptap/extension-character-count';
 
 // --- Tiptap Core Extensions ---
 import { Collaboration } from '@tiptap/extension-collaboration';
@@ -78,8 +79,11 @@ import '@/components/tiptap-templates/simple/simple-editor.scss';
 import { Redo2, Undo2 } from 'lucide-react';
 import { useSocket } from '../context/socketContext.jsx';
 import { useSelector } from 'react-redux';
+import { useGetVersionQuery, useSaveVersionMutation } from '../api/docApi.js';
 
 import * as Y from 'yjs';
+import { useParams } from 'react-router-dom';
+import { Buffer } from 'buffer';
 
 const MainToolbarContent = ({ onHighlighterClick, onLinkClick, isMobile, editor }) => {
     return (
@@ -164,16 +168,29 @@ export function SimpleEditor() {
     const user = useSelector((state) => state.user.user);
     const { ydoc, awareness, assignedColor } = useSocket();
     const [editor, setEditor] = React.useState(null);
-    const mock = { awareness };
     const isMobile = useMobile();
     const windowSize = useWindowSize();
     const [mobileView, setMobileView] = React.useState('main');
     const toolbarRef = React.useRef(null);
+    const { editorId } = useParams();
+    const [saveVersion] = useSaveVersionMutation();
+    const [updateApplied, setUpdateApplied] = React.useState(false);
+    const [isInitialized, setIsInitialized] = React.useState(false);
 
     const bodyRect = useCursorVisibility({
         editor,
         overlayHeight: toolbarRef.current?.getBoundingClientRect().height ?? 0,
     });
+
+    const { data, isLoading: isVersionLoading, error } = useGetVersionQuery({ editorId });
+
+    React.useEffect(() => {
+        if (data) {
+            console.log('📊 Fetched version data:', data);
+            console.log('📊 Version update length:', data.version?.update?.length);
+            console.log('📊 Version word count:', data.version?.wordCount);
+        }
+    }, [data]);
 
     // Stable references to prevent recreation
     const extensions = React.useMemo(() => {
@@ -181,6 +198,9 @@ export function SimpleEditor() {
 
         return [
             StarterKit.configure({ history: false }),
+            CharacterCount.configure({
+                mode: 'nodeSize',
+            }),
             TextAlign.configure({ types: ['heading', 'paragraph'] }),
             Underline,
             TaskList,
@@ -216,20 +236,43 @@ export function SimpleEditor() {
         ];
     }, [ydoc, awareness, assignedColor, user?.name]);
 
-    React.useEffect(() => {
-        if (!extensions) return;
+    // React.useEffect(() => {
+    //     if (!extensions) return;
 
+    //     const newEditor = new Editor({
+    //         extensions,
+    //     });
+
+    //     setEditor(newEditor);
+
+    //     return () => {
+    //         newEditor?.destroy();
+    //     };
+    // }, [extensions]);
+
+    React.useEffect(() => {
+        if (!extensions || !isInitialized || editor) return;
+
+        console.log('🚀 Creating editor...');
         const newEditor = new Editor({
             extensions,
-            content: '<p>Start collaborating!</p>',
+            onCreate: ({ editor }) => {
+                console.log('🎯 Editor created successfully');
+                console.log('🎯 Editor HTML:', editor.getHTML());
+                console.log('🎯 Editor JSON:', editor.getJSON());
+            },
+            onUpdate: ({ editor }) => {
+                console.log('📝 Editor updated:', editor.getHTML());
+            },
         });
 
         setEditor(newEditor);
 
-        return () => {
-            newEditor?.destroy();
-        };
-    }, [extensions]);
+        // return () => {
+        //     console.log('🗑️ Destroying editor');
+        //     newEditor?.destroy();
+        // };
+    }, [extensions, isInitialized, editor]);
 
     React.useEffect(() => {
         if (!isMobile && mobileView !== 'main') {
@@ -238,12 +281,174 @@ export function SimpleEditor() {
     }, [isMobile, mobileView]);
 
     React.useEffect(() => {
-        if (editor) {
-            editor.commands.focus('end'); // You can use 'start' or a number too
-        }
-    }, [editor]);
+        if (!editor || !ydoc) return;
 
-    if (!editor) {
+        const checkSync = () => {
+            console.log('🔍 Sync check:');
+            console.log('  - Editor HTML:', editor.getHTML());
+            console.log('  - Editor JSON:', editor.getJSON());
+            console.log('  - Ydoc content:', ydoc.getXmlFragment('default').toString());
+            console.log('  - Word count:', editor.storage.characterCount?.words?.() || 0);
+        };
+
+        // Check initial sync
+        setTimeout(checkSync, 100);
+        setTimeout(checkSync, 500);
+        setTimeout(checkSync, 1000);
+
+        // Monitor Ydoc changes
+        const observer = () => {
+            console.log('📡 Ydoc changed, checking editor sync...');
+            setTimeout(checkSync, 100);
+        };
+
+        ydoc.on('update', observer);
+        return () => ydoc.off('update', observer);
+    }, [editor, ydoc]);
+
+    // React.useEffect(() => {
+    //     if (editor) {
+    //         editor.commands.focus('end'); // You can use 'start' or a number too
+    //     }
+    // }, [editor]);
+
+    React.useEffect(() => {
+        if (!ydoc || !data?.version?.update || isInitialized) return;
+
+        try {
+            console.log('🔄 Starting to apply version to Ydoc...');
+
+            // Convert base64 string back to Buffer
+            const binaryData = Buffer.from(data.version.update, 'base64');
+            console.log('📦 Binary data length:', binaryData.length);
+
+            // if (binaryData.length === 0) {
+            //     console.warn('⚠️ Empty version update received');
+            //     setIsInitialized(true);
+            //     return;
+            // }
+
+            if (binaryData.length === 0) {
+                const fragment = ydoc.getXmlFragment('default');
+                fragment.insert(0, [new Y.XmlElement('p')]);
+                setIsInitialized(true);
+                return;
+            }
+
+            // Debug: Check Ydoc state before applying update
+            console.log('📄 Ydoc state before update:', ydoc.getXmlFragment('default').toString());
+
+            // Apply the update to Ydoc
+            Y.applyUpdate(ydoc, binaryData);
+
+            const fragment = ydoc.getXmlFragment('default');
+            console.log('🧬 Fragment after update:', fragment.toJSON());
+
+            if (fragment.length === 0) {
+                console.warn('⚠️ Applied update, but fragment is still empty.');
+            }
+
+            // Debug: Check Ydoc state after applying update
+            console.log('📄 Ydoc state after update:', ydoc.getXmlFragment('default').toString());
+            console.log('📄 Ydoc as JSON:', ydoc.getXmlFragment('default').toJSON());
+
+            console.log('✅ Version applied to Ydoc successfully');
+            setIsInitialized(true);
+        } catch (err) {
+            console.error('❌ Failed to apply version:', err.message);
+            setIsInitialized(true);
+        }
+    }, [ydoc, data?.version?.update, isInitialized]);
+
+    const handleSave = async () => {
+        if (!editor || !ydoc || !awareness) {
+            console.warn('❌ Cannot save version: editor or Ydoc missing');
+            return;
+        }
+
+        try {
+            const update = Y.encodeStateAsUpdate(ydoc);
+            const fragment = ydoc.getXmlFragment('default');
+            console.log('📝 Saving fragment:', fragment.toJSON());
+            console.log('💾 Saving update with length:', update.byteLength);
+
+            if (!update || update.byteLength < 20) {
+                console.warn('⚠️ Update too small. Likely not ready. Skipping save.');
+                return;
+            }
+
+            const updateBase64 = Buffer.from(update).toString('base64');
+
+            try {
+                const decoded = Buffer.from(updateBase64, 'base64');
+                Y.decodeUpdate(decoded);
+            } catch (decodeErr) {
+                console.error('❌ Cannot save: Invalid Yjs update:', decodeErr.message);
+                return;
+            }
+
+            const collaborators = Array.from(awareness.getStates()).map(([clientId, state]) => ({
+                name: state?.user?.name || 'Anonymous',
+                clientId,
+            }));
+
+            const res = await saveVersion({
+                documentId: editorId,
+                update: updateBase64,
+                name: `Version ${new Date().toLocaleString()}`,
+                author: { _id: user._id, name: user.name },
+                wordCount: editor.storage.characterCount.words(),
+                collaborators,
+            });
+
+            console.log('✅ Version saved:', res);
+        } catch (err) {
+            console.error('❌ Failed to save version:', err);
+        }
+    };
+
+    const forceSync = () => {
+        if (!editor || !ydoc) return;
+
+        console.log('🔄 Forcing editor re-sync...');
+
+        // Get the current Ydoc state
+        const fragment = ydoc.getXmlFragment('default');
+        console.log('📄 Current Ydoc fragment:', fragment.toString());
+
+        // Try to manually trigger editor update
+        editor.commands.focus();
+        editor.view.dispatch(editor.view.state.tr);
+
+        console.log('🔄 Re-sync completed');
+    };
+
+    // React.useEffect(() => {
+    //     const interval = setInterval(async () => {
+    //         console.log('Autosaving document...');
+    //         if (editor && ydoc) {
+    //             const update = Y.encodeStateAsUpdate(ydoc);
+    //             const updateBase64 = Buffer.from(update).toString('base64');
+
+    //             const res = await saveVersion({
+    //                 documentId: editorId,
+    //                 update: updateBase64,
+    //                 name: `Version ${new Date().toLocaleString()}`,
+    //                 author: { _id: user._id, name: user.name },
+    //                 wordCount: editor.storage.characterCount.words(),
+    //                 collaborators: Array.from(awareness.getStates()).map(([clientId, state]) => ({
+    //                     name: state?.user?.name || 'Anonymous',
+    //                     clientId,
+    //                 })),
+    //             });
+    //             console.log(res);
+    //         }
+    //     }, 6000); // every 60 seconds
+
+    //     return () => clearInterval(interval);
+    // }, [editor, ydoc]);
+
+    if (!editor || isVersionLoading || !isInitialized) {
         return (
             <div className='h-full w-full bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-slate-900/10 flex items-center justify-center'>
                 <div className='flex flex-col items-center space-y-4'>
@@ -301,6 +506,14 @@ export function SimpleEditor() {
                     </div>
                 </div>
             </EditorContext>
+            <div className='fixed bottom-4 right-4 flex gap-2'>
+                <button onClick={handleSave} className='bg-blue-500 text-white px-4 py-2 rounded'>
+                    Save Version
+                </button>
+                <button onClick={forceSync} className='bg-green-500 text-white px-4 py-2 rounded'>
+                    Force Sync
+                </button>
+            </div>
         </div>
     );
 }

@@ -15,6 +15,7 @@ import DashBoard from './pages/DashBoard.jsx';
 import Loader from './components/Loader.jsx';
 
 import { useSelector } from 'react-redux';
+import VersionComponent from './components/VersionComponent.jsx';
 
 const ErrorComponent = () => (
     <div className='relative min-h-[calc(100vh-3rem)] flex items-center justify-center bg-transparent overflow-hidden px-4'>
@@ -105,6 +106,16 @@ export default function App() {
                             }
                         />
                         <Route
+                            path='/editor/:editorId'
+                            element={
+                                <PrivateRoute>
+                                    <SocketProvider>
+                                        <EditorPage />
+                                    </SocketProvider>
+                                </PrivateRoute>
+                            }
+                        />
+                        <Route
                             path='/editor2'
                             element={
                                 <PrivateRoute>
@@ -120,6 +131,14 @@ export default function App() {
                                 <RedirectAuthUser>
                                     <LoginPage />
                                 </RedirectAuthUser>
+                            }
+                        />
+                        <Route
+                            path='/version'
+                            element={
+                                <SocketProvider>
+                                    <VersionComponent />
+                                </SocketProvider>
                             }
                         />
                         <Route

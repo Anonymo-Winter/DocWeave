@@ -7,17 +7,26 @@ import { applyAwarenessUpdate, Awareness, encodeAwarenessUpdate } from 'y-protoc
 import * as Y from 'yjs';
 import { useLogoutMutation } from '../api/userApi';
 import { useNavigate } from 'react-router-dom';
+import { IndexeddbPersistence } from 'y-indexeddb';
+import { useOfflineStatus } from '../hooks/useOfflineStatus';
 
 const SocketContext = createContext();
 
 export const SocketProvider = ({ children }) => {
     const token = useSelector((state) => state.user.token);
+    const isOnline = useOfflineStatus();
+    const updateQueue = useRef([]);
     const user = useSelector((state) => state.user.user);
     const socketRef = useRef(null);
+    const [snapshots, setSnapshots] = useState([]);
     const ydocRef = useRef(null);
     const awarenessRef = useRef(null);
     if (!ydocRef.current) ydocRef.current = new Y.Doc();
     if (!awarenessRef.current) awarenessRef.current = new Awareness(ydocRef.current);
+
+    const docName = 'doc123'; // same room/document name
+    const indexeddbProviderRef = useRef(null);
+
     const ydoc = ydocRef.current;
     const awareness = awarenessRef.current;
     const [isConnected, setIsConnected] = useState(false);
@@ -32,6 +41,16 @@ export const SocketProvider = ({ children }) => {
     const navigate = useNavigate();
 
     const [logout] = useLogoutMutation();
+
+    useEffect(() => {
+        if (!indexeddbProviderRef.current) {
+            indexeddbProviderRef.current = new IndexeddbPersistence(docName, ydocRef.current);
+            indexeddbProviderRef.current.once('synced', () => {
+                console.log('[IndexedDB] Document loaded from local storage');
+                socketRef.current?.emit('sync');
+            });
+        }
+    }, []);
 
     useEffect(() => {
         let customReconnectInterval = null;
@@ -93,7 +112,26 @@ export const SocketProvider = ({ children }) => {
                             user: { name: user.name, color, id: user._id, role: 'editor' },
                         });
 
-                        socket.emit('sync');
+                        const stateVector = Y.encodeStateVector(ydoc);
+                        socket.emit('request-sync', stateVector);
+                        socket.once('sync-update', (serverUpdate) => {
+                            Y.applyUpdate(ydoc, new Uint8Array(serverUpdate), 'sync');
+
+                            // Now safely flush buffered updates after merging state
+                            updateQueue.current.forEach((u) => {
+                                socket.emit('update', u);
+                            });
+                            updateQueue.current = [];
+                        });
+
+                        // also force awareness re-sync
+                        const current = awarenessRef.current.getLocalState();
+                        awarenessRef.current.setLocalState(null);
+                        setTimeout(() => {
+                            awarenessRef.current.setLocalState(current);
+                        }, 100);
+
+                        // socket.emit('sync');
 
                         if (isPrimaryTab) {
                             socket.emit('message-notification', {
@@ -126,6 +164,15 @@ export const SocketProvider = ({ children }) => {
             Y.applyUpdate(ydoc, new Uint8Array(update), 'sync');
         });
 
+        ydocRef.current.on('update', (update) => {
+            if (socket.connected) {
+                socket.emit('update', update);
+            } else {
+                // console.log('Buffered update while offline:', update);
+                updateQueue.current.push(update); // buffer updates while offline
+            }
+        });
+
         // On disconnect
         socket.on('disconnect', (reason) => {
             setIsConnected(false);
@@ -139,7 +186,14 @@ export const SocketProvider = ({ children }) => {
                     'transport error': 'Network transport error',
                 }[reason] || 'Disconnected';
 
-            setConnectionStatus({ state: 'disconnected', message: readableReason });
+            if (!isOnline) {
+                setConnectionStatus({
+                    state: 'disconnected',
+                    message: "You're offline. Changes will sync when reconnected.",
+                });
+            } else {
+                setConnectionStatus({ state: 'disconnected', message: readableReason });
+            }
 
             if (reason !== 'io client disconnect') {
                 toast.warning('Disconnected', {
@@ -229,8 +283,10 @@ export const SocketProvider = ({ children }) => {
         });
 
         awareness.on('update', ({ added, updated, removed }) => {
-            const update = encodeAwarenessUpdate(awareness, [...added, ...updated, ...removed]);
-            socket?.emit('awareness-update', update);
+            if (socket.connected) {
+                const update = encodeAwarenessUpdate(awareness, [...added, ...updated, ...removed]);
+                socket?.emit('awareness-update', update);
+            }
         });
 
         socket.on('update', (update) => {
@@ -239,10 +295,6 @@ export const SocketProvider = ({ children }) => {
 
         socket.on('error', (data) => {
             toast.error(data);
-        });
-
-        ydoc.on('update', (update) => {
-            socket.emit('update', update);
         });
 
         const handleUnload = () => {
@@ -305,6 +357,8 @@ export const SocketProvider = ({ children }) => {
                 awarenessRef,
                 assignedColor,
                 activeUsers: users,
+                snapshots,
+                addSnapshot: (snap) => setSnapshots((prev) => [...prev, snap]),
             }}
         >
             {children}
@@ -317,5 +371,3 @@ export const useSocket = () => {
     if (!context) throw new Error('useSocket must be used within a SocketProvider');
     return context;
 };
-
-export default SocketProvider;
