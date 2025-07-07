@@ -2,6 +2,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 import connectDB from './connectDB.js';
 import authRouter from './routes/auth.route.js';
+import docRouter from './routes/doc.route.js';
 import { verifyToken } from './middlewares/verifytoken.js';
 import cookieParser from 'cookie-parser';
 import { createServer } from 'node:http';
@@ -27,6 +28,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use('/api/auth', authRouter);
+app.use('/api/doc', docRouter);
 
 app.get('/', (req, res) => {
     res.send('HELLo WORLD');

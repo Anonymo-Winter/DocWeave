@@ -1,39 +1,43 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 const documentSchema = new mongoose.Schema(
     {
         title: {
             type: String,
-            requireed: [true, "Name is required"],
+            required: [true, 'Title is required'],
             trim: true,
+            default: 'Untitled Document',
         },
-        content: {
+        template: {
             type: String,
+            enum: ['blank', 'resume', 'report', 'letter'],
+            default: 'blank',
         },
-        editorId: [
+        ownerId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            required: true,
+        },
+        editors: [
             {
                 type: mongoose.Schema.Types.ObjectId,
-                ref: "User",
-                required: true,
+                ref: 'User',
             },
         ],
-        viewer: [
+        viewers: [
             {
                 type: mongoose.Schema.Types.ObjectId,
-                ref: "User",
+                ref: 'User',
             },
         ],
-        lastModified: {
-            type: Date,
-            default: Date.now,
-        },
-        createdAt: {
-            type: Date,
-            default: Date.now,
+        visibility: {
+            type: String,
+            enum: ['private', 'shared', 'public'],
+            default: 'private',
         },
     },
-    { timestamps: true }
+    { timestamps: true },
 );
 
-const Document = mongoose.model("Document", documentSchema);
+const Document = mongoose.model('Document', documentSchema);
 export default Document;

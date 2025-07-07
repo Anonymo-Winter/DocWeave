@@ -3,7 +3,6 @@ import { Server } from 'socket.io';
 import * as Y from 'yjs';
 import { Awareness, encodeAwarenessUpdate, applyAwarenessUpdate } from 'y-protocols/awareness';
 import jwt from 'jsonwebtoken';
-
 const tailwindBaseHexColors = [
     '#ef4444', // red
     '#f97316', // orange
@@ -132,6 +131,11 @@ export function setupSocketIo(server) {
                 socket.emit('sync', Y.encodeStateAsUpdate(doc));
             });
 
+            socket.on('request-sync', (stateVector) => {
+                const diff = Y.encodeStateAsUpdate(doc, new Uint8Array(stateVector));
+                socket.emit('sync-update', diff);
+            });
+
             // Handle awareness updates - FIXED
             socket.on('awareness-update', (update) => {
                 try {
@@ -200,10 +204,12 @@ export function setupSocketIo(server) {
 
             // Remove awareness state for this client
             if (typeof clientID === 'number') {
-                awareness.setLocalState(null);
-
-                const awarenessUpdate = encodeAwarenessUpdate(awareness, [], [], [clientID]);
-                socket.to(roomId).emit('awareness-update', awarenessUpdate);
+                const existing = awareness.getStates();
+                if (existing.has(clientID)) {
+                    awareness.states.delete(clientID); // ✅ Manually delete
+                    const update = encodeAwarenessUpdate(awareness, [], [], [clientID]);
+                    socket.to(roomId).emit('awareness-update', update);
+                }
             }
 
             if (roomUsers.has(roomId)) {
