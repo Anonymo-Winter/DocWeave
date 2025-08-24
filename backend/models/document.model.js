@@ -35,6 +35,11 @@ const documentSchema = new mongoose.Schema(
             enum: ['private', 'shared', 'public'],
             default: 'private',
         },
+        userColors: {
+            type: Map,
+            of: String, // Map<userId, colorHex>
+            default: {},
+        },
     },
     { timestamps: true },
 );

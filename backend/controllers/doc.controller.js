@@ -8,18 +8,19 @@ export const saveVersion = async (req, res) => {
     try {
         const {
             documentId,
+            description,
             update,
             author,
             name,
-            changes,
             wordCount,
             collaborators,
             isStarred = false,
             isNamed = !!name,
         } = req.body;
 
+        console.log(author);
         // ✅ Validation
-        if (!documentId || !update || !author || !author._id || !author.name || !Array.isArray(collaborators)) {
+        if (!documentId || !update || !author || !author.data || !author.color || !Array.isArray(collaborators)) {
             return res.status(400).json({ message: 'Missing required fields' });
         }
 
@@ -40,13 +41,12 @@ export const saveVersion = async (req, res) => {
             return res.status(404).json({ message: 'Document not found' });
         }
 
-        // ✅ Create version document - store as Buffer, not convert from base64
         const version = new Version({
             documentId,
             update: Buffer.from(update, 'base64'), // Store as Buffer in MongoDB
-            author,
             name,
-            changes,
+            description,
+            author,
             wordCount,
             collaborators,
             isStarred,
@@ -57,6 +57,7 @@ export const saveVersion = async (req, res) => {
 
         return res.status(201).json({
             message: 'Version saved successfully',
+            success: true,
             versionId: version._id,
         });
     } catch (error) {
@@ -70,7 +71,7 @@ export const getVersion = async (req, res) => {
         const { documentId } = req.params;
 
         if (!documentId || !mongoose.Types.ObjectId.isValid(documentId)) {
-            return res.status(400).json({ message: 'Invalid or missing document ID' });
+            return res.status(404).json({ message: 'Invalid or missing document ID' });
         }
 
         const documentExists = await Document.exists({ _id: documentId });
@@ -168,3 +169,45 @@ export const createDocument = async (req, res) => {
         res.status(500).json({ message: 'Failed to create document' });
     }
 };
+
+// import { contributorsMap, roomUsers } from '../socket.js';
+
+export const getAllVersions = async (req, res) => {
+    const { editorId } = req.params;
+    if (!editorId || !mongoose.Types.ObjectId.isValid(editorId)) {
+        return res.status(400).json({ message: 'Invalid or missing editor ID' });
+    }
+    try {
+        const versions = await Version.find({ documentId: editorId })
+            .sort({ createdAt: -1 })
+            .populate('author.data')
+            .populate('collaborators.user')
+            .exec();
+        return res.status(200).json({ success: true, message: 'Versions fetched successfully', versions });
+    } catch (error) {
+        console.error('Error fetching all versions:', error);
+        return res.status(500).json({ message: 'Failed to fetch versions', error: error.message });
+    }
+};
+
+// export const getContributors = async (req, res) => {
+//     const { editorId: roomId } = req.params;
+//     if (!mongoose.Types.ObjectId.isValid(roomId)) {
+//         return res.status(400).json({ error: 'Invalid document ID' });
+//     }
+//     const contributorIds = contributorsMap.get(roomId);
+//     if (!contributorIds || contributorIds.size === 0) {
+//         return res.json({ contributors: [] });
+//     }
+//     // Pull role/color from roomUsers (if user is still online), or set defaults
+//     const usersInRoom = roomUsers.get(roomId) || new Map();
+//     const contributors = Array.from(contributorIds).map((userId) => {
+//         const entry = usersInRoom.get(userId) || {};
+//         return {
+//             _id: userId,
+//             role: entry.user?.role || 'editor',
+//             color: entry.user?.color || '#999999',
+//         };
+//     });
+//     return res.json({ contributors });
+// };

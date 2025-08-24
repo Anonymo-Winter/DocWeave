@@ -12,33 +12,43 @@ const versionSchema = new mongoose.Schema(
             default: '',
         },
         update: {
-            type: Buffer, // Yjs encoded snapshot
+            type: Buffer,
             required: true,
         },
         author: {
-            _id: {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: 'User',
-                required: true,
-            },
-            name: String,
+            type: new mongoose.Schema(
+                {
+                    data: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+                    color: { type: String },
+                },
+                { _id: false },
+            ),
+            required: true,
         },
         name: {
-            type: String, // Optional name: “Draft v2”
-        },
-        changes: {
-            type: String, // Human-readable diff or summary
+            type: String,
+            default: () =>
+                new Date().toLocaleString('en-US', {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                }),
         },
         wordCount: {
             type: Number,
+            default: 0,
         },
         collaborators: [
             {
-                name: String,
+                user: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: 'User',
+                    required: true,
+                },
                 role: {
                     type: String,
-                    enum: ['Owner', 'Editor', 'Viewer'],
+                    enum: ['owner', 'editor', 'viewer'],
                 },
+                color: String,
             },
         ],
         isStarred: {
@@ -49,8 +59,13 @@ const versionSchema = new mongoose.Schema(
             type: Boolean,
             default: false,
         },
+        source: {
+            type: String,
+            enum: ['manual', 'autosave', 'recovery'],
+            default: 'manual',
+        },
     },
-    { timestamps: true }, // Includes createdAt
+    { timestamps: true },
 );
 
 versionSchema.index({ documentId: 1, createdAt: -1 });

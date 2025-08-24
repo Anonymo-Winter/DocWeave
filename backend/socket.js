@@ -101,6 +101,7 @@ export function setupSocketIo(server) {
             // Create Yjs doc + awareness if new
             if (!docsMap.has(roomId)) {
                 const doc = new Y.Doc();
+                const fragment = doc.getXmlFragment('default'); // 👈 explicitly initialize 'default'
                 const awareness = new Awareness(doc);
                 docsMap.set(roomId, { doc, awareness });
             }
@@ -119,6 +120,7 @@ export function setupSocketIo(server) {
 
             // Handle document updates
             socket.on('update', (update) => {
+                console.log('📥 Server received update', update);
                 try {
                     Y.applyUpdate(doc, new Uint8Array(update));
                     socket.to(roomId).emit('update', update);
