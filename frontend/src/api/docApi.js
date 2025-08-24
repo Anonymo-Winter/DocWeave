@@ -46,7 +46,24 @@ export const docApi = createApi({
                 return `/doc/version/${editorId}`;
             },
         }),
+        getAllversions: builder.query({
+            query: ({ editorId }) => {
+                return `/doc/versions/${editorId}`;
+            },
+        }),
+        getContributors: builder.query({
+            query: ({ editorId }) => {
+                console.log(editorId);
+                return `/doc/${editorId}/contributors`;
+            },
+        }),
     }),
 });
 
-export const { useSaveVersionMutation, useGetVersionQuery, useCreateDocumentMutation } = docApi;
+export const {
+    useSaveVersionMutation,
+    useGetVersionQuery,
+    useCreateDocumentMutation,
+    useGetAllversionsQuery,
+    useGetContributorsQuery,
+} = docApi;

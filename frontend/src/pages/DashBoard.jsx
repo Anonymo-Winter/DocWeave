@@ -40,7 +40,7 @@ import ProfileEditModal from '../components/EditProfile';
 import { useNavigate } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggleTool';
 import { TbFileTypeDoc } from 'react-icons/tb';
-
+import { getInitials } from '../util/getInitials.js';
 import { cn } from '@/lib/utils';
 
 // Mock documents data
@@ -182,11 +182,6 @@ export const DropDown = () => {
 
     if (!user) return null;
 
-    const getInitials = () => {
-        const names = user?.name.split(' ');
-        return names.length >= 2 ? names[0][0].toUpperCase() + names[1][0].toUpperCase() : names[0][0].toUpperCase();
-    };
-
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -202,7 +197,7 @@ export const DropDown = () => {
                 >
                     <Avatar>
                         <AvatarFallback className='bg-gradient-to-br from-green-400 to-blue-500 text-white font-medium'>
-                            {getInitials()}
+                            {getInitials(user?.name)}
                         </AvatarFallback>
                     </Avatar>
                 </button>

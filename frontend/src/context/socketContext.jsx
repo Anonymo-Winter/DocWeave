@@ -145,31 +145,45 @@ export const SocketProvider = ({ children }) => {
                     },
                 );
 
-                if (hasShownInitialConnection.current === false) {
-                    toast.success('Connected', {
-                        description: 'Real-time collaboration is active',
-                        duration: 3000,
-                    });
-                    hasShownInitialConnection.current = true;
-                } else {
-                    toast.success('Reconnected', {
-                        description: 'Connection restored successfully',
-                        duration: 2000,
-                    });
-                }
+                // if (hasShownInitialConnection.current === false) {
+                //     toast.success('Connected', {
+                //         description: 'Real-time collaboration is active',
+                //         duration: 3000,
+                //     });
+                //     hasShownInitialConnection.current = true;
+                // } else {
+                //     toast.success('Reconnected', {
+                //         description: 'Connection restored successfully',
+                //         duration: 2000,
+                //     });
+                // }
             }, 200);
+        });
+
+        socket.on('update', (update) => {
+            // console.log('📥 Received remote update');
+            try {
+                Y.applyUpdate(ydoc, new Uint8Array(update), 'remote');
+            } catch (error) {
+                console.error('Error applying remote update:', error);
+            }
         });
 
         socket.on('sync', (update) => {
             Y.applyUpdate(ydoc, new Uint8Array(update), 'sync');
+            const fragment = ydoc.getXmlFragment('default');
+            // console.log('🧬 Current fragment after update:', fragment.toJSON());
         });
 
-        ydocRef.current.on('update', (update) => {
-            if (socket.connected) {
-                socket.emit('update', update);
-            } else {
-                // console.log('Buffered update while offline:', update);
-                updateQueue.current.push(update); // buffer updates while offline
+        ydocRef.current.on('update', (update, origin) => {
+            if (origin !== 'remote') {
+                // Don't echo back remote updates
+                // console.log('📤 Emitting local update');
+                if (socket.connected) {
+                    socket.emit('update', new Uint8Array(update));
+                } else {
+                    updateQueue.current.push(update);
+                }
             }
         });
 
@@ -195,11 +209,11 @@ export const SocketProvider = ({ children }) => {
                 setConnectionStatus({ state: 'disconnected', message: readableReason });
             }
 
-            if (reason !== 'io client disconnect') {
-                toast.warning('Disconnected', {
-                    description: readableReason,
-                });
-            }
+            // if (reason !== 'io client disconnect') {
+            //     toast.warning('Disconnected', {
+            //         description: readableReason,
+            //     });
+            // }
         });
 
         socket.on('active-users', (users) => {
@@ -248,12 +262,12 @@ export const SocketProvider = ({ children }) => {
                 setConnectionStatus({ state: 'disconnected', message: error.message });
             }
 
-            if (error.message.includes('auth')) {
-                toast.error('Authentication failed', {
-                    description: 'Please log in again',
-                    duration: 6000,
-                });
-            }
+            // if (error.message.includes('auth')) {
+            //     toast.error('Authentication failed', {
+            //         description: 'Please log in again',
+            //         duration: 6000,
+            //     });
+            // }
         });
 
         // Connection error
@@ -263,19 +277,19 @@ export const SocketProvider = ({ children }) => {
 
             if (err.message.includes('Auth')) {
                 socket.disconnect();
-                toast.error('Authentication failed', {
-                    description: 'Please log in again',
-                    duration: 6000,
-                });
+                // toast.error('Authentication failed', {
+                //     description: 'Please log in again',
+                //     duration: 6000,
+                // });
                 await logout().unwrap();
                 navigate('/login');
             }
-            if (!hasShownInitialConnection.current) {
-                toast.error('Connection failed', {
-                    description: err.message,
-                    duration: 4000,
-                });
-            }
+            // if (!hasShownInitialConnection.current) {
+            //     toast.error('Connection failed', {
+            //         description: err.message,
+            //         duration: 4000,
+            //     });
+            // }
         });
 
         socket.on('awareness-update', (update) => {
@@ -287,10 +301,6 @@ export const SocketProvider = ({ children }) => {
                 const update = encodeAwarenessUpdate(awareness, [...added, ...updated, ...removed]);
                 socket?.emit('awareness-update', update);
             }
-        });
-
-        socket.on('update', (update) => {
-            Y.applyUpdate(ydoc, new Uint8Array(update), 'remote');
         });
 
         socket.on('error', (data) => {
@@ -336,10 +346,10 @@ export const SocketProvider = ({ children }) => {
                     type: 'system',
                 });
                 socket.disconnect();
-                toast.info('Disconnected', {
-                    description: 'Left collaboration session',
-                    duration: 2000,
-                });
+                // toast.info('Disconnected', {
+                //     description: 'Left collaboration session',
+                //     duration: 2000,
+                // });
             }
             window.removeEventListener('unload', handleUnload);
             bc.close();

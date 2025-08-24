@@ -76,7 +76,7 @@ import '@/components/tiptap-ui-primitive/button/button.scss';
 // --- Styles ---
 import '@/components/tiptap-templates/simple/simple-editor.scss';
 
-import { Redo2, Undo2 } from 'lucide-react';
+import { Redo2, Undo2, XCircle } from 'lucide-react';
 import { useSocket } from '../context/socketContext.jsx';
 import { useSelector } from 'react-redux';
 import { useGetVersionQuery, useSaveVersionMutation } from '../api/docApi.js';
@@ -84,6 +84,7 @@ import { useGetVersionQuery, useSaveVersionMutation } from '../api/docApi.js';
 import * as Y from 'yjs';
 import { useParams } from 'react-router-dom';
 import { Buffer } from 'buffer';
+import ErrorPage from './ErrorMessage.jsx';
 
 const MainToolbarContent = ({ onHighlighterClick, onLinkClick, isMobile, editor }) => {
     return (
@@ -234,45 +235,58 @@ export function SimpleEditor() {
                 },
             }),
         ];
-    }, [ydoc, awareness, assignedColor, user?.name]);
+    }, [ydoc, awareness, assignedColor, user]);
 
     // React.useEffect(() => {
-    //     if (!extensions) return;
+    //     if (!extensions || !isInitialized || editor) return;
 
+    //     console.log('🚀 Creating editor...');
     //     const newEditor = new Editor({
     //         extensions,
+    //         onCreate: ({ editor }) => {
+    //             console.log('🎯 Editor created successfully');
+    //             console.log('🎯 Editor HTML:', editor.getHTML());
+    //             console.log('🎯 Editor JSON:', editor.getJSON());
+    //         },
+    //         onUpdate: ({ editor }) => {
+    //             console.log('📝 Editor updated:', editor.getHTML());
+    //         },
     //     });
 
     //     setEditor(newEditor);
 
-    //     return () => {
-    //         newEditor?.destroy();
-    //     };
-    // }, [extensions]);
+    //     // return () => {
+    //     //     console.log('🗑️ Destroying editor');
+    //     //     newEditor?.destroy();
+    //     // };
+    // }, [extensions, isInitialized, editor]);
 
     React.useEffect(() => {
         if (!extensions || !isInitialized || editor) return;
 
-        console.log('🚀 Creating editor...');
+        console.log('🚀 Creating editor with current Ydoc state...');
         const newEditor = new Editor({
             extensions,
-            onCreate: ({ editor }) => {
-                console.log('🎯 Editor created successfully');
-                console.log('🎯 Editor HTML:', editor.getHTML());
-                console.log('🎯 Editor JSON:', editor.getJSON());
-            },
-            onUpdate: ({ editor }) => {
-                console.log('📝 Editor updated:', editor.getHTML());
-            },
         });
 
         setEditor(newEditor);
 
-        // return () => {
-        //     console.log('🗑️ Destroying editor');
-        //     newEditor?.destroy();
-        // };
-    }, [extensions, isInitialized, editor]);
+        return () => {
+            // newEditor?.destroy();
+        };
+    }, [extensions, isInitialized]);
+
+    React.useEffect(() => {
+        if (!editor || !ydoc) return;
+
+        const interval = setInterval(() => {
+            const editorContent = editor.getHTML();
+            const yjsContent = ydoc.getXmlFragment('default').toString();
+            // console.log('Sync Check:', { editorContent, yjsContent });
+        }, 5000);
+
+        return () => clearInterval(interval);
+    }, [editor, ydoc]);
 
     React.useEffect(() => {
         if (!isMobile && mobileView !== 'main') {
@@ -280,31 +294,31 @@ export function SimpleEditor() {
         }
     }, [isMobile, mobileView]);
 
-    React.useEffect(() => {
-        if (!editor || !ydoc) return;
+    // React.useEffect(() => {
+    //     if (!editor || !ydoc) return;
 
-        const checkSync = () => {
-            console.log('🔍 Sync check:');
-            console.log('  - Editor HTML:', editor.getHTML());
-            console.log('  - Editor JSON:', editor.getJSON());
-            console.log('  - Ydoc content:', ydoc.getXmlFragment('default').toString());
-            console.log('  - Word count:', editor.storage.characterCount?.words?.() || 0);
-        };
+    //     const checkSync = () => {
+    //         console.log('🔍 Sync check:');
+    //         console.log('  - Editor HTML:', editor.getHTML());
+    //         console.log('  - Editor JSON:', editor.getJSON());
+    //         console.log('  - Ydoc content:', ydoc.getXmlFragment('default').toString());
+    //         console.log('  - Word count:', editor.storage.characterCount?.words?.() || 0);
+    //     };
 
-        // Check initial sync
-        setTimeout(checkSync, 100);
-        setTimeout(checkSync, 500);
-        setTimeout(checkSync, 1000);
+    //     // Check initial sync
+    //     setTimeout(checkSync, 100);
+    //     setTimeout(checkSync, 500);
+    //     setTimeout(checkSync, 1000);
 
-        // Monitor Ydoc changes
-        const observer = () => {
-            console.log('📡 Ydoc changed, checking editor sync...');
-            setTimeout(checkSync, 100);
-        };
+    //     // Monitor Ydoc changes
+    //     const observer = () => {
+    //         console.log('📡 Ydoc changed, checking editor sync...');
+    //         setTimeout(checkSync, 100);
+    //     };
 
-        ydoc.on('update', observer);
-        return () => ydoc.off('update', observer);
-    }, [editor, ydoc]);
+    //     ydoc.on('update', observer);
+    //     return () => ydoc.off('update', observer);
+    // }, [editor, ydoc]);
 
     // React.useEffect(() => {
     //     if (editor) {
@@ -312,52 +326,39 @@ export function SimpleEditor() {
     //     }
     // }, [editor]);
 
+    // In SimpleEditor component
     React.useEffect(() => {
         if (!ydoc || !data?.version?.update || isInitialized) return;
 
-        try {
-            console.log('🔄 Starting to apply version to Ydoc...');
+        const initialize = async () => {
+            try {
+                console.log('🔄 Starting to apply version to Ydoc...');
 
-            // Convert base64 string back to Buffer
-            const binaryData = Buffer.from(data.version.update, 'base64');
-            console.log('📦 Binary data length:', binaryData.length);
+                // Handle empty document case
+                if (!data.version.update || data.version.update.length === 0) {
+                    const fragment = ydoc.getXmlFragment('default');
+                    if (fragment.length === 0) {
+                        fragment.insert(0, [new Y.XmlElement('p')]);
+                    }
+                    setIsInitialized(true);
+                    return;
+                }
 
-            // if (binaryData.length === 0) {
-            //     console.warn('⚠️ Empty version update received');
-            //     setIsInitialized(true);
-            //     return;
-            // }
+                // Convert base64 to binary
+                const binaryData = Buffer.from(data.version.update, 'base64');
 
-            if (binaryData.length === 0) {
-                const fragment = ydoc.getXmlFragment('default');
-                fragment.insert(0, [new Y.XmlElement('p')]);
+                // Apply update
+                Y.applyUpdate(ydoc, binaryData);
+
+                console.log('✅ Version applied to Ydoc successfully');
                 setIsInitialized(true);
-                return;
+            } catch (err) {
+                console.error('❌ Failed to apply version:', err);
+                setIsInitialized(true); // Still continue even if version load fails
             }
+        };
 
-            // Debug: Check Ydoc state before applying update
-            console.log('📄 Ydoc state before update:', ydoc.getXmlFragment('default').toString());
-
-            // Apply the update to Ydoc
-            Y.applyUpdate(ydoc, binaryData);
-
-            const fragment = ydoc.getXmlFragment('default');
-            console.log('🧬 Fragment after update:', fragment.toJSON());
-
-            if (fragment.length === 0) {
-                console.warn('⚠️ Applied update, but fragment is still empty.');
-            }
-
-            // Debug: Check Ydoc state after applying update
-            console.log('📄 Ydoc state after update:', ydoc.getXmlFragment('default').toString());
-            console.log('📄 Ydoc as JSON:', ydoc.getXmlFragment('default').toJSON());
-
-            console.log('✅ Version applied to Ydoc successfully');
-            setIsInitialized(true);
-        } catch (err) {
-            console.error('❌ Failed to apply version:', err.message);
-            setIsInitialized(true);
-        }
+        initialize();
     }, [ydoc, data?.version?.update, isInitialized]);
 
     const handleSave = async () => {
@@ -448,6 +449,12 @@ export function SimpleEditor() {
     //     return () => clearInterval(interval);
     // }, [editor, ydoc]);
 
+    console.log('editor getjson', editor?.getJSON());
+
+    if (error) {
+        return <ErrorPage error={error} />;
+    }
+
     if (!editor || isVersionLoading || !isInitialized) {
         return (
             <div className='h-full w-full bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-slate-900/10 flex items-center justify-center'>
@@ -471,6 +478,7 @@ export function SimpleEditor() {
             </div>
         );
     }
+
     return (
         <div className='max-h-[calc(100vh-6rem)] h-full w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden flex flex-col'>
             <EditorContext value={{ editor }}>
@@ -506,14 +514,14 @@ export function SimpleEditor() {
                     </div>
                 </div>
             </EditorContext>
-            <div className='fixed bottom-4 right-4 flex gap-2'>
+            {/* <div className='fixed bottom-4 right-4 flex gap-2'>
                 <button onClick={handleSave} className='bg-blue-500 text-white px-4 py-2 rounded'>
                     Save Version
                 </button>
                 <button onClick={forceSync} className='bg-green-500 text-white px-4 py-2 rounded'>
                     Force Sync
                 </button>
-            </div>
+            </div> */}
         </div>
     );
 }

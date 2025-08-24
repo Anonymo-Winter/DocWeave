@@ -83,12 +83,11 @@ const LoginComponent = () => {
         try {
             // Simulate API call
             const res = await handleSignup({ name: formData.name, email: formData.email, password: formData.password });
-            console.log(res);
             if (res?.data?.success === true) {
                 console.log(res?.data?.message);
                 setSuccessMessage(res?.data?.message || 'Signup successful! Redirecting...');
                 setTimeout(() => {
-                    navigate('/user-profile');
+                    navigate('/dashboard');
                 }, 2000);
             } else {
                 console.log(res?.error?.data?.message);

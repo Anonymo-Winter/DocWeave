@@ -60,8 +60,8 @@ export const userApi = createApi({
                 try {
                     const { data } = await queryFulfilled;
                     setTimeout(() => dispatch(setCredentials(data.user)), 2000);
-                } catch (e) {
-                    // console.error('Check auth error:', error);
+                } catch (err) {
+                    dispatch(clearCredentials());
                 }
             },
         }),

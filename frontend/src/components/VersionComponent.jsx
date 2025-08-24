@@ -16,6 +16,9 @@ import {
     Moon,
     ArrowLeft,
     Menu,
+    Mail,
+    Circle,
+    Loader2,
 } from 'lucide-react';
 import { createNamedSnapshot, applySnapshotToDoc } from '../util/yjsSnapshots';
 import * as Y from 'yjs';
@@ -23,7 +26,7 @@ import { useSocket } from '../context/socketContext';
 import { useSelector } from 'react-redux';
 import { AiOutlineHistory } from 'react-icons/ai';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useGetVersionQuery, useSaveVersionMutation } from '../api/docApi';
+import { useGetVersionQuery, useSaveVersionMutation, useGetAllversionsQuery } from '../api/docApi';
 import { getWordCountFromYdoc } from '../util/wordCount';
 import {
     Dialog,
@@ -39,6 +42,54 @@ import { Button } from './ui/button';
 import { Label } from './ui/label';
 import { InputField } from './InputField';
 import { toast } from 'sonner';
+import { Buffer } from 'buffer';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
+import { getInitials } from '../util/getInitials.js';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from './ui/hover-card.js';
+import { useEditor, EditorContext, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import { FaRedo } from 'react-icons/fa';
+
+// VersionViewer.jsx
+import { Collaboration } from '@tiptap/extension-collaboration';
+
+export const VersionViewer = ({ versionUpdateBase64 }) => {
+    const [ydoc] = useState(() => new Y.Doc());
+
+    useEffect(() => {
+        if (versionUpdateBase64) {
+            try {
+                const binaryUpdate = Buffer.from(versionUpdateBase64, 'base64');
+                Y.applyUpdate(ydoc, binaryUpdate);
+                console.log('✅ Version applied to Ydoc successfully');
+            } catch (err) {
+                console.error('Failed to apply update:', err);
+            }
+            return () => {
+                ydoc.destroy();
+            };
+        }
+    }, [versionUpdateBase64]);
+
+    const editor = useEditor({
+        editable: false,
+        extensions: [
+            StarterKit,
+            Collaboration.configure({
+                document: ydoc,
+            }),
+        ],
+    });
+
+    if (!editor) return <div>Loading...</div>;
+
+    return (
+        <div className='prose dark:prose-invert p-4 border bg-white dark:bg-gray-900 rounded-xl'>
+            <EditorContent editor={editor} />
+        </div>
+    );
+};
 
 const VersionComponent = () => {
     const [selectedVersion, setSelectedVersion] = useState(null);
@@ -54,38 +105,169 @@ const VersionComponent = () => {
     const [isFocused, setIsFocused] = useState(false);
     const [versionName, setVersionName] = useState('');
     const [versionDescription, setVersionDescription] = useState('');
-    console.log(useParams());
-    const { ydoc, addSnapshot, snapshots } = useSocket();
+    const [saveVersionDialogOpen, setSaveVersionDialogOpen] = useState(false);
+    const { editorId } = useParams();
+    const { ydoc, addSnapshot, snapshots, awareness, assignedColor } = useSocket();
     const user = useSelector((state) => state.user.user);
-    // const { data: versionHistory = [], isLoading } = useGetVersionsQuery(documentId);
     const [saveVersion] = useSaveVersionMutation();
 
+    const {
+        data,
+        isLoading: isVersionLoading,
+        error,
+    } = useGetAllversionsQuery(
+        { editorId },
+        {
+            refetchOnMountOrArgChange: true,
+            pollingInterval: 5000,
+        },
+    );
+    // console.log(data?.versions);
+
     const confirmSaveVersion = async () => {
-        try {
-            const snapshot = Y.snapshot(ydoc);
-            const encodedSnapshot = Y.encodeSnapshot(snapshot);
-            const snapshotArray = Array.from(encodedSnapshot);
-
-            await saveVersion({
-                documentId: ydoc.guid,
-                snapshot: snapshotArray,
-                name: newVersionName,
-                wordCount: getWordCountFromYdoc(ydoc), // optional
-                collaborators: [{ name: user.name, role: 'Editor' }],
-                author: {
-                    _id: user._id,
-                    name: user.name,
-                },
-            }).unwrap();
-
-            toast.success('✅ Saved version');
-        } catch (err) {
-            console.error(err);
-            toast.error(err.data?.message || 'Failed to save version');
-        } finally {
-            setShowSaveModal(false);
-            setNewVersionName('');
+        if (!ydoc || !awareness) {
+            console.warn('❌ Cannot save version: editor or Ydoc missing');
+            return;
         }
+        try {
+            const update = Y.encodeStateAsUpdate(ydoc);
+            const fragment = ydoc.getXmlFragment('default');
+            // console.log('📝 Saving fragment:', fragment.toJSON());
+            // console.log('💾 Saving update with length:', update.byteLength);
+            if (!update || update.byteLength < 20) {
+                console.warn('⚠️ Update too small. Likely not ready. Skipping save.');
+                return;
+            }
+            const updateBase64 = Buffer.from(update).toString('base64');
+            try {
+                const decoded = Buffer.from(updateBase64, 'base64');
+                Y.decodeUpdate(decoded);
+            } catch (decodeErr) {
+                console.error('❌ Cannot save: Invalid Yjs update:', decodeErr.message);
+                return;
+            }
+            Array.from(awareness.getStates()).map(([clientId, state]) => {
+                console.log(state);
+                console.log(clientId);
+            });
+            const collaborators = Array.from(awareness.getStates()).map(([clientId, state]) => ({
+                user: state?.user?.id,
+                role: state?.user?.role,
+                color: state?.user?.color,
+            }));
+            const res = await saveVersion({
+                documentId: editorId,
+                update: updateBase64,
+                name: versionName || `${new Date().toLocaleString()}`,
+                description: versionDescription || '',
+                author: { data: user._id, color: assignedColor },
+                wordCount: getWordCountFromYdoc(ydoc),
+                collaborators,
+            }).unwrap();
+            if (!res || !res.success) {
+                throw new Error('Failed to save version');
+            }
+            setSaveVersionDialogOpen(false);
+            setVersionName('');
+            setVersionDescription('');
+            toast.success('Version saved successfully!');
+        } catch (err) {
+            console.error('❌ Failed to save version:', err);
+            toast.error('Failed to save version. Please try again.');
+        }
+    };
+
+    // const restoreVersion = async (selectedVersion) => {
+    //     try {
+    //         if (!selectedVersion?.update) {
+    //             console.warn('❌ No update in selected version');
+    //             return;
+    //         }
+
+    //         // decode base64 string into Uint8Array
+    //         const decodedUpdate = Buffer.from(selectedVersion.update, 'base64');
+
+    //         // apply update into your current Y.Doc
+    //         Y.applyUpdate(ydoc, decodedUpdate);
+
+    //         toast.success(`✅ Restored version: ${selectedVersion.name}`);
+    //     } catch (err) {
+    //         console.error('❌ Failed to restore version:', err);
+    //         toast.error('Failed to restore version. Please try again.');
+    //     }
+    // };
+
+    // const restoreVersion = async (savedUpdateBase64) => {
+    //     if (!ydoc) return;
+
+    //     // 1. Decode the saved snapshot
+    //     const savedUpdate = Buffer.from(savedUpdateBase64, 'base64');
+
+    //     // 2. Create a new doc and apply saved snapshot
+    //     const newDoc = new Y.Doc();
+    //     Y.applyUpdate(newDoc, savedUpdate);
+
+    //     // 3. Clear the current doc and overwrite with snapshot
+    //     const currentXml = ydoc.getXmlFragment('default');
+    //     currentXml.delete(0, currentXml.length); // clear
+    //     const newXml = newDoc.getXmlFragment('default');
+    //     currentXml.insert(0, Array.from(newXml.toArray())); // copy contents
+
+    //     toast.success('✅ Version restored successfully!');
+    // };
+
+    // const restoreVersion = async () => {
+    //     let decodedUpdate;
+
+    //     console.log('ydoc snapshot:', ydoc.toJSON());
+
+    //     if (selectedVersion.update?.data) {
+    //         // Stored as Buffer in DB
+    //         decodedUpdate = Uint8Array.from(selectedVersion.update.data);
+    //     } else if (typeof selectedVersion.update === 'string') {
+    //         // Fallback: if you ever stored base64
+    //         decodedUpdate = Uint8Array.from(Buffer.from(selectedVersion.update, 'base64'));
+    //     } else {
+    //         throw new Error('Unknown update format');
+    //     }
+
+    //     Y.applyUpdate(ydoc, decodedUpdate);
+
+    //     console.log('ydoc snapshot:', ydoc.toJSON());
+    // };
+
+    const restoreVersion = async () => {
+        let decodedUpdate;
+
+        if (selectedVersion.update?.data) {
+            // Stored as Buffer in DB
+            decodedUpdate = Uint8Array.from(selectedVersion.update.data);
+        } else if (typeof selectedVersion.update === 'string') {
+            // Fallback: base64
+            decodedUpdate = Uint8Array.from(Buffer.from(selectedVersion.update, 'base64'));
+        } else {
+            throw new Error('Unknown update format');
+        }
+
+        // 1. Get the shared fragment Tiptap is using
+        const fragment = ydoc.getXmlFragment('default');
+
+        // 2. Clear existing content
+        fragment.delete(0, fragment.length); // clear all child nodes
+
+        // 3. Apply the stored snapshot update into the SAME ydoc
+        const tempDoc = new Y.Doc();
+        Y.applyUpdate(tempDoc, decodedUpdate);
+
+        // 4. Get the fragment from the snapshot doc
+        const snapshotFragment = tempDoc.getXmlFragment('default');
+
+        // 5. Insert cloned content into the live ydoc
+        snapshotFragment.toArray().forEach((node) => {
+            fragment.push([node.clone()]);
+        });
+
+        console.log('✅ Version restored. Current doc:', ydoc.toJSON());
     };
 
     useEffect(() => {
@@ -128,98 +310,9 @@ const VersionComponent = () => {
         alert(`Restored snapshot "${snap.name}"`);
     };
 
-    // User colors for avatars (Google Docs style)
-    const userColors = {
-        'John Doe': 'bg-blue-500',
-        'Jane Smith': 'bg-green-500',
-        'Mike Johnson': 'bg-purple-500',
-        'Sarah Wilson': 'bg-orange-500',
-        'David Brown': 'bg-red-500',
-        'Emily Davis': 'bg-pink-500',
-        'Alex Chen': 'bg-indigo-500',
-        'Lisa Park': 'bg-yellow-500',
-    };
-
-    // // Mock version history data
-    const versionHistory = [
-        {
-            id: 1,
-            timestamp: '2 hours ago',
-            fullDate: 'Today 2:30 PM',
-            author: 'John Doe',
-            changes: 'Added introduction section and updated formatting throughout the document',
-            isNamed: false,
-            isStarred: false,
-            collaborators: [
-                { name: 'John Doe', role: 'Editor' },
-                { name: 'Jane Smith', role: 'Commenter' },
-            ],
-            wordCount: 1245,
-            isCurrentVersion: true,
-        },
-        {
-            id: 2,
-            timestamp: '5 hours ago',
-            fullDate: 'Today 11:15 AM',
-            author: 'Jane Smith',
-            changes: 'Updated formatting, fixed typos, and added comprehensive references section',
-            isNamed: true,
-            name: 'Draft v2.1',
-            isStarred: true,
-            collaborators: [
-                { name: 'Jane Smith', role: 'Editor' },
-                { name: 'Mike Johnson', role: 'Viewer' },
-            ],
-            wordCount: 1180,
-        },
-        {
-            id: 3,
-            timestamp: 'Yesterday',
-            fullDate: 'Yesterday 4:45 PM',
-            author: 'John Doe',
-            changes: 'Initial draft creation with main content structure and outline',
-            isNamed: false,
-            isStarred: false,
-            collaborators: [{ name: 'John Doe', role: 'Owner' }],
-            wordCount: 980,
-        },
-        {
-            id: 4,
-            timestamp: '2 days ago',
-            fullDate: 'July 2, 4:20 PM',
-            author: 'Mike Johnson',
-            changes: 'Created document template and comprehensive outline structure',
-            isNamed: true,
-            name: 'Template v1.0',
-            isStarred: false,
-            collaborators: [
-                { name: 'Mike Johnson', role: 'Editor' },
-                { name: 'Sarah Wilson', role: 'Editor' },
-                { name: 'David Brown', role: 'Commenter' },
-                { name: 'Emily Davis', role: 'Viewer' },
-            ],
-            wordCount: 650,
-        },
-        {
-            id: 5,
-            timestamp: '3 days ago',
-            fullDate: 'July 1, 10:30 AM',
-            author: 'Sarah Wilson',
-            changes: 'Added research notes and bibliography with extensive citations',
-            isNamed: false,
-            isStarred: false,
-            collaborators: [
-                { name: 'Sarah Wilson', role: 'Editor' },
-                { name: 'Emily Davis', role: 'Commenter' },
-                { name: 'Alex Chen', role: 'Viewer' },
-                { name: 'Lisa Park', role: 'Viewer' },
-            ],
-            wordCount: 420,
-        },
-    ];
-
     const handleVersionClick = (version) => {
-        setSelectedVersion(version.id === selectedVersion ? null : version.id);
+        // setSelectedVersion(version._id === selectedVersion?._id ? null : version);
+        setSelectedVersion(version);
     };
 
     const toggleExpanded = (versionId) => {
@@ -231,7 +324,7 @@ const VersionComponent = () => {
 
     const handleRestore = (version) => {
         setShowRestoreModal(true);
-        setSelectedVersion(version.id);
+        setSelectedVersion(version);
     };
 
     const handleRemove = (version) => {
@@ -246,7 +339,12 @@ const VersionComponent = () => {
     };
 
     const confirmRestore = () => {
-        console.log('Restoring version:', selectedVersion);
+        if (!selectedVersion) {
+            toast.error('No version selected');
+            return;
+        }
+
+        restoreVersion(selectedVersion);
         setShowRestoreModal(false);
         setSelectedVersion(null);
     };
@@ -264,45 +362,7 @@ const VersionComponent = () => {
         setNewVersionName('');
     };
 
-    const getInitials = (name) => {
-        return name
-            .split(' ')
-            .map((n) => n[0])
-            .join('')
-            .toUpperCase();
-    };
-
-    const getRoleColor = (role) => {
-        if (localStorage.getItem('theme') === 'dark') {
-            switch (role) {
-                case 'Owner':
-                    return 'text-purple-300 bg-purple-900/30';
-                case 'Editor':
-                    return 'text-blue-300 bg-blue-900/30';
-                case 'Commenter':
-                    return 'text-green-300 bg-green-900/30';
-                case 'Viewer':
-                    return 'text-gray-300 bg-gray-800/30';
-                default:
-                    return 'text-gray-300 bg-gray-800/30';
-            }
-        } else {
-            switch (role) {
-                case 'Owner':
-                    return 'text-purple-600 bg-purple-50';
-                case 'Editor':
-                    return 'text-blue-600 bg-blue-50';
-                case 'Commenter':
-                    return 'text-green-600 bg-green-50';
-                case 'Viewer':
-                    return 'text-gray-600 bg-gray-50';
-                default:
-                    return 'text-gray-600 bg-gray-50';
-            }
-        }
-    };
-
-    const UserAvatar = ({ name, size = 'sm', showTooltip = false }) => {
+    const UserAvatar = ({ name, size = 'sm', bgColor }) => {
         const sizeClasses = {
             xs: 'w-5 h-5 text-xs',
             sm: 'w-6 h-6 text-xs',
@@ -311,21 +371,12 @@ const VersionComponent = () => {
 
         return (
             <div
-                className={`${userColors[name] || 'bg-gray-500'} ${
+                className={`${bgColor || 'bg-gray-500'} ${
                     sizeClasses[size]
                 } rounded-full flex items-center justify-center text-white font-medium relative group`}
-                title={showTooltip ? name : ''}
+                style={{ backgroundColor: bgColor || 'bg-gray-500' }}
             >
                 {getInitials(name)}
-                {showTooltip && (
-                    <div
-                        className={`absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 px-2 py-1
-                            dark:bg-gray-700 dark:text-white bg-gray-800 text-white text-xs rounded 
-                            opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10`}
-                    >
-                        {name}
-                    </div>
-                )}
             </div>
         );
     };
@@ -345,27 +396,60 @@ const VersionComponent = () => {
 
     const navigate = useNavigate();
 
+    if (isVersionLoading) {
+        return (
+            <div className='flex items-center justify-center h-screen'>
+                <p className='text-gray-500 dark:text-gray-400'>Loading version history...</p>
+            </div>
+        );
+    }
+
     return (
-        <div className={`h-full w-full flex dark:bg-gray-900 bg-gray-50`}>
+        <div className={`h-screen w-screen flex dark:bg-gray-900 bg-gray-50`}>
             {/* Editor Section */}
             <div className='dark:bg-gray-800 bg-white h-full w-full dark:border-gray-700 border-gray-200 border-r shadow-sm flex flex-col'>
                 {/* Editor Header */}
                 <div
                     className={`p-4 dark:border-gray-700 dark:bg-gray-900 border-gray-200 bg-gray-50 border-b flex justify-between items-center`}
                 >
-                    <h2 className={`text-lg font-medium dark:text-white text-gray-800`}>
-                        <ArrowLeft onClick={() => navigate('/editor')} />
-                    </h2>
+                    {selectedVersion ? (
+                        <span className={`ms-10 text-sm md:text-lg font-medium dark:text-white text-gray-800`}>
+                            Version Preview: {selectedVersion.name}
+                        </span>
+                    ) : (
+                        <span className={`ms-10 text-sm md:text-lg font-medium dark:text-white text-gray-800`}>
+                            Select a version
+                        </span>
+                    )}
                     <div className='flex items-center gap-4'>
-                        <Dialog>
-                            <form onSubmit={(e) => e.preventDefault()}>
+                        {selectedVersion ? (
+                            <button
+                                type='button'
+                                onClick={() => restoreVersion(selectedVersion)}
+                                class='flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow hover:shadow-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50'
+                            >
+                                {0 ? (
+                                    <>
+                                        <Loader2 className='w-4 h-4 animate-spin' />
+                                        <span>Restoring...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <FaRedo className='w-4 h-4 rotate-20' />
+                                        <span>Restore Version</span>
+                                    </>
+                                )}
+                            </button>
+                        ) : (
+                            <Dialog open={saveVersionDialogOpen} onOpenChange={setSaveVersionDialogOpen}>
                                 <DialogTrigger asChild>
                                     <button
                                         type='button'
-                                        className='flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md transition-colors'
+                                        // className='flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md transition-colors'
+                                        class='flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow hover:shadow-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50'
                                     >
                                         <Save className='w-4 h-4' />
-                                        Save version
+                                        <span className='md:block hidden'>Save version</span>
                                     </button>
                                 </DialogTrigger>
 
@@ -400,7 +484,7 @@ const VersionComponent = () => {
                                                 value={versionName}
                                                 onChange={(e) => setVersionName(e.target.value)}
                                                 onFocus={() => setIsFocused(true)}
-                                                onBlur={() => setIsFocused(false)}
+                                                onBlur={() => setTimeout(() => setIsFocused(false), 0)}
                                                 className={`w-full py-3 pl-10 border-2 rounded-lg bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm font-light text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none transition-all duration-200 ${
                                                     isFocused
                                                         ? 'border-blue-500 dark:border-blue-400'
@@ -421,9 +505,10 @@ const VersionComponent = () => {
                                             placeholder='Add a short description...'
                                             value={versionDescription}
                                             onChange={(e) => setVersionDescription(e.target.value)}
-                                            className={`w-full min-h-12 max-h-20 custom-scrollbar py-3 px-3 border-2 rounded-lg bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm font-light text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none transition-all duration-200 focus:border-blue-500 dark:focus:border-blue-400
-                                                    border-gray-600 dark:border-gray-600'
-                                            }`}
+                                            // className={`w-full min-h-12 max-h-20 custom-scrollbar py-3 px-3 border-2 rounded-lg bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm font-light text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none
+                                            //     transition-all duration-200 focus:border-blue-500 dark:focus:border-blue-400 border-gray-300 dark:border-gray-600}`}
+                                            className='w-full min-h-12 max-h-20 custom-scrollbar p-3 border-2 rounded-lg bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm font-light text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none
+                                                                            transition-all duration-200 focus:border-blue-500'
                                         />
                                     </div>
 
@@ -446,8 +531,8 @@ const VersionComponent = () => {
                                         </button>
                                     </DialogFooter>
                                 </DialogContent>
-                            </form>
-                        </Dialog>
+                            </Dialog>
+                        )}
                         {isSidebarHidden && (
                             <button
                                 className='p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700'
@@ -461,30 +546,22 @@ const VersionComponent = () => {
 
                 {/* Scrollable Editor Content */}
                 <div className='max-h-screen overflow-y-auto p-6'>
-                    <div className={`dark:text-gray-400 text-gray-400 text-center mt-20`}>
-                        <div className='text-4xl mb-4'>📝</div>
-                        <p className='text-lg'>Editor will go here</p>
-                        <p className='text-sm mt-2'>This space is reserved for your document editor</p>
-                        <div className={`mt-8 text-left max-w-2xl mx-auto dark:text-gray-300 text-gray-600`}>
-                            <p className='mb-4'>Sample content to demonstrate scrolling...</p>
-                            {Array.from({ length: 20 }, (_, i) => (
-                                <p key={i} className='mb-4'>
-                                    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor
-                                    incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud
-                                    exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute
-                                    irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla
-                                    pariatur.
-                                </p>
-                            ))}
-                        </div>
-                    </div>
+                    {/* <div className={`dark:text-gray-400 text-gray-400 text-center mt-20`}> */}
+                    {selectedVersion && (
+                        <>
+                            <div className='mt-4' key={selectedVersion._id}>
+                                <VersionViewer versionUpdateBase64={selectedVersion.update} />
+                            </div>
+                        </>
+                    )}
+                    {/* </div> */}
                 </div>
             </div>
 
             {/* Wrapper */}
             <div className='version-sidebar bg-white dark:bg-gray-800 h-full absolute sm:relative w-full md:w-2/3 lg:w-[30%] border-l border-gray-200 dark:border-gray-700 flex flex-col'>
                 {/* Header */}
-                <div className='p-4 border-b bg-gray-50 dark:bg-gray-900 dark:border-gray-700 flex-shrink-0'>
+                <div className='p-4 border-b bg-gray-50 dark:bg-gray-900 dark:border-gray-700 flex-shrink-0 z-[5]'>
                     <div className='flex items-center justify-between'>
                         <div className='flex items-center gap-2'>
                             <Clock className='w-5 h-5 text-gray-600 dark:text-gray-400' />
@@ -496,191 +573,218 @@ const VersionComponent = () => {
                                 document.querySelector('.version-sidebar').classList.toggle('hidden');
                             }}
                         >
-                            <X className='w-4 h-4 text-gray-600 dark:text-gray-400' />
+                            <Menu className='w-4 h-4 text-gray-600 dark:text-gray-400' />
                         </button>
                     </div>
                     <div className='mt-2 text-xs text-gray-500 dark:text-gray-400'>
-                        {versionHistory.length} versions available
+                        {data?.versions.length} versions available
                     </div>
                 </div>
 
                 {/* Version List */}
                 <div className='max-h-screen overflow-y-auto'>
                     <div className='p-3 space-y-3'>
-                        {versionHistory.map((version, index) => {
-                            const baseClasses = `group rounded-xl transition-all duration-200 border-2`;
-                            const selectedClasses = `shadow-md ${
-                                selectedVersion === version.id
-                                    ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-600'
-                                    : 'bg-white hover:bg-gray-50 border-gray-100 hover:border-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 dark:border-gray-600 dark:hover:border-gray-500'
-                            }`;
-                            return (
-                                <div key={version.id} className={`${baseClasses} ${selectedClasses}`}>
-                                    <div className='p-4 cursor-pointer' onClick={() => handleVersionClick(version)}>
-                                        {/* Version Header */}
-                                        <div className='flex items-start justify-between mb-3'>
-                                            <div className='flex items-center gap-2 flex-1'>
-                                                <div
-                                                    className={`w-3 h-3 rounded-full ${
-                                                        version.isCurrentVersion ? 'bg-green-500' : 'bg-blue-500'
-                                                    }`}
-                                                />
-                                                <div className='flex-1'>
-                                                    <div className='flex items-center gap-2 mb-1'>
-                                                        <span className='text-sm font-semibold text-gray-900 dark:text-white'>
-                                                            {version.isNamed
-                                                                ? version.name
-                                                                : `Version ${versionHistory.length - index}`}
-                                                        </span>
-                                                        {version.isCurrentVersion && (
-                                                            <span className='text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium'>
-                                                                Current
-                                                            </span>
-                                                        )}
-                                                        {version.isStarred && (
-                                                            <Star className='w-3 h-3 text-yellow-500 fill-current' />
-                                                        )}
+                        {data?.versions && data.versions.length === 0 ? (
+                            <div className='text-center text-gray-500 dark:text-gray-400 py-10'>
+                                No versions available yet. Start editing to create your first version.
+                            </div>
+                        ) : (
+                            <>
+                                {/* Hello */}
+                                {data?.versions.map((version, index) => {
+                                    const baseClasses = `group rounded-xl transition-all duration-200 border-2`;
+                                    const selectedClasses = `shadow-md ${
+                                        selectedVersion?._id === version._id
+                                            ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/30 dark:border-blue-600'
+                                            : 'bg-white border-gray-100 hover:border-gray-200 dark:bg-gray-700 dark:border-gray-600 dark:hover:border-gray-500'
+                                    }`;
+                                    return (
+                                        <div key={index} className={`${baseClasses} ${selectedClasses}`}>
+                                            <div
+                                                className='p-4 cursor-pointer'
+                                                onClick={() => handleVersionClick(version)}
+                                            >
+                                                {/* Header */}
+                                                <div className='flex items-start justify-between mb-3'>
+                                                    <div className='flex items-center gap-2 flex-1'>
+                                                        <div
+                                                            className={`w-3 h-3 rounded-full ${
+                                                                index === 0 ? 'bg-green-500' : 'bg-blue-500'
+                                                            }`}
+                                                        />
+                                                        <div className='flex-1'>
+                                                            <div className='flex items-center gap-2 mb-1'>
+                                                                <span className='text-sm font-semibold text-gray-900 dark:text-white'>
+                                                                    {version?.name}
+                                                                </span>
+                                                                {index === 0 && (
+                                                                    <span className='text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium'>
+                                                                        Current
+                                                                    </span>
+                                                                )}
+                                                                {version.isStarred && (
+                                                                    <Star className='w-3 h-3 text-yellow-500 fill-current' />
+                                                                )}
+                                                            </div>
+                                                            <div className='text-xs text-gray-500 dark:text-gray-400'>
+                                                                {new Date(version.createdAt).toLocaleString([], {
+                                                                    dateStyle: 'medium',
+                                                                    timeStyle: 'short',
+                                                                })}
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                    <div className='text-xs text-gray-500 dark:text-gray-400'>
-                                                        {version.fullDate}
+                                                </div>
+
+                                                {/* Author */}
+                                                <div className='flex items-center gap-2 mb-3'>
+                                                    <HoverCard>
+                                                        <HoverCardTrigger asChild>
+                                                            <button className='flex items-center gap-2'>
+                                                                <UserAvatar
+                                                                    name={version?.author?.data?.name}
+                                                                    bgColor={version?.author?.color}
+                                                                    size='xs'
+                                                                    showTooltip
+                                                                />
+                                                                <span className='text-sm font-medium text-gray-700 dark:text-gray-200 truncate'>
+                                                                    {version?.author?.data?.name}
+                                                                </span>
+                                                            </button>
+                                                        </HoverCardTrigger>
+                                                        <HoverCardContent className='text-xs w-fit'>
+                                                            {version?.author?.data?.email}
+                                                        </HoverCardContent>
+                                                    </HoverCard>
+                                                </div>
+
+                                                {/* Collaborators */}
+                                                <div className='mb-3'>
+                                                    <div className='flex items-center justify-between mb-2'>
+                                                        <span className='text-xs font-medium text-gray-500 dark:text-gray-400'>
+                                                            Collaborators ({version.collaborators.length})
+                                                        </span>
+                                                    </div>
+                                                    <div className='flex flex-col gap-1'>
+                                                        {version.collaborators.map((c, i) => (
+                                                            <div
+                                                                key={i}
+                                                                className='flex items-center gap-1.5 rounded-full'
+                                                            >
+                                                                <HoverCard>
+                                                                    <HoverCardTrigger asChild>
+                                                                        <button className='flex items-center gap-1.5'>
+                                                                            <UserAvatar
+                                                                                name={c?.user?.name}
+                                                                                bgColor={c?.color}
+                                                                                size='xs'
+                                                                                showTooltip
+                                                                            />
+                                                                            <span className='text-xs text-gray-700 dark:text-gray-200 truncate'>
+                                                                                {c.user?.name}
+                                                                            </span>
+                                                                        </button>
+                                                                    </HoverCardTrigger>
+                                                                    <HoverCardContent className='text-xs w-fit'>
+                                                                        {version?.author?.data?.email}
+                                                                    </HoverCardContent>
+                                                                </HoverCard>
+                                                                <span
+                                                                    className={`text-xs px-1.5 py-0.5 rounded-full ${
+                                                                        {
+                                                                            owner: 'text-purple-600 bg-purple-50 dark:text-purple-300 dark:bg-purple-900/30',
+                                                                            editor: 'text-blue-600 bg-blue-50 dark:text-blue-300 dark:bg-blue-900/30',
+                                                                            Viewer: 'text-gray-600 bg-gray-50 dark:text-gray-300 dark:bg-gray-800/30',
+                                                                        }[c.role]
+                                                                    }`}
+                                                                >
+                                                                    {c.role.charAt(0).toUpperCase() + c.role.slice(1)}
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                {/* Changes Summary */}
+                                                {version.description && (
+                                                    <div className='mb-3'>
+                                                        <div className='text-xs leading-relaxed bg-gray-50 dark:bg-gray-600 text-gray-700 dark:text-gray-200 p-2 rounded-lg'>
+                                                            {expandedVersions[version._id]
+                                                                ? version.description
+                                                                : `${version.description.slice(0, 80)}${
+                                                                      version.description.length > 80 ? '...' : ''
+                                                                  }`}
+                                                            {version?.description?.length > 80 && (
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        toggleExpanded(version._id);
+                                                                    }}
+                                                                    className='ml-1 font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300'
+                                                                >
+                                                                    {expandedVersions[version._id]
+                                                                        ? 'Show less'
+                                                                        : 'Show more'}
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Stats */}
+                                                <div className='flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400'>
+                                                    <div className='flex items-center gap-1'>
+                                                        <span className='w-2 h-2 bg-blue-400 rounded-full'></span>
+                                                        <span>{version.wordCount} words</span>
                                                     </div>
                                                 </div>
                                             </div>
-                                            <button className='p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-gray-200 dark:hover:bg-gray-600'>
-                                                <MoreVertical className='w-4 h-4 text-gray-500 dark:text-gray-400' />
-                                            </button>
-                                        </div>
 
-                                        {/* Author */}
-                                        <div className='flex items-center gap-2 mb-3'>
-                                            <UserAvatar name={version.author} size='sm' showTooltip />
-                                            <span className='text-sm font-medium text-gray-700 dark:text-gray-200'>
-                                                {version.author}
-                                            </span>
-                                        </div>
-
-                                        {/* Collaborators */}
-                                        <div className='mb-3'>
-                                            <div className='flex items-center justify-between mb-2'>
-                                                <span className='text-xs font-medium text-gray-500 dark:text-gray-400'>
-                                                    Collaborators ({version.collaborators.length})
-                                                </span>
-                                            </div>
-                                            <div className='flex flex-wrap gap-2'>
-                                                {version.collaborators.map((c, i) => (
-                                                    <div
-                                                        key={i}
-                                                        className='flex items-center gap-1.5 bg-gray-50 dark:bg-gray-600 rounded-full px-2 py-1'
-                                                    >
-                                                        <UserAvatar name={c.name} size='xs' />
-                                                        <span className='text-xs text-gray-700 dark:text-gray-200'>
-                                                            {c.name}
-                                                        </span>
-                                                        <span
-                                                            className={`text-xs px-1.5 py-0.5 rounded-full
-                                                            ${
-                                                                c.role === 'Owner'
-                                                                    ? 'text-purple-600 bg-purple-50 dark:text-purple-300 dark:bg-purple-900/30'
-                                                                    : ''
-                                                            }
-                                                            ${
-                                                                c.role === 'Editor'
-                                                                    ? 'text-blue-600 bg-blue-50 dark:text-blue-300 dark:bg-blue-900/30'
-                                                                    : ''
-                                                            }
-                                                            ${
-                                                                c.role === 'Commenter'
-                                                                    ? 'text-green-600 bg-green-50 dark:text-green-300 dark:bg-green-900/30'
-                                                                    : ''
-                                                            }
-                                                            ${
-                                                                c.role === 'Viewer'
-                                                                    ? 'text-gray-600 bg-gray-50 dark:text-gray-300 dark:bg-gray-800/30'
-                                                                    : ''
-                                                            }
-                                                        `}
+                                            {/* Action Buttons */}
+                                            {selectedVersion?._id === version._id && (
+                                                <div className='px-4 pb-4 pt-3 border-t border-gray-100 dark:border-gray-600'>
+                                                    <div className='grid grid-cols-2 gap-2'>
+                                                        {!version.isCurrentVersion && (
+                                                            <button
+                                                                onClick={() => handleRestore(version)}
+                                                                className='flex items-center justify-center gap-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg font-medium'
+                                                            >
+                                                                <RotateCcw className='w-3 h-3' />
+                                                                Restore
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            onClick={() => handleNameVersion(version)}
+                                                            className='flex items-center justify-center gap-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 text-xs rounded-lg font-medium'
                                                         >
-                                                            {c.role}
-                                                        </span>
+                                                            <Edit2 className='w-3 h-3' />
+                                                            Name
+                                                        </button>
+                                                        <button className='flex items-center justify-center gap-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 text-xs rounded-lg font-medium'>
+                                                            <Download className='w-3 h-3' />
+                                                            Download
+                                                        </button>
+                                                        <button className='flex items-center justify-center gap-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 text-xs rounded-lg font-medium'>
+                                                            <Copy className='w-3 h-3' />
+                                                            Duplicate
+                                                        </button>
+                                                        {!version.isCurrentVersion && (
+                                                            <button
+                                                                onClick={() => handleRemove(version)}
+                                                                className='col-span-2 flex items-center justify-center gap-1 px-3 py-2 bg-red-100 hover:bg-red-200 dark:bg-red-700 dark:text-red-200 dark:hover:bg-red-600 text-xs rounded-lg font-medium'
+                                                            >
+                                                                <Trash2 className='w-3 h-3' />
+                                                                Remove this version
+                                                            </button>
+                                                        )}
                                                     </div>
-                                                ))}
-                                            </div>
+                                                </div>
+                                            )}
                                         </div>
-
-                                        {/* Changes Summary */}
-                                        <div className='mb-3'>
-                                            <div className='text-xs leading-relaxed bg-gray-50 dark:bg-gray-600 text-gray-700 dark:text-gray-200 p-2 rounded-lg'>
-                                                {expandedVersions[version.id]
-                                                    ? version.changes
-                                                    : `${version.changes.slice(0, 80)}${
-                                                          version.changes.length > 80 ? '...' : ''
-                                                      }`}
-                                                {version.changes.length > 80 && (
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            toggleExpanded(version.id);
-                                                        }}
-                                                        className='ml-1 font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300'
-                                                    >
-                                                        {expandedVersions[version.id] ? 'Show less' : 'Show more'}
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {/* Stats */}
-                                        <div className='flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400'>
-                                            <div className='flex items-center gap-1'>
-                                                <span className='w-2 h-2 bg-blue-400 rounded-full'></span>
-                                                <span>{version.wordCount} words</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Action Buttons (when selected) */}
-                                    {selectedVersion === version.id && (
-                                        <div className='px-4 pb-4 pt-3 border-t border-gray-100 dark:border-gray-600'>
-                                            <div className='grid grid-cols-2 gap-2'>
-                                                {!version.isCurrentVersion && (
-                                                    <button
-                                                        onClick={() => handleRestore(version)}
-                                                        className='flex items-center justify-center gap-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg font-medium'
-                                                    >
-                                                        <RotateCcw className='w-3 h-3' />
-                                                        Restore
-                                                    </button>
-                                                )}
-                                                <button
-                                                    onClick={() => handleNameVersion(version)}
-                                                    className='flex items-center justify-center gap-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 text-xs rounded-lg font-medium'
-                                                >
-                                                    <Edit2 className='w-3 h-3' />
-                                                    Name
-                                                </button>
-                                                <button className='flex items-center justify-center gap-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 text-xs rounded-lg font-medium'>
-                                                    <Download className='w-3 h-3' />
-                                                    Download
-                                                </button>
-                                                <button className='flex items-center justify-center gap-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 text-xs rounded-lg font-medium'>
-                                                    <Copy className='w-3 h-3' />
-                                                    Duplicate
-                                                </button>
-                                                {!version.isCurrentVersion && (
-                                                    <button
-                                                        onClick={() => handleRemove(version)}
-                                                        className='col-span-2 flex items-center justify-center gap-1 px-3 py-2 bg-red-100 hover:bg-red-200 dark:bg-red-700 dark:text-red-200 dark:hover:bg-red-600 text-xs rounded-lg font-medium'
-                                                    >
-                                                        <Trash2 className='w-3 h-3' />
-                                                        Remove this version
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
+                                    );
+                                })}
+                            </>
+                        )}
                     </div>
                 </div>
 

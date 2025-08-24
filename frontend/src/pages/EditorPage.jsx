@@ -18,6 +18,11 @@ import {
     CheckCheck,
     MailSearch,
     Building2,
+    MoreHorizontal,
+    Download,
+    Settings,
+    Save,
+    ArrowLeft,
 } from 'lucide-react';
 import { TbFileTypeDoc } from 'react-icons/tb';
 import ConnectionStatus from '../components/ConnectionStatus';
@@ -32,18 +37,29 @@ import {
     DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu';
 import { Button } from '../components/ui/button';
+import { Checkbox } from '../components/ui/checkbox';
 import {
     Dialog,
+    DialogClose,
     DialogContent,
     DialogDescription,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
     DialogTrigger,
+    DialogPortal,
+    DialogOverlay,
 } from '../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { FaCheckCircle } from 'react-icons/fa';
+import { FaAngleDown, FaCheckCircle, FaHistory } from 'react-icons/fa';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '../components/ui/hover-card';
 import { useMobile } from '../hooks/use-mobile.ts';
+import { DropDown } from '../pages/DashBoard.jsx';
+import { Separator } from '../components/ui/separator';
+import { Buffer } from 'buffer';
+import { useGetContributorsQuery, useSaveVersionMutation } from '../api/docApi.js';
+import * as Y from 'yjs';
+
 // Mock data for collaborators
 const mockCollaborators = [
     {
@@ -73,13 +89,6 @@ const mockCollaborators = [
         color: '#F59E0B',
         isOnline: false,
     },
-];
-
-// Mock version history
-const mockVersions = [
-    { id: 1, timestamp: '2025-01-15 14:30', author: 'John Doe', changes: 'Added introduction paragraph' },
-    { id: 2, timestamp: '2025-01-15 13:45', author: 'Jane Smith', changes: 'Fixed typos in section 2' },
-    { id: 3, timestamp: '2025-01-15 12:20', author: 'Bob Wilson', changes: 'Updated formatting' },
 ];
 
 // Emoji picker data
@@ -765,169 +774,6 @@ const ShareModal = () => {
     );
 };
 
-// import { createNamedSnapshot } from '../util/yjsSnapshots.js';
-// import * as Y from 'yjs';
-// import { applySnapshot } from '../util/yjsSnapshots';
-
-// const VersionHistoryModal = ({ isOpen, onClose }) => {
-//     const { ydoc, addSnapshot, snapshots } = useSocket();
-
-//     const handleCreateSnapshot = () => {
-//         const name = prompt('Enter snapshot name:');
-//         if (!name) return;
-//         const snap = createNamedSnapshot(ydoc, name);
-//         addSnapshot(snap);
-//         alert('Snapshot saved!');
-//     };
-
-//     const restore = (snap) => {
-//         const doc = applySnapshot(ydoc, snap.snapshot);
-//         const update = Y.encodeStateAsUpdate(doc);
-//         Y.applyUpdate(ydoc, update); // Applies the snapshot to current doc
-//         alert(`Restored snapshot "${snap.name}"`);
-//     };
-
-//     if (!isOpen) return null;
-
-//     return (
-//         <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4'>
-//             <div className='bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-2xl mx-4 max-h-[80vh] overflow-hidden'>
-//                 <div className='flex justify-between items-center mb-4'>
-//                     <h3 className='text-lg font-semibold text-gray-900 dark:text-white'>Version History</h3>
-//                     <button onClick={handleCreateSnapshot} className='btn'>
-//                         📸 Save Snapshot
-//                     </button>
-//                     <button onClick={onClose} className='text-gray-500 hover:text-gray-700'>
-//                         <X size={20} />
-//                     </button>
-//                 </div>
-
-//                 <div className='space-y-3 overflow-y-auto max-h-[calc(80vh-100px)]'>
-//                     {/* {mockVersions.map((version) => (
-//                         <div
-//                             key={version.id}
-//                             className='border border-gray-200 dark:border-gray-600 rounded-lg p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer'
-//                         >
-//                             <div className='flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 gap-1'>
-//                                 <div className='text-sm font-medium text-gray-900 dark:text-white'>
-//                                     {version.timestamp}
-//                                 </div>
-//                                 <button className='text-xs text-blue-600 hover:text-blue-800'>Restore</button>
-//                             </div>
-//                             <div className='text-sm text-gray-600 dark:text-gray-400 mb-1'>By {version.author}</div>
-//                             <div className='text-xs text-gray-500'>{version.changes}</div>
-//                         </div>
-//                     ))} */}
-//                     {snapshots.map((version, index) => (
-//                         <div
-//                             key={index}
-//                             className='border border-gray-200 dark:border-gray-600 rounded-lg p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer'
-//                         >
-//                             <div className='flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 gap-1'>
-//                                 <div className='text-sm font-medium text-gray-900 dark:text-white'>
-//                                     {new Date(version.timestamp).toLocaleString()}
-//                                 </div>
-//                                 <button
-//                                     className='text-xs text-blue-600 hover:text-blue-800'
-//                                     onClick={(e) => {
-//                                         e.preventDefault();
-//                                         alert('Are you sure');
-//                                         restore(version);
-//                                     }}
-//                                 >
-//                                     Restore
-//                                 </button>
-//                             </div>
-//                             {/* <div className='text-sm text-gray-600 dark:text-gray-400 mb-1'>By {version.author}</div> */}
-//                             <div className='text-gray-500'>{version.name}</div>
-//                         </div>
-//                     ))}
-//                 </div>
-//             </div>
-//         </div>
-//     );
-// };
-
-import { createNamedSnapshot, applySnapshotToDoc } from '../util/yjsSnapshots';
-import * as Y from 'yjs';
-// usesocket is already called
-const VersionHistoryModal = ({ isOpen, onClose }) => {
-    const { ydoc, addSnapshot, snapshots } = useSocket();
-    const user = useSelector((state) => state.user.user);
-
-    const handleCreateSnapshot = () => {
-        const name = prompt('Snapshot name:');
-        if (!name) return;
-
-        const snapshot = createNamedSnapshot(ydoc, name, {
-            id: user._id,
-            name: user.name,
-        });
-
-        addSnapshot(snapshot);
-        alert('✅ Snapshot saved');
-    };
-
-    const restore = (snap) => {
-        applySnapshotToDoc(ydoc, snap.snapshot);
-        alert(`Restored snapshot "${snap.name}"`);
-    };
-    const navigate = useNavigate();
-
-    if (!isOpen) return null;
-
-    return (
-        <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4'>
-            <div className='bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 w-full max-w-2xl mx-4 max-h-[80vh] overflow-hidden'>
-                <div className='flex justify-between items-center mb-4'>
-                    <h3 className='text-lg font-semibold text-gray-900 dark:text-white'>Version History</h3>
-                    <div className='flex items-center gap-2'>
-                        <button onClick={handleCreateSnapshot} className='btn text-sm'>
-                            📸 Save Snapshot
-                        </button>
-                        <button onClick={onClose} className='text-gray-500 hover:text-gray-700'>
-                            <X size={20} />
-                        </button>
-                    </div>
-                </div>
-
-                <div className='space-y-3 overflow-y-auto max-h-[calc(80vh-100px)]'>
-                    {snapshots.map((version, index) => (
-                        <div
-                            key={index}
-                            className='border border-gray-200 dark:border-gray-600 rounded-lg p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer'
-                        >
-                            <div className='flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 gap-1'>
-                                <div className='text-sm font-medium text-gray-900 dark:text-white'>
-                                    {new Date(version.timestamp).toLocaleString()}
-                                </div>
-                                <button
-                                    className='text-xs text-blue-600 hover:text-blue-800'
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        restore(version);
-                                    }}
-                                >
-                                    Restore
-                                </button>
-                            </div>
-                            <div className='text-gray-500'>{version.name}</div>
-                        </div>
-                    ))}
-                </div>
-                <button
-                    className='btn text-sm text-blue-500 cursor-pointer'
-                    onClick={() => {
-                        navigate('/version');
-                    }}
-                >
-                    View more
-                </button>
-            </div>
-        </div>
-    );
-};
-
 const UserRoleSelector = ({ currentRole, onRoleChange }) => {
     const roles = [
         { value: 'viewer', label: 'Viewer', icon: Eye, description: 'Can only view the document' },
@@ -1282,6 +1128,133 @@ const EnhancedNavbar = ({
 }) => {
     const [showCollaborators, setShowCollaborators] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const { ydoc, awareness, assignedColor } = useSocket();
+    const [saveVersion] = useSaveVersionMutation();
+    const user = useSelector((state) => state.user.user);
+    const { editorId } = useParams();
+    const [saveVersionDialogOpen, setSaveVersionDialogOpen] = useState(false);
+    const [copied, setCopied] = useState(false);
+
+    const [isFocused, setIsFocused] = useState(false);
+    const [versionName, setVersionName] = useState('new version');
+    const [versionDescription, setVersionDescription] = useState('new description');
+    const [autoSave, setAutoSave] = useState(false);
+
+    // const handleSave = async () => {
+    //     if (!ydoc || !awareness) {
+    //         console.warn('❌ Cannot save version: editor or Ydoc missing');
+    //         return;
+    //     }
+    //     try {
+    //         const update = Y.encodeStateAsUpdate(ydoc);
+    //         const fragment = ydoc.getXmlFragment('default');
+    //         console.log('📝 Saving fragment:', fragment.toJSON());
+    //         console.log('💾 Saving update with length:', update.byteLength);
+    //         if (!update || update.byteLength < 20) {
+    //             console.warn('⚠️ Update too small. Likely not ready. Skipping save.');
+    //             return;
+    //         }
+    //         const updateBase64 = Buffer.from(update).toString('base64');
+    //         try {
+    //             const decoded = Buffer.from(updateBase64, 'base64');
+    //             Y.decodeUpdate(decoded);
+    //         } catch (decodeErr) {
+    //             console.error('❌ Cannot save: Invalid Yjs update:', decodeErr.message);
+    //             return;
+    //         }
+    //         const collaborators = Array.from(awareness.getStates()).map(([clientId, state]) => {
+    //             const user = state?.user;
+    //             return {
+    //                 _id: user?.id,
+    //                 role: user?.role || 'editor',
+    //                 color: user?.color || '#999999',
+    //             };
+    //         });
+
+    //         const res = await saveVersion({
+    //             documentId: editorId,
+    //             description: versionDescription || '',
+    //             update: updateBase64,
+    //             author: { data: user._id, color: assignedColor + '' },
+    //             name: versionName,
+    //             wordCount: getWordCountFromYdoc(ydoc),
+    //             collaborators,
+    //             isNamed: !!versionName,
+    //             source: 'manual',
+    //         }).unwrap();
+    //         if (!res || !res.success) {
+    //             throw new Error('Failed to save version');
+    //         }
+    //         setSaveVersionDialogOpen(false);
+    //         setVersionName('');
+    //         setVersionDescription('');
+    //         toast.success('Version saved successfully!');
+    //     } catch (err) {
+    //         console.error('❌ Failed to save version:', err);
+    //         toast.error('Failed to save version. Please try again.');
+    //     }
+    // };
+
+    const handleSave = async () => {
+        if (!ydoc || !awareness) {
+            console.warn('❌ Cannot save version: editor or Ydoc missing');
+            return;
+        }
+        try {
+            const update = Y.encodeStateAsUpdate(ydoc);
+            const fragment = ydoc.getXmlFragment('default');
+            console.log('📝 Saving fragment:', fragment.toJSON());
+            console.log('💾 Saving update with length:', update.byteLength);
+            if (!update || update.byteLength < 20) {
+                console.warn('⚠️ Update too small. Likely not ready. Skipping save.');
+                return;
+            }
+            const updateBase64 = Buffer.from(update).toString('base64');
+            try {
+                const decoded = Buffer.from(updateBase64, 'base64');
+                Y.decodeUpdate(decoded);
+            } catch (decodeErr) {
+                console.error('❌ Cannot save: Invalid Yjs update:', decodeErr.message);
+                return;
+            }
+            Array.from(awareness.getStates()).map(([clientId, state]) => {
+                console.log(state);
+                console.log(clientId);
+            });
+            const collaborators = Array.from(awareness.getStates()).map(([clientId, state]) => ({
+                user: state?.user?.id,
+                role: state?.user?.role,
+                color: state?.user?.color,
+            }));
+            const res = await saveVersion({
+                documentId: editorId,
+                update: updateBase64,
+                name: versionName || `${new Date().toLocaleString()}`,
+                description: versionDescription || '',
+                author: { data: user._id, color: assignedColor },
+                wordCount: getWordCountFromYdoc(ydoc),
+                collaborators,
+            }).unwrap();
+            if (!res || !res.success) {
+                throw new Error('Failed to save version');
+            }
+            setSaveVersionDialogOpen(false);
+            setVersionName('');
+            setVersionDescription('');
+            toast.success('Version saved successfully!');
+        } catch (err) {
+            console.error('❌ Failed to save version:', err);
+            toast.error('Failed to save version. Please try again.');
+        }
+    };
+
+    const handleChange = (e) => {
+        if (e.target.checked) {
+            alert('AutoSave Enabled');
+        } else {
+            alert('AutoSave Disabled');
+        }
+    };
 
     return (
         <header className='bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm'>
@@ -1334,26 +1307,168 @@ const EnhancedNavbar = ({
                         {/* Role selector */}
                         <UserRoleSelector currentRole={currentUserRole} onRoleChange={onRoleChange} />
                         {/* History */}
-                        <ActionButton onClick={onVersionHistoryClick} tooltip='Version History'>
-                            <History size={16} />
-                        </ActionButton>
+
+                        <Dialog>
+                            <DialogTrigger
+                                asChild
+                                className='flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800'
+                            >
+                                <ActionButton tooltip='Version History'>
+                                    <History size={16} />
+                                </ActionButton>
+                            </DialogTrigger>
+                            <DialogContent
+                                showCloseButton={false}
+                                className='z-50 min-w-screen min-h-screen max-w-none max-h-none rounded-none p-0 overflow-x-hidden overflow-y-auto bg-white dark:bg-gray-900'
+                            >
+                                <VersionComponent />
+                                <DialogClose className='absolute top-4 left-4 p-2 z-[2] rounded-full hover:bg-gray-200 dark:hover:bg-gray-700'>
+                                    <ArrowLeft className='w-5 h-5' />
+                                </DialogClose>
+                            </DialogContent>
+                        </Dialog>
+
+                        <div className='flex items-center'>
+                            {/* Save Version Dialog */}
+                            <Dialog open={saveVersionDialogOpen} onOpenChange={setSaveVersionDialogOpen}>
+                                <DialogTrigger asChild>
+                                    <button className='flex items-center gap-2 px-3 py-2 rounded-l-3xl text-white bg-blue-600 hover:bg-blue-700 transition-colors'>
+                                        <MdSave size={16} />
+                                        <span className='hidden sm:inline'>Save</span>
+                                    </button>
+                                </DialogTrigger>
+
+                                <DialogContent className='dark:bg-gray-800 bg-white rounded-lg max-w-md w-full mx-4 px-5 py-4'>
+                                    <DialogHeader>
+                                        <DialogTitle className='font-medium dark:text-white text-gray-900'>
+                                            Save current version
+                                        </DialogTitle>
+                                        <DialogDescription>
+                                            Save the current state of the document as a new version. You can give it a
+                                            name and description.
+                                        </DialogDescription>
+                                    </DialogHeader>
+
+                                    {/* Version Name Input */}
+                                    <div className=''>
+                                        <Label htmlFor='version-name' className='mb-4 block'>
+                                            Version Name (optional)
+                                        </Label>
+                                        <div className='relative'>
+                                            <AiOutlineHistory
+                                                className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 transition-colors z-10 ${
+                                                    isFocused
+                                                        ? 'text-blue-500 dark:text-blue-400'
+                                                        : 'text-gray-400 dark:text-gray-500'
+                                                }`}
+                                            />
+                                            <input
+                                                id='version-name'
+                                                type='text'
+                                                placeholder='Enter version name...'
+                                                value={versionName}
+                                                onChange={(e) => setVersionName(e.target.value)}
+                                                onFocus={() => setIsFocused(true)}
+                                                onBlur={() => setIsFocused(false)}
+                                                className={`w-full py-3 pl-10 border-2 rounded-lg bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm font-light text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none transition-all duration-200 ${
+                                                    isFocused
+                                                        ? 'border-blue-500 dark:border-blue-400'
+                                                        : 'border-gray-300 dark:border-gray-600'
+                                                }`}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Version Description Textarea */}
+                                    <div className=''>
+                                        <Label htmlFor='version-description' className='mb-4 block'>
+                                            Version Description (optional)
+                                        </Label>
+                                        <textarea
+                                            id='version-description'
+                                            rows={3}
+                                            placeholder='Add a short description...'
+                                            value={versionDescription}
+                                            onChange={(e) => setVersionDescription(e.target.value)}
+                                            // className={`w-full min-h-12 max-h-20 custom-scrollbar py-3 px-3 border-2 rounded-lg bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm font-light text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none
+                                            //     transition-all duration-200 focus:border-blue-500 dark:focus:border-blue-400 border-gray-300 dark:border-gray-600}`}
+                                            className='w-full min-h-12 max-h-20 custom-scrollbar p-3 border-2 rounded-lg bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm font-light text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none
+                                            transition-all duration-200 focus:border-blue-500'
+                                        />
+                                    </div>
+
+                                    {/* Footer Actions */}
+                                    <DialogFooter>
+                                        <DialogClose asChild>
+                                            <button
+                                                type='button'
+                                                className='px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md'
+                                            >
+                                                Cancel
+                                            </button>
+                                        </DialogClose>
+                                        <button
+                                            onClick={() => handleSave()}
+                                            type='submit'
+                                            className='px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-md'
+                                        >
+                                            Save Version
+                                        </button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                            <Separator orientation='vertical' />
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <button className='p-3 rounded-r-3xl bg-green-500  h-full'>
+                                        <FaAngleDown size={16} />
+                                    </button>
+                                </PopoverTrigger>
+                                <PopoverContent className='w-fit'>
+                                    <div className='flex items-center gap-2'>
+                                        <label
+                                            htmlFor='autosave'
+                                            className='inline-flex items-center gap-2 cursor-pointer'
+                                        >
+                                            <input
+                                                type='checkbox'
+                                                id='autosave'
+                                                defaultChecked
+                                                onChange={handleChange}
+                                                className='peer sr-only'
+                                            />
+                                            <div className='w-5 h-5 rounded border border-gray-400 flex peer-checked:hidden peer-checked:bg-blue-600 peer-checked:border-blue-600 items-center justify-center transition-colors'></div>
+                                            <div className='w-5 h-5 rounded border border-gray-400 hidden peer-checked:flex peer-checked:bg-blue-600 peer-checked:border-blue-600 items-center justify-center transition-colors'>
+                                                <svg
+                                                    className='w-3 h-3 text-white'
+                                                    viewBox='0 0 24 24'
+                                                    fill='none'
+                                                    stroke='currentColor'
+                                                    strokeWidth='3'
+                                                    strokeLinecap='round'
+                                                    strokeLinejoin='round'
+                                                >
+                                                    <polyline points='20 6 9 17 4 12' />
+                                                </svg>
+                                            </div>
+                                            <span className='text-sm text-gray-900 dark:text-gray-100'>
+                                                Enable AutoSave
+                                            </span>
+                                        </label>
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+
                         {/* Share */}
                         <Dialog>
                             <DialogTrigger asChild>
-                                <button
-                                    className='flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'
-                                    asChild
-                                >
+                                <button className='flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'>
                                     <Share2 size={16} />
                                     <span className='hidden sm:inline'>Share</span>
                                 </button>
                             </DialogTrigger>
                             <DialogContent className='max-w-lg w-full mx-auto dark:bg-gray-900 border border-gray-500 dark:border-gray-700'>
-                                {/* <DialogHeader>
-                                    <DialogTitle className='sm:text-lg font-semibold text-gray-900 dark:text-white mb-4'>
-                                        Share 'Collaborative document'
-                                    </DialogTitle>
-                                </DialogHeader> */}
                                 <ShareModal />
                             </DialogContent>
                         </Dialog>
@@ -1371,6 +1486,7 @@ const EnhancedNavbar = ({
 
                     {/* <ConnectionStatusIndicator connectionStatus={{ connected: true }} /> */}
                     <ConnectionStatus />
+                    <DropDown />
                 </div>
             </div>
 
@@ -1389,22 +1505,6 @@ const EnhancedNavbar = ({
         </header>
     );
 };
-
-// // Reusable components:
-
-// function Avatar({ collab, index }) {
-//     return (
-//         <div
-//             title={`${collab.name} (${collab.role})`}
-//             className={`w-8 h-8 rounded-full border-2 border-white dark:border-gray-900 flex items-center justify-center text-xs font-medium transition-all duration-200 ${
-//                 collab.isOnline ? 'ring-2 ring-green-400' : ''
-//             }`}
-//             style={{ backgroundColor: collab.color, zIndex: mockCollaborators.length - index }}
-//         >
-//             {collab.avatar}
-//         </div>
-//     );
-// }
 
 function CollaboratorsDropdown({ list }) {
     return (
@@ -1518,7 +1618,12 @@ import { DropdownMenuItem } from '@radix-ui/react-dropdown-menu';
 import { InputField } from '../components/InputField';
 import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import { MdChat, MdSave } from 'react-icons/md';
+import { getWordCountFromYdoc } from '../util/wordCount.js';
+import { Label } from '../components/ui/label.tsx';
+import { AiOutlineHistory } from 'react-icons/ai';
+import VersionComponent from '../components/VersionComponent.jsx';
 
 const EnhancedEditorLayout = () => {
     const [isChatVisible, setIsChatVisible] = useState(false);
@@ -1599,7 +1704,7 @@ const EnhancedEditorLayout = () => {
 
             {/* Modals */}
             {/* <ShareModal isOpen={showShareModal} onClose={() => setShowShareModal(false)} /> */}
-            <VersionHistoryModal isOpen={showVersionHistory} onClose={() => setShowVersionHistory(false)} />
+            {/* <VersionHistoryModal isOpen={showVersionHistory} onClose={() => setShowVersionHistory(false)} /> */}
         </div>
     );
 };

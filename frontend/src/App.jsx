@@ -1,4 +1,4 @@
-import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
+import { Routes, Route, useLocation, Navigate, useNavigate } from 'react-router-dom';
 import EditorPage from './pages/EditorPage';
 import EditorPage2 from './pages/EditorPage2.jsx';
 import Navbar from './components/Navbar';
@@ -13,9 +13,10 @@ import { BiError } from 'react-icons/bi';
 import { useCheckAuthQuery } from './api/userApi';
 import DashBoard from './pages/DashBoard.jsx';
 import Loader from './components/Loader.jsx';
-
+import NotFoundPage from './pages/Page404.jsx';
 import { useSelector } from 'react-redux';
 import VersionComponent from './components/VersionComponent.jsx';
+import { useEffect } from 'react';
 
 const ErrorComponent = () => (
     <div className='relative min-h-[calc(100vh-3rem)] flex items-center justify-center bg-transparent overflow-hidden px-4'>
@@ -54,6 +55,7 @@ const ErrorComponent = () => (
 
 const PrivateRoute = ({ children }) => {
     const isAuthenticated = useSelector((state) => state.user.isAuthenticated);
+    const { data, loading } = useCheckAuthQuery();
     return isAuthenticated ? children : <Navigate to='/login' replace />;
 };
 
@@ -72,19 +74,7 @@ const AuthCheck = ({ children }) => {
 };
 
 export default function App() {
-    const { isLoading } = useCheckAuthQuery(); // triggers setCredentials or clear
-
-    const hideNavbarRoutes = [
-        '/',
-        '/k',
-        '/login',
-        '/signup',
-        '/forgot-password',
-        '/dashboard',
-        '/editor',
-        '/editor/:id',
-    ];
-    const shouldShowNavbar = !hideNavbarRoutes.includes(location.pathname);
+    const { isLoading } = useCheckAuthQuery();
 
     if (isLoading) return <Loader />;
 
@@ -96,16 +86,6 @@ export default function App() {
                     <Routes>
                         <Route path='/' element={<HomePage />} />
                         <Route
-                            path='/editor'
-                            element={
-                                <PrivateRoute>
-                                    <SocketProvider>
-                                        <EditorPage />
-                                    </SocketProvider>
-                                </PrivateRoute>
-                            }
-                        />
-                        <Route
                             path='/editor/:editorId'
                             element={
                                 <PrivateRoute>
@@ -115,7 +95,7 @@ export default function App() {
                                 </PrivateRoute>
                             }
                         />
-                        <Route
+                        {/* <Route
                             path='/editor2'
                             element={
                                 <PrivateRoute>
@@ -124,7 +104,7 @@ export default function App() {
                                     </SocketProvider>
                                 </PrivateRoute>
                             }
-                        />
+                        /> */}
                         <Route
                             path='/login'
                             element={
@@ -133,14 +113,14 @@ export default function App() {
                                 </RedirectAuthUser>
                             }
                         />
-                        <Route
+                        {/* <Route
                             path='/version'
                             element={
                                 <SocketProvider>
                                     <VersionComponent />
                                 </SocketProvider>
                             }
-                        />
+                        /> */}
                         <Route
                             path='/signup'
                             element={
@@ -167,7 +147,7 @@ export default function App() {
                         />
                         <Route path='/user-profile' element={<PrivateRoute>{'User Profile'}</PrivateRoute>} />
                         <Route path='/k' element={<MainHomePage />} />
-                        <Route path='*' element={<Navigate to='/' replace />} />
+                        <Route path='*' element={<NotFoundPage />} />
                     </Routes>
                 </div>
             </main>

@@ -12,21 +12,6 @@ export function createNamedSnapshot(ydoc, name, author) {
     };
 }
 
-// export function applySnapshotToDoc(ydoc, encodedSnapshot) {
-//     const snapshot = Y.decodeSnapshot(encodedSnapshot);
-
-//     const fragment = ydoc.getXmlFragment('default');
-
-//     ydoc.transact(() => {
-//         // 🧼 Clear the document first
-//         fragment.delete(0, fragment.length);
-
-//         // 🔄 Apply the snapshot manually (iterate and inject snapshot content)
-//         Y.applySnapshot(ydoc, snapshot);
-//     });
-
-//     console.log('✅ Snapshot successfully restored');
-// }
 export function applySnapshotToDoc(ydoc, encodedSnapshot) {
     const snapshot = Y.decodeSnapshot(encodedSnapshot);
     const fragment = ydoc.getXmlFragment('default');
