@@ -26,7 +26,7 @@ import { useSocket } from '../context/socketContext';
 import { useSelector } from 'react-redux';
 import { AiOutlineHistory } from 'react-icons/ai';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useGetVersionQuery, useSaveVersionMutation, useGetAllversionsQuery } from '../api/docApi';
+import { useSaveVersionMutation, useGetAllversionsQuery } from '../api/docApi';
 import { getWordCountFromYdoc } from '../util/wordCount';
 import {
     Dialog,
@@ -91,7 +91,7 @@ export const VersionViewer = ({ versionUpdateBase64 }) => {
     );
 };
 
-const VersionComponent = () => {
+const VersionComponent = ({ setVersionopen }) => {
     const [selectedVersion, setSelectedVersion] = useState(null);
     const [showRestoreModal, setShowRestoreModal] = useState(false);
     const [showRemoveModal, setShowRemoveModal] = useState(false);
@@ -106,6 +106,9 @@ const VersionComponent = () => {
     const [versionName, setVersionName] = useState('');
     const [versionDescription, setVersionDescription] = useState('');
     const [saveVersionDialogOpen, setSaveVersionDialogOpen] = useState(false);
+
+    const [restoreLoading, setIsRestoreLoading] = useState(false);
+
     const { editorId } = useParams();
     const { ydoc, addSnapshot, snapshots, awareness, assignedColor } = useSocket();
     const user = useSelector((state) => state.user.user);
@@ -177,97 +180,46 @@ const VersionComponent = () => {
         }
     };
 
-    // const restoreVersion = async (selectedVersion) => {
-    //     try {
-    //         if (!selectedVersion?.update) {
-    //             console.warn('❌ No update in selected version');
-    //             return;
-    //         }
-
-    //         // decode base64 string into Uint8Array
-    //         const decodedUpdate = Buffer.from(selectedVersion.update, 'base64');
-
-    //         // apply update into your current Y.Doc
-    //         Y.applyUpdate(ydoc, decodedUpdate);
-
-    //         toast.success(`✅ Restored version: ${selectedVersion.name}`);
-    //     } catch (err) {
-    //         console.error('❌ Failed to restore version:', err);
-    //         toast.error('Failed to restore version. Please try again.');
-    //     }
-    // };
-
-    // const restoreVersion = async (savedUpdateBase64) => {
-    //     if (!ydoc) return;
-
-    //     // 1. Decode the saved snapshot
-    //     const savedUpdate = Buffer.from(savedUpdateBase64, 'base64');
-
-    //     // 2. Create a new doc and apply saved snapshot
-    //     const newDoc = new Y.Doc();
-    //     Y.applyUpdate(newDoc, savedUpdate);
-
-    //     // 3. Clear the current doc and overwrite with snapshot
-    //     const currentXml = ydoc.getXmlFragment('default');
-    //     currentXml.delete(0, currentXml.length); // clear
-    //     const newXml = newDoc.getXmlFragment('default');
-    //     currentXml.insert(0, Array.from(newXml.toArray())); // copy contents
-
-    //     toast.success('✅ Version restored successfully!');
-    // };
-
-    // const restoreVersion = async () => {
-    //     let decodedUpdate;
-
-    //     console.log('ydoc snapshot:', ydoc.toJSON());
-
-    //     if (selectedVersion.update?.data) {
-    //         // Stored as Buffer in DB
-    //         decodedUpdate = Uint8Array.from(selectedVersion.update.data);
-    //     } else if (typeof selectedVersion.update === 'string') {
-    //         // Fallback: if you ever stored base64
-    //         decodedUpdate = Uint8Array.from(Buffer.from(selectedVersion.update, 'base64'));
-    //     } else {
-    //         throw new Error('Unknown update format');
-    //     }
-
-    //     Y.applyUpdate(ydoc, decodedUpdate);
-
-    //     console.log('ydoc snapshot:', ydoc.toJSON());
-    // };
-
     const restoreVersion = async () => {
-        let decodedUpdate;
+        setIsRestoreLoading(true);
+        try {
+            let decodedUpdate;
 
-        if (selectedVersion.update?.data) {
-            // Stored as Buffer in DB
-            decodedUpdate = Uint8Array.from(selectedVersion.update.data);
-        } else if (typeof selectedVersion.update === 'string') {
-            // Fallback: base64
-            decodedUpdate = Uint8Array.from(Buffer.from(selectedVersion.update, 'base64'));
-        } else {
-            throw new Error('Unknown update format');
+            if (selectedVersion.update?.data) {
+                // Stored as Buffer in DB
+                decodedUpdate = Uint8Array.from(selectedVersion.update.data);
+            } else if (typeof selectedVersion.update === 'string') {
+                // Fallback: base64
+                decodedUpdate = Uint8Array.from(Buffer.from(selectedVersion.update, 'base64'));
+            } else {
+                throw new Error('Unknown update format');
+            }
+
+            // 1. Get the shared fragment Tiptap is using
+            const fragment = ydoc.getXmlFragment('default');
+
+            // 2. Clear existing content
+            fragment.delete(0, fragment.length); // clear all child nodes
+
+            // 3. Apply the stored snapshot update into the SAME ydoc
+            const tempDoc = new Y.Doc();
+            Y.applyUpdate(tempDoc, decodedUpdate);
+
+            // 4. Get the fragment from the snapshot doc
+            const snapshotFragment = tempDoc.getXmlFragment('default');
+
+            // 5. Insert cloned content into the live ydoc
+            snapshotFragment.toArray().forEach((node) => {
+                fragment.push([node.clone()]);
+            });
+
+            console.log('✅ Version restored. Current doc:', ydoc.toJSON());
+            setVersionopen(false);
+        } catch (error) {
+            console.log('Error occured while restoring version:', error);
+        } finally {
+            setIsRestoreLoading(false);
         }
-
-        // 1. Get the shared fragment Tiptap is using
-        const fragment = ydoc.getXmlFragment('default');
-
-        // 2. Clear existing content
-        fragment.delete(0, fragment.length); // clear all child nodes
-
-        // 3. Apply the stored snapshot update into the SAME ydoc
-        const tempDoc = new Y.Doc();
-        Y.applyUpdate(tempDoc, decodedUpdate);
-
-        // 4. Get the fragment from the snapshot doc
-        const snapshotFragment = tempDoc.getXmlFragment('default');
-
-        // 5. Insert cloned content into the live ydoc
-        snapshotFragment.toArray().forEach((node) => {
-            fragment.push([node.clone()]);
-        });
-
-        console.log('✅ Version restored. Current doc:', ydoc.toJSON());
     };
 
     useEffect(() => {
@@ -423,30 +375,75 @@ const VersionComponent = () => {
                     )}
                     <div className='flex items-center gap-4'>
                         {selectedVersion ? (
-                            <button
-                                type='button'
-                                onClick={() => restoreVersion(selectedVersion)}
-                                class='flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow hover:shadow-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50'
-                            >
-                                {0 ? (
-                                    <>
-                                        <Loader2 className='w-4 h-4 animate-spin' />
-                                        <span>Restoring...</span>
-                                    </>
-                                ) : (
-                                    <>
-                                        <FaRedo className='w-4 h-4 rotate-20' />
-                                        <span>Restore Version</span>
-                                    </>
-                                )}
-                            </button>
+                            <Dialog open={showRestoreModal} onOpenChange={setShowRestoreModal}>
+                                <DialogTrigger asChild>
+                                    <button
+                                        type='button'
+                                        className='flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
+                                    >
+                                        {restoreLoading ? (
+                                            <>
+                                                <Loader2 className='w-4 h-4 animate-spin' />
+                                                <span>Restoring...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <FaRedo className='w-4 h-4 rotate-40' />
+                                                <span>Restore Version</span>
+                                            </>
+                                        )}
+                                    </button>
+                                </DialogTrigger>
+
+                                <DialogContent className='dark:bg-gray-800 bg-white rounded-lg max-w-md w-full mx-4 px-5 py-4'>
+                                    <DialogHeader>
+                                        <DialogTitle className='text-lg font-semibold'>Confirm Restore</DialogTitle>
+                                        <DialogDescription>
+                                            <p className='mt-2 text-sm text-gray-600 dark:text-gray-300'>
+                                                Restoring will replace the current version with the selected version.
+                                                You can always undo this action.
+                                            </p>
+                                        </DialogDescription>
+                                    </DialogHeader>
+
+                                    <DialogFooter className='flex justify-end gap-2'>
+                                        <DialogClose asChild>
+                                            <Button
+                                                type='button'
+                                                variant='secondary'
+                                                className='px-4 py-2 bg-gray-800 text-white hover:bg-gray-700 rounded-md'
+                                            >
+                                                Cancel
+                                            </Button>
+                                        </DialogClose>
+                                        <Button
+                                            type='button'
+                                            variant='primary'
+                                            onClick={async () => {
+                                                await restoreVersion(selectedVersion);
+                                                setShowRestoreModal(false);
+                                            }}
+                                            className='px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-md'
+                                            disabled={restoreLoading}
+                                        >
+                                            {restoreLoading ? (
+                                                <>
+                                                    <Loader2 className='w-4 h-4 animate-spin mr-2' />
+                                                    Restoring...
+                                                </>
+                                            ) : (
+                                                'Restore'
+                                            )}
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
                         ) : (
                             <Dialog open={saveVersionDialogOpen} onOpenChange={setSaveVersionDialogOpen}>
                                 <DialogTrigger asChild>
                                     <button
                                         type='button'
-                                        // className='flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md transition-colors'
-                                        class='flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow hover:shadow-md transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50'
+                                        className='flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
                                     >
                                         <Save className='w-4 h-4' />
                                         <span className='md:block hidden'>Save version</span>
@@ -787,32 +784,6 @@ const VersionComponent = () => {
                         )}
                     </div>
                 </div>
-
-                {/* Modals */}
-                <Modal
-                    isOpen={showRestoreModal}
-                    onClose={() => setShowRestoreModal(false)}
-                    title='Restore this version?'
-                >
-                    <p className='mb-6 text-gray-600 dark:text-gray-300'>
-                        This will replace the current version with the selected version. You can always undo this
-                        action.
-                    </p>
-                    <div className='flex gap-3 justify-end'>
-                        <button
-                            onClick={() => setShowRestoreModal(false)}
-                            className='px-4 py-2 rounded-md text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            onClick={confirmRestore}
-                            className='px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md'
-                        >
-                            Restore
-                        </button>
-                    </div>
-                </Modal>
 
                 {/* Other modals (Remove, Name, Save) use same dark: patterns */}
             </div>

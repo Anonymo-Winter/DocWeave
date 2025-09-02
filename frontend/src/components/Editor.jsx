@@ -449,8 +449,6 @@ export function SimpleEditor() {
     //     return () => clearInterval(interval);
     // }, [editor, ydoc]);
 
-    console.log('editor getjson', editor?.getJSON());
-
     if (error) {
         return <ErrorPage error={error} />;
     }

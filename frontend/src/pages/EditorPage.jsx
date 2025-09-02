@@ -1133,67 +1133,14 @@ const EnhancedNavbar = ({
     const user = useSelector((state) => state.user.user);
     const { editorId } = useParams();
     const [saveVersionDialogOpen, setSaveVersionDialogOpen] = useState(false);
-    const [copied, setCopied] = useState(false);
+    // const [copied, setCopied] = useState(false);
 
     const [isFocused, setIsFocused] = useState(false);
     const [versionName, setVersionName] = useState('new version');
     const [versionDescription, setVersionDescription] = useState('new description');
-    const [autoSave, setAutoSave] = useState(false);
+    // const [autoSave, setAutoSave] = useState(false);
 
-    // const handleSave = async () => {
-    //     if (!ydoc || !awareness) {
-    //         console.warn('❌ Cannot save version: editor or Ydoc missing');
-    //         return;
-    //     }
-    //     try {
-    //         const update = Y.encodeStateAsUpdate(ydoc);
-    //         const fragment = ydoc.getXmlFragment('default');
-    //         console.log('📝 Saving fragment:', fragment.toJSON());
-    //         console.log('💾 Saving update with length:', update.byteLength);
-    //         if (!update || update.byteLength < 20) {
-    //             console.warn('⚠️ Update too small. Likely not ready. Skipping save.');
-    //             return;
-    //         }
-    //         const updateBase64 = Buffer.from(update).toString('base64');
-    //         try {
-    //             const decoded = Buffer.from(updateBase64, 'base64');
-    //             Y.decodeUpdate(decoded);
-    //         } catch (decodeErr) {
-    //             console.error('❌ Cannot save: Invalid Yjs update:', decodeErr.message);
-    //             return;
-    //         }
-    //         const collaborators = Array.from(awareness.getStates()).map(([clientId, state]) => {
-    //             const user = state?.user;
-    //             return {
-    //                 _id: user?.id,
-    //                 role: user?.role || 'editor',
-    //                 color: user?.color || '#999999',
-    //             };
-    //         });
-
-    //         const res = await saveVersion({
-    //             documentId: editorId,
-    //             description: versionDescription || '',
-    //             update: updateBase64,
-    //             author: { data: user._id, color: assignedColor + '' },
-    //             name: versionName,
-    //             wordCount: getWordCountFromYdoc(ydoc),
-    //             collaborators,
-    //             isNamed: !!versionName,
-    //             source: 'manual',
-    //         }).unwrap();
-    //         if (!res || !res.success) {
-    //             throw new Error('Failed to save version');
-    //         }
-    //         setSaveVersionDialogOpen(false);
-    //         setVersionName('');
-    //         setVersionDescription('');
-    //         toast.success('Version saved successfully!');
-    //     } catch (err) {
-    //         console.error('❌ Failed to save version:', err);
-    //         toast.error('Failed to save version. Please try again.');
-    //     }
-    // };
+    const [versionopen, setVersionopen] = useState(false);
 
     const handleSave = async () => {
         if (!ydoc || !awareness) {
@@ -1308,7 +1255,7 @@ const EnhancedNavbar = ({
                         <UserRoleSelector currentRole={currentUserRole} onRoleChange={onRoleChange} />
                         {/* History */}
 
-                        <Dialog>
+                        <Dialog open={versionopen} onOpenChange={setVersionopen}>
                             <DialogTrigger
                                 asChild
                                 className='flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -1321,7 +1268,7 @@ const EnhancedNavbar = ({
                                 showCloseButton={false}
                                 className='z-50 min-w-screen min-h-screen max-w-none max-h-none rounded-none p-0 overflow-x-hidden overflow-y-auto bg-white dark:bg-gray-900'
                             >
-                                <VersionComponent />
+                                <VersionComponent setVersionopen={setVersionopen} />
                                 <DialogClose className='absolute top-4 left-4 p-2 z-[2] rounded-full hover:bg-gray-200 dark:hover:bg-gray-700'>
                                     <ArrowLeft className='w-5 h-5' />
                                 </DialogClose>

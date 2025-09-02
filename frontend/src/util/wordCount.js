@@ -1,10 +1,13 @@
+import * as Y from 'yjs';
+
 export const getWordCountFromYdoc = (ydoc) => {
     try {
-        const yText = ydoc.getText('prosemirror'); // or 'default' if using other key
-        const content = yText.toString(); // get raw string content
+        const yText = ydoc.getXmlFragment('default');
 
-        const words = content.trim().split(/\s+/); // split on any whitespace
-        const filteredWords = words.filter((word) => word.length > 0); // remove empty
+        const content = yText.toString();
+
+        const words = content.trim().split(/\s+/);
+        const filteredWords = words.filter((word) => word.length > 0);
 
         return filteredWords.length;
     } catch (err) {
