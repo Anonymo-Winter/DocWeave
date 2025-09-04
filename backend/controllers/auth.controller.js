@@ -115,3 +115,22 @@ export const logout = async (req, res) => {
         return res.status(500).json({ message: 'Internal server error' });
     }
 };
+
+export const searchForEmail = async (req, res) => {
+    if (req.body === undefined) return res.status(400).json({ message: 'Please enter a valid search term' });
+    const { emailTerm = '' } = req.body;
+    try {
+        if (emailTerm === undefined) return res.status(400).json({ message: 'Please enter a valid search term' });
+        if (emailTerm.length == 0) {
+            return res.status(400).json({ message: 'Please enter a valid search term' });
+        }
+        // console.log(User.find({ email: { $regex: emailTerm, $options: 'i' } }));
+        const matchingEmails = await User.find({ email: { $regex: emailTerm, $options: 'i' } })
+            .select('email name')
+            .exec();
+        return res.status(200).json({ success: true, matchingEmails });
+    } catch (error) {
+        console.log('Failed to search for email: ', error.message);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+};
