@@ -60,7 +60,7 @@ export const userApi = createApi({
                 try {
                     const { data } = await queryFulfilled;
                     setTimeout(() => dispatch(setCredentials(data.user)), 2000);
-                } catch (err) {
+                } catch {
                     dispatch(clearCredentials());
                 }
             },
@@ -80,7 +80,20 @@ export const userApi = createApi({
             },
             invalidatesTags: ['User'],
         }),
+        searchForEmail: builder.mutation({
+            query: ({ emailTerm }) => ({
+                url: '/auth/search',
+                method: 'POST',
+                body: { emailTerm },
+            }),
+        }),
     }),
 });
 
-export const { useLoginMutation, useRegisterMutation, useCheckAuthQuery, useLogoutMutation } = userApi;
+export const {
+    useLoginMutation,
+    useRegisterMutation,
+    useCheckAuthQuery,
+    useLogoutMutation,
+    useSearchForEmailMutation,
+} = userApi;

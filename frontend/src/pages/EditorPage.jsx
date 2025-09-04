@@ -57,8 +57,10 @@ import { useMobile } from '../hooks/use-mobile.ts';
 import { DropDown } from '../pages/DashBoard.jsx';
 import { Separator } from '../components/ui/separator';
 import { Buffer } from 'buffer';
-import { useGetContributorsQuery, useSaveVersionMutation } from '../api/docApi.js';
+import { useSaveVersionMutation } from '../api/docApi.js';
 import * as Y from 'yjs';
+import { useSearchForEmailMutation } from '../api/userApi.js';
+import { getInitials } from '../util/getInitials.js';
 
 // Mock data for collaborators
 const mockCollaborators = [
@@ -213,18 +215,20 @@ const MultiSelectInput = ({ selectedUsers, onUserSelect, onUserRemove, placehold
     const [inputValue, setInputValue] = useState('');
     const [isOpen, setIsOpen] = useState(false);
     const [filteredUsers, setFilteredUsers] = useState([]);
+    const [fetchedEmails, setFetchedEmails] = useState([]);
     const inputRef = useRef(null);
     const containerRef = useRef(null);
+    const [searchForEmail, { isLoading, error }] = useSearchForEmailMutation();
 
     useEffect(() => {
-        const filtered = mockUsers.filter(
+        const filtered = fetchedEmails.filter(
             (user) =>
                 !selectedUsers.find((selected) => selected.id === user.id) &&
                 (user.name.toLowerCase().includes(inputValue.toLowerCase()) ||
                     user.email.toLowerCase().includes(inputValue.toLowerCase())),
         );
         setFilteredUsers(filtered);
-    }, [inputValue, selectedUsers]);
+    }, [inputValue, selectedUsers, fetchedEmails]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -237,9 +241,19 @@ const MultiSelectInput = ({ selectedUsers, onUserSelect, onUserRemove, placehold
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    const handleSearchTerm = async () => {
+        const res = await searchForEmail({ emailTerm: inputValue });
+        setIsOpen(true);
+        setFetchedEmails(res?.data?.matchingEmails);
+    };
+
     const handleInputChange = (e) => {
         setInputValue(e.target.value);
-        setIsOpen(true);
+        setFetchedEmails([]);
+        setFilteredUsers([]);
+        if (inputValue.length > 0) {
+            handleSearchTerm();
+        }
     };
 
     const handleUserSelect = (user) => {
@@ -261,7 +275,7 @@ const MultiSelectInput = ({ selectedUsers, onUserSelect, onUserRemove, placehold
                             className='w-4 h-4 rounded-full flex items-center justify-center text-white text-xs font-semibold'
                             style={{ backgroundColor: user.color }}
                         >
-                            {user.avatar.charAt(0)}
+                            {getInitials(user.name)}
                         </div>
                         <span className='max-w-24 truncate'>{user.name}</span>
                         <button
@@ -295,7 +309,7 @@ const MultiSelectInput = ({ selectedUsers, onUserSelect, onUserRemove, placehold
                                 className='w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold'
                                 style={{ backgroundColor: user.color }}
                             >
-                                {user.avatar}
+                                {getInitials(user.name)}
                             </div>
                             <div className='flex-1 min-w-0'>
                                 <div className='text-sm font-medium text-gray-900 dark:text-white truncate'>
@@ -311,6 +325,80 @@ const MultiSelectInput = ({ selectedUsers, onUserSelect, onUserRemove, placehold
     );
 };
 
+// const AddPeopleModal = ({
+//     isOpen,
+//     onClose,
+//     onSendInvites,
+//     selectedUsers,
+//     handleUserSelect,
+//     setSelectedRole,
+//     selectedRole,
+//     handleUserRemove,
+// }) => {
+//     return (
+//         <Dialog open={isOpen} onOpenChange={onClose}>
+//             <DialogContent className='max-w-md w-full dark:bg-gray-900 border border-gray-600'>
+//                 <DialogHeader>
+//                     <DialogTitle className='font-semibold text-left ps-1 text-gray-900 dark:text-white mb-2'>
+//                         <span className='text-[20px] text-left'>Share 'Collaborative document'</span>
+//                     </DialogTitle>
+//                 </DialogHeader>
+
+//                 <div className='mb-3'>
+//                     <h4 className='text-sm  hidden sm:flex text-gray-900 dark:text-white items-center gap-2 mb-2'>
+//                         <UserPlus size={16} />
+//                         Invite people
+//                     </h4>
+//                     <div className='space-y-3'>
+//                         <div className='flex flex-nowrap gap-2'>
+//                             <div className='w-10/12'>
+//                                 <MultiSelectInput
+//                                     selectedUsers={selectedUsers}
+//                                     onUserSelect={handleUserSelect}
+//                                     onUserRemove={handleUserRemove}
+//                                     placeholder='Add people and groups'
+//                                 />
+//                             </div>
+//                             <Select value={selectedRole} onValueChange={setSelectedRole}>
+//                                 <SelectTrigger className='h-fit w-fit py-5.5 dark:bg-gray-800 border-gray-300 dark:border-gray-600'>
+//                                     <SelectValue placeholder='Select role' />
+//                                 </SelectTrigger>
+
+//                                 <SelectContent className='bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg'>
+//                                     <SelectItem
+//                                         value='viewer'
+//                                         className='p-3 m-0 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors mb-0.5
+//                                         data-[state=checked]:bg-blue-100 dark:data-[state=checked]:bg-blue-700 data-[state=checked]:text-blue-700 dark:data-[state=checked]:text-white'
+//                                     >
+//                                         Viewer
+//                                     </SelectItem>
+//                                     <SelectItem
+//                                         value='editor'
+//                                         className='p-3 text-gray-800 dark:text-gray-200 hover:bg-blue-100 dark:hover:bg-gray-700 transition-colors
+//                                         data-[state=checked]:bg-blue-100 dark:data-[state=checked]:bg-blue-700 data-[state=checked]:text-blue-700 dark:data-[state=checked]:text-white'
+//                                     >
+//                                         Editor
+//                                     </SelectItem>
+//                                 </SelectContent>
+//                             </Select>
+//                         </div>
+
+//                         {selectedUsers.length > 0 && (
+//                             <button
+//                                 onClick={onSendInvites}
+//                                 className='w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-200 font-medium'
+//                             >
+//                                 Send {selectedUsers.length} invitation
+//                                 {selectedUsers.length > 1 ? 's' : ''}
+//                             </button>
+//                         )}
+//                     </div>
+//                 </div>
+//             </DialogContent>
+//         </Dialog>
+//     );
+// };
+
 const ShareModal = () => {
     const [shareLink] = useState('https://collabdocs.app/doc/abc123xyz');
     const [copied, setCopied] = useState(false);
@@ -319,6 +407,8 @@ const ShareModal = () => {
     const [generalAccess, setGeneralAccess] = useState('restricted');
     const [generalAccessRole, setGeneralAccessRole] = useState('viewer');
     const isMobile = useMobile();
+    const [isOpen, setIsOpen] = useState(false);
+    // const [isAddModalOpen, setIsAddModalOpen] = useState(false); // Add People Modal
 
     const copyToClipboard = async () => {
         try {
@@ -379,397 +469,400 @@ const ShareModal = () => {
 
     return (
         <>
-            <DialogHeader>
-                <DialogTitle className='font-semibold text-left ps-1 text-gray-900 dark:text-white mb-2'>
-                    <span className='text-[20px] text-left'>Share 'Collaborative document'</span>
-                </DialogTitle>
-            </DialogHeader>
-            <div
-                className='w-full max-w-none sm:max-w-lg mx-auto bg-white dark:bg-gray-900 transition-colors'
-                onClick={handleModalContentClick}
-            >
-                {/* Invite People */}
-                <div className='mb-3'>
-                    <h4 className='text-sm  hidden sm:flex text-gray-900 dark:text-white items-center gap-2 mb-2'>
-                        <UserPlus size={16} />
-                        Invite people
-                    </h4>
-                    <div className='space-y-3'>
-                        <div className='flex flex-nowrap gap-2'>
-                            <div className='w-10/12'>
-                                <MultiSelectInput
-                                    selectedUsers={selectedUsers}
-                                    onUserSelect={handleUserSelect}
-                                    onUserRemove={handleUserRemove}
-                                    placeholder='Add people and groups'
-                                />
-                            </div>
-                            <Select value={selectedRole} onValueChange={setSelectedRole}>
-                                <SelectTrigger className='h-fit w-fit py-5.5 dark:bg-gray-800 border-gray-300 dark:border-gray-600'>
-                                    <SelectValue placeholder='Select role' />
-                                </SelectTrigger>
+            <Dialog open={isOpen} onOpenChange={setIsOpen}>
+                <DialogTrigger asChild>
+                    <button className='flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base'>
+                        <Share2 size={16} className='sm:w-4 sm:h-4' />
+                        <span className='hidden xs:inline'>Share</span>
+                    </button>
+                </DialogTrigger>
+                <DialogContent className='max-w-[95vw]  sm:max-w-lg w-full mx-auto p-4 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg'>
+                    <DialogHeader className='mb-1'>
+                        <DialogTitle className='font-semibold text-left text-gray-900 dark:text-white'>
+                            <span className='text-base text-left sm:text-xl md:text-xl'>
+                                Share 'Collaborative document'
+                            </span>
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div
+                        className='w-full bg-white dark:bg-gray-900 transition-colors'
+                        onClick={handleModalContentClick}
+                    >
+                        {/* Invite People */}
+                        <div className='mb-4'>
+                            <h4 className='text-sm flex text-gray-900 dark:text-white items-center gap-2 mb-2'>
+                                <UserPlus size={16} className='flex-shrink-0' />
+                                Invite people
+                            </h4>
+                            <div className='space-y-3'>
+                                <div className='flex flex-col xs:flex-row gap-2'>
+                                    <div className='w-full xs:w-8/12'>
+                                        <MultiSelectInput
+                                            selectedUsers={selectedUsers}
+                                            onUserSelect={handleUserSelect}
+                                            onUserRemove={handleUserRemove}
+                                            placeholder='Add people and groups'
+                                        />
+                                    </div>
+                                    <Select value={selectedRole} onValueChange={setSelectedRole}>
+                                        <SelectTrigger className='h-11 xs:h-auto w-full xs:w-4/12 py-2.5 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-sm'>
+                                            <SelectValue placeholder='Select role' />
+                                        </SelectTrigger>
 
-                                <SelectContent className='bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg'>
-                                    <SelectItem
-                                        value='viewer'
-                                        className='p-3 m-0 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors mb-0.5
-                                    data-[state=checked]:bg-blue-100 dark:data-[state=checked]:bg-blue-700 data-[state=checked]:text-blue-700 dark:data-[state=checked]:text-white'
-                                    >
-                                        Viewer
-                                    </SelectItem>
-                                    <SelectItem
-                                        value='editor'
-                                        className='p-3 text-gray-800 dark:text-gray-200 hover:bg-blue-100 dark:hover:bg-gray-700 transition-colors
-                                    data-[state=checked]:bg-blue-100 dark:data-[state=checked]:bg-blue-700 data-[state=checked]:text-blue-700 dark:data-[state=checked]:text-white'
-                                    >
-                                        Editor
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
+                                        <SelectContent className='bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg'>
+                                            <SelectItem
+                                                value='viewer'
+                                                className='p-2 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors data-[state=checked]:bg-blue-100 dark:data-[state=checked]:bg-blue-700 data-[state=checked]:text-blue-700 dark:data-[state=checked]:text-white'
+                                            >
+                                                Viewer
+                                            </SelectItem>
+                                            <SelectItem
+                                                value='editor'
+                                                className='p-2 text-sm text-gray-800 dark:text-gray-200 hover:bg-blue-100 dark:hover:bg-gray-700 transition-colors data-[state=checked]:bg-blue-100 dark:data-[state=checked]:bg-blue-700 data-[state=checked]:text-blue-700 dark:data-[state=checked]:text-white'
+                                            >
+                                                Editor
+                                            </SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
                         </div>
 
-                        {selectedUsers.length > 0 && (
-                            <button
-                                onClick={sendInvites}
-                                className='w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-200 font-medium'
-                            >
-                                Send {selectedUsers.length} invitation{selectedUsers.length > 1 ? 's' : ''}
-                            </button>
+                        {selectedUsers.length > 0 ? (
+                            <div className='flex items-center justify-end gap-3 pt-2'>
+                                <button
+                                    onClick={() => setSelectedUsers([])}
+                                    className='px-3 py-2 text-sm rounded-lg flex items-center justify-center gap-1 font-medium transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={sendInvites}
+                                    aria-label='Send invitations'
+                                    className='px-4 py-2 text-sm rounded-lg flex items-center justify-center gap-1 font-medium transition-colors duration-200 bg-blue-600 hover:bg-blue-700 text-white'
+                                >
+                                    Send {selectedUsers.length > 0 ? `(${selectedUsers.length})` : ''}
+                                </button>
+                            </div>
+                        ) : (
+                            <>
+                                {/* Current Collaborators */}
+                                <div className='mb-4'>
+                                    <h4 className='text-sm text-gray-900 dark:text-white flex items-center gap-2 mb-2'>
+                                        <Users size={16} className='flex-shrink-0' />
+                                        People with access ({mockCollaborator.length})
+                                    </h4>
+                                    <div className='space-y-2 max-h-40 md:max-h-52 overflow-y-auto custom-scrollbar'>
+                                        {mockCollaborator.map((collab) => (
+                                            <div
+                                                key={collab.id}
+                                                className='flex items-center justify-between p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 group'
+                                            >
+                                                {isMobile ? (
+                                                    <Popover className='block md:hidden'>
+                                                        <PopoverTrigger>
+                                                            <div className='flex items-center gap-3 flex-1 min-w-0'>
+                                                                <div className='relative'>
+                                                                    <div
+                                                                        className='w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-semibold shadow-sm'
+                                                                        style={{ backgroundColor: collab.color }}
+                                                                    >
+                                                                        {collab.profileImage ? (
+                                                                            <img
+                                                                                src={collab.profileImage}
+                                                                                alt={collab.name}
+                                                                                className='w-full h-full rounded-full object-cover'
+                                                                            />
+                                                                        ) : (
+                                                                            collab.avatar
+                                                                        )}
+                                                                    </div>
+                                                                    {collab.isOnline && (
+                                                                        <div className='absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full'></div>
+                                                                    )}
+                                                                </div>
+
+                                                                <div className='flex-1 min-w-0 text-left'>
+                                                                    <div className='text-sm font-semibold text-gray-900 dark:text-white truncate'>
+                                                                        {collab.name}
+                                                                    </div>
+                                                                    <div className='text-xs text-gray-600 dark:text-gray-400 truncate'>
+                                                                        {collab.email}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent
+                                                            // className='w-fit'
+                                                            className='bg-white block md:hidden dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl p-4 w-72'
+                                                        >
+                                                            <div className='flex items-center gap-3 mb-4'>
+                                                                <div
+                                                                    className='w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-semibold shadow-sm'
+                                                                    style={{ backgroundColor: collab.color }}
+                                                                >
+                                                                    {collab.profileImage ? (
+                                                                        <img
+                                                                            src={collab.profileImage}
+                                                                            alt={collab.name}
+                                                                            className='w-full h-full rounded-full object-cover'
+                                                                        />
+                                                                    ) : (
+                                                                        collab.avatar
+                                                                    )}
+                                                                </div>
+                                                                <div className='flex-1 min-w-0'>
+                                                                    <div className='font-semibold text-gray-900 dark:text-white truncate text-sm'>
+                                                                        {collab.name}
+                                                                    </div>
+                                                                    <div className='text-sm text-gray-600 dark:text-gray-400 truncate'>
+                                                                        {collab.email}
+                                                                    </div>
+                                                                    {collab.isOnline && (
+                                                                        <div className='flex items-center gap-1 mt-1'>
+                                                                            <div className='w-2 h-2 bg-green-500 rounded-full'></div>
+                                                                            <span className='text-xs text-green-600 dark:text-green-400'>
+                                                                                Online
+                                                                            </span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <button
+                                                                // onClick={() => onEmailClick(collab.email)}
+                                                                className='w-full flex items-center justify-center gap-2 px-3 py-2.5 border text-sm bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-950/70 transition-all duration-200 font-medium'
+                                                            >
+                                                                <Mail size={16} />
+                                                                Send email
+                                                            </button>
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                ) : (
+                                                    <HoverCard className='hidden md:block'>
+                                                        <HoverCardTrigger asChild>
+                                                            <div className='flex items-center gap-3 flex-1 min-w-0'>
+                                                                <div className='relative'>
+                                                                    <div
+                                                                        className='w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-semibold shadow-sm'
+                                                                        style={{ backgroundColor: collab.color }}
+                                                                    >
+                                                                        {collab.profileImage ? (
+                                                                            <img
+                                                                                src={collab.profileImage}
+                                                                                alt={collab.name}
+                                                                                className='w-full h-full rounded-full object-cover'
+                                                                            />
+                                                                        ) : (
+                                                                            collab.avatar
+                                                                        )}
+                                                                    </div>
+                                                                    {collab.isOnline && (
+                                                                        <div className='absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full'></div>
+                                                                    )}
+                                                                </div>
+
+                                                                <div className='flex-1 min-w-0'>
+                                                                    <div className='text-sm font-semibold text-gray-900 dark:text-white truncate'>
+                                                                        {collab.name}
+                                                                    </div>
+                                                                    <div className='text-xs text-gray-600 dark:text-gray-400 truncate'>
+                                                                        {collab.email}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </HoverCardTrigger>
+                                                        <HoverCardContent
+                                                            // className='w-fit'
+                                                            className='bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl p-4 w-72'
+                                                        >
+                                                            <div className='flex items-center gap-3 mb-4'>
+                                                                <div
+                                                                    className='w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-semibold shadow-sm'
+                                                                    style={{ backgroundColor: collab.color }}
+                                                                >
+                                                                    {collab.profileImage ? (
+                                                                        <img
+                                                                            src={collab.profileImage}
+                                                                            alt={collab.name}
+                                                                            className='w-full h-full rounded-full object-cover'
+                                                                        />
+                                                                    ) : (
+                                                                        collab.avatar
+                                                                    )}
+                                                                </div>
+                                                                <div className='flex-1 min-w-0'>
+                                                                    <div className='font-semibold text-gray-900 dark:text-white truncate text-sm'>
+                                                                        {collab.name}
+                                                                    </div>
+                                                                    <div className='text-sm text-gray-600 dark:text-gray-400 truncate'>
+                                                                        {collab.email}
+                                                                    </div>
+                                                                    {collab.isOnline && (
+                                                                        <div className='flex items-center gap-1 mt-1'>
+                                                                            <div className='w-2 h-2 bg-green-500 rounded-full'></div>
+                                                                            <span className='text-xs text-green-600 dark:text-green-400'>
+                                                                                Online
+                                                                            </span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <button
+                                                                // onClick={() => onEmailClick(collab.email)}
+                                                                className='w-full flex items-center justify-center gap-2 px-3 py-2.5 border text-sm bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-950/70 transition-all duration-200 font-medium'
+                                                            >
+                                                                <Mail size={16} />
+                                                                Send email
+                                                            </button>
+                                                        </HoverCardContent>
+                                                    </HoverCard>
+                                                )}
+
+                                                <Select value={selectedRole} onValueChange={setSelectedRole}>
+                                                    <SelectTrigger className='h-8 w-20 sm:w-24 sm:h-9 px-2 text-xs sm:text-sm dark:bg-gray-800 bg-white border border-gray-300 dark:border-gray-600 rounded-md shadow-sm hover:border-gray-400 transition-colors'>
+                                                        <SelectValue placeholder='Role' />
+                                                    </SelectTrigger>
+
+                                                    <SelectContent className='bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg text-xs sm:text-sm'>
+                                                        <SelectItem
+                                                            value='viewer'
+                                                            className='px-3 py-2 rounded-sm text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors data-[state=checked]:bg-blue-100 dark:data-[state=checked]:bg-blue-700 data-[state=checked]:text-blue-700 dark:data-[state=checked]:text-white'
+                                                        >
+                                                            Viewer
+                                                        </SelectItem>
+                                                        <SelectItem
+                                                            value='editor'
+                                                            className='px-3 py-2 rounded-sm text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors data-[state=checked]:bg-blue-100 dark:data-[state=checked]:bg-blue-700 data-[state=checked]:text-blue-700 dark:data-[state=checked]:text-white'
+                                                        >
+                                                            Editor
+                                                        </SelectItem>
+                                                        <div className='h-px bg-gray-200 dark:bg-gray-700 my-1 mx-2' />
+                                                        <div className='flex flex-col p-1'>
+                                                            <button
+                                                                onClick={() => console.log('Make Owner')}
+                                                                className='text-left w-full px-3 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors rounded-sm'
+                                                            >
+                                                                🔑 Make Owner
+                                                            </button>
+                                                            <button
+                                                                onClick={() => console.log('Remove Access')}
+                                                                className='text-left w-full px-3 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900 transition-colors rounded-sm'
+                                                            >
+                                                                ❌ Remove Access
+                                                            </button>
+                                                        </div>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className='mb-5'>
+                                    <div className='flex items-center gap-2 mb-2'>
+                                        {getAccessIcon()}
+                                        <h4 className='text-sm sm:text-base font-semibold text-gray-900 dark:text-white'>
+                                            General access
+                                        </h4>
+                                    </div>
+
+                                    <div className='space-y-2'>
+                                        <div className='flex flex-col sm:flex-row gap-2'>
+                                            <Select value={generalAccess} onValueChange={setGeneralAccess}>
+                                                <SelectTrigger className='h-11 w-full py-2.5 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-sm'>
+                                                    <SelectValue placeholder='Select access level' />
+                                                </SelectTrigger>
+
+                                                <SelectContent className='bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg text-sm'>
+                                                    <SelectItem
+                                                        value='restricted'
+                                                        className='p-2 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors data-[state=checked]:bg-blue-100 dark:data-[state=checked]:bg-blue-700 data-[state=checked]:text-blue-700 dark:data-[state=checked]:text-white'
+                                                    >
+                                                        <div className='flex items-center gap-2'>
+                                                            <Lock size={14} />
+                                                            <span>Restricted</span>
+                                                        </div>
+                                                    </SelectItem>
+                                                    <SelectItem
+                                                        value='anyone-with-link'
+                                                        className='p-2 text-gray-800 dark:text-gray-200 hover:bg-blue-100 dark:hover:bg-gray-700 transition-colors data-[state=checked]:bg-blue-100 dark:data-[state=checked]:bg-blue-700 data-[state=checked]:text-blue-700 dark:data-[state=checked]:text-white'
+                                                    >
+                                                        <div className='flex items-center gap-2'>
+                                                            <Globe size={14} />
+                                                            <span>Anyone with the link</span>
+                                                        </div>
+                                                    </SelectItem>
+                                                    <SelectItem
+                                                        value='anyone-in-org'
+                                                        className='p-2 text-gray-800 dark:text-gray-200 hover:bg-blue-100 dark:hover:bg-gray-700 transition-colors data-[state=checked]:bg-blue-100 dark:data-[state=checked]:bg-blue-700 data-[state=checked]:text-blue-700 dark:data-[state=checked]:text-white'
+                                                    >
+                                                        <div className='flex items-center gap-2'>
+                                                            <Building2 size={14} />
+                                                            <span>Anyone in organization</span>
+                                                        </div>
+                                                    </SelectItem>
+                                                </SelectContent>
+                                            </Select>
+
+                                            {generalAccess !== 'restricted' && (
+                                                <Select value={generalAccessRole} onValueChange={setGeneralAccessRole}>
+                                                    <SelectTrigger className='h-11 w-full sm:w-auto py-2.5 dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-sm'>
+                                                        <SelectValue placeholder='Select role' />
+                                                    </SelectTrigger>
+
+                                                    <SelectContent className='bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg text-sm'>
+                                                        <SelectItem
+                                                            value='viewer'
+                                                            className='p-2 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors data-[state=checked]:bg-blue-100 dark:data-[state=checked]:bg-blue-700 data-[state=checked]:text-blue-700 dark:data-[state=checked]:text-white'
+                                                        >
+                                                            Viewer
+                                                        </SelectItem>
+                                                        <SelectItem
+                                                            value='editor'
+                                                            className='p-2 text-gray-800 dark:text-gray-200 hover:bg-blue-100 dark:hover:bg-gray-700 transition-colors data-[state=checked]:bg-blue-100 dark:data-[state=checked]:bg-blue-700 data-[state=checked]:text-blue-700 dark:data-[state=checked]:text-white'
+                                                        >
+                                                            Editor
+                                                        </SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            )}
+                                        </div>
+
+                                        <span className='text-xs text-gray-600 dark:text-gray-400 block'>
+                                            {getAccessDescription()}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Share Link */}
+                                <div className='flex items-center justify-between gap-3'>
+                                    <button
+                                        onClick={copyToClipboard}
+                                        aria-label='Copy to clipboard'
+                                        className={`px-3 py-2 rounded-lg flex items-center justify-center gap-1 font-medium transition-colors duration-200 text-sm ${
+                                            copied
+                                                ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300'
+                                                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                                        }`}
+                                    >
+                                        {copied ? <FaCheckCircle size={16} /> : <Copy size={16} />}
+                                        {copied ? 'Copied!' : 'Copy'}
+                                    </button>
+
+                                    <button
+                                        onClick={() => console.log('DONE')}
+                                        aria-label='Save content'
+                                        className='px-4 py-2 rounded-lg flex items-center justify-center gap-1 font-medium transition-colors duration-200 text-sm bg-blue-600 hover:bg-blue-700 text-white'
+                                    >
+                                        <FaCheckCircle size={16} />
+                                        Done
+                                    </button>
+                                </div>
+                            </>
                         )}
                     </div>
-                </div>
-
-                {/* Current Collaborators */}
-                <div className='mb-3'>
-                    <h4 className='text-sm text-gray-900 dark:text-white flex items-center gap-2 mb-2'>
-                        <Users size={16} />
-                        People with access ({mockCollaborator.length})
-                    </h4>
-                    <div className='space-y-2 max-h-32 md:max-h-52 overflow-y-auto pr-1 custom-scrollbar border px-2 py-1 rounded'>
-                        {mockCollaborator.map((collab) => (
-                            <div
-                                key={collab.id}
-                                className='flex items-center justify-between p-1 md:p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 group'
-                            >
-                                {isMobile ? (
-                                    <Popover className='block md:hidden'>
-                                        <PopoverTrigger>
-                                            <div className='flex items-center gap-3 flex-1 min-w-0'>
-                                                <div className='relative'>
-                                                    <div
-                                                        className='w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-semibold shadow-sm'
-                                                        style={{ backgroundColor: collab.color }}
-                                                    >
-                                                        {collab.profileImage ? (
-                                                            <img
-                                                                src={collab.profileImage}
-                                                                alt={collab.name}
-                                                                className='w-full h-full rounded-full object-cover'
-                                                            />
-                                                        ) : (
-                                                            collab.avatar
-                                                        )}
-                                                    </div>
-                                                    {collab.isOnline && (
-                                                        <div className='absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full'></div>
-                                                    )}
-                                                </div>
-
-                                                <div className='flex-1 min-w-0 text-left'>
-                                                    <div className='text-sm font-semibold text-gray-900 dark:text-white truncate'>
-                                                        {collab.name}
-                                                    </div>
-                                                    <div className='text-xs text-gray-600 dark:text-gray-400 truncate'>
-                                                        {collab.email}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </PopoverTrigger>
-                                        <PopoverContent
-                                            // className='w-fit'
-                                            className='bg-white block md:hidden dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl p-4 w-72'
-                                        >
-                                            <div className='flex items-center gap-3 mb-4'>
-                                                <div
-                                                    className='w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-semibold shadow-sm'
-                                                    style={{ backgroundColor: collab.color }}
-                                                >
-                                                    {collab.profileImage ? (
-                                                        <img
-                                                            src={collab.profileImage}
-                                                            alt={collab.name}
-                                                            className='w-full h-full rounded-full object-cover'
-                                                        />
-                                                    ) : (
-                                                        collab.avatar
-                                                    )}
-                                                </div>
-                                                <div className='flex-1 min-w-0'>
-                                                    <div className='font-semibold text-gray-900 dark:text-white truncate text-sm'>
-                                                        {collab.name}
-                                                    </div>
-                                                    <div className='text-sm text-gray-600 dark:text-gray-400 truncate'>
-                                                        {collab.email}
-                                                    </div>
-                                                    {collab.isOnline && (
-                                                        <div className='flex items-center gap-1 mt-1'>
-                                                            <div className='w-2 h-2 bg-green-500 rounded-full'></div>
-                                                            <span className='text-xs text-green-600 dark:text-green-400'>
-                                                                Online
-                                                            </span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <button
-                                                // onClick={() => onEmailClick(collab.email)}
-                                                className='w-full flex items-center justify-center gap-2 px-3 py-2.5 border text-sm bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-950/70 transition-all duration-200 font-medium'
-                                            >
-                                                <Mail size={16} />
-                                                Send email
-                                            </button>
-                                        </PopoverContent>
-                                    </Popover>
-                                ) : (
-                                    <HoverCard className='hidden md:block'>
-                                        <HoverCardTrigger asChild>
-                                            <div className='flex items-center gap-3 flex-1 min-w-0'>
-                                                <div className='relative'>
-                                                    <div
-                                                        className='w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-semibold shadow-sm'
-                                                        style={{ backgroundColor: collab.color }}
-                                                    >
-                                                        {collab.profileImage ? (
-                                                            <img
-                                                                src={collab.profileImage}
-                                                                alt={collab.name}
-                                                                className='w-full h-full rounded-full object-cover'
-                                                            />
-                                                        ) : (
-                                                            collab.avatar
-                                                        )}
-                                                    </div>
-                                                    {collab.isOnline && (
-                                                        <div className='absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full'></div>
-                                                    )}
-                                                </div>
-
-                                                <div className='flex-1 min-w-0'>
-                                                    <div className='text-sm font-semibold text-gray-900 dark:text-white truncate'>
-                                                        {collab.name}
-                                                    </div>
-                                                    <div className='text-xs text-gray-600 dark:text-gray-400 truncate'>
-                                                        {collab.email}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </HoverCardTrigger>
-                                        <HoverCardContent
-                                            // className='w-fit'
-                                            className='bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl p-4 w-72'
-                                        >
-                                            <div className='flex items-center gap-3 mb-4'>
-                                                <div
-                                                    className='w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-semibold shadow-sm'
-                                                    style={{ backgroundColor: collab.color }}
-                                                >
-                                                    {collab.profileImage ? (
-                                                        <img
-                                                            src={collab.profileImage}
-                                                            alt={collab.name}
-                                                            className='w-full h-full rounded-full object-cover'
-                                                        />
-                                                    ) : (
-                                                        collab.avatar
-                                                    )}
-                                                </div>
-                                                <div className='flex-1 min-w-0'>
-                                                    <div className='font-semibold text-gray-900 dark:text-white truncate text-sm'>
-                                                        {collab.name}
-                                                    </div>
-                                                    <div className='text-sm text-gray-600 dark:text-gray-400 truncate'>
-                                                        {collab.email}
-                                                    </div>
-                                                    {collab.isOnline && (
-                                                        <div className='flex items-center gap-1 mt-1'>
-                                                            <div className='w-2 h-2 bg-green-500 rounded-full'></div>
-                                                            <span className='text-xs text-green-600 dark:text-green-400'>
-                                                                Online
-                                                            </span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <button
-                                                // onClick={() => onEmailClick(collab.email)}
-                                                className='w-full flex items-center justify-center gap-2 px-3 py-2.5 border text-sm bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-950/70 transition-all duration-200 font-medium'
-                                            >
-                                                <Mail size={16} />
-                                                Send email
-                                            </button>
-                                        </HoverCardContent>
-                                    </HoverCard>
-                                )}
-
-                                <Select value={selectedRole} onValueChange={setSelectedRole}>
-                                    <SelectTrigger className='h-fit w-fit px-4 py-2 dark:bg-gray-800 bg-white border border-gray-300 dark:border-gray-600 rounded-md shadow-sm hover:border-gray-400 transition-colors'>
-                                        <SelectValue placeholder='Select role' />
-                                    </SelectTrigger>
-
-                                    <SelectContent className='bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg'>
-                                        {/* Role Options */}
-                                        <SelectItem
-                                            value='viewer'
-                                            className='px-3 py-2 text-sm rounded-none text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors
-      data-[state=checked]:bg-blue-100 dark:data-[state=checked]:bg-blue-700
-      data-[state=checked]:text-blue-700 dark:data-[state=checked]:text-white mb-0.5'
-                                        >
-                                            {/* <Eye size={16} className='mr-2 text-sm' /> */}
-                                            Viewer
-                                        </SelectItem>
-                                        <SelectItem
-                                            value='editor'
-                                            className='px-3 py-2 text-sm text-gray-800 rounded-none dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors
-      data-[state=checked]:bg-blue-100 dark:data-[state=checked]:bg-blue-700
-      data-[state=checked]:text-blue-700 dark:data-[state=checked]:text-white'
-                                        >
-                                            {/* <Edit size={16} className='mr-2' /> */}
-                                            Editor
-                                        </SelectItem>
-
-                                        {/* Divider */}
-                                        <div className='h-px bg-gray-200 dark:bg-gray-700 my-1 mx-2' />
-
-                                        {/* Action Buttons */}
-                                        <div className='flex flex-col'>
-                                            <button
-                                                onClick={() => console.log('Make Owner')}
-                                                className='text-left w-full px-3 py-2 text-sm text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors'
-                                            >
-                                                🔑 Make Owner
-                                            </button>
-                                            <button
-                                                onClick={() => console.log('Remove Access')}
-                                                className='text-left w-full px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900 dark:hover:text-white transition-colors'
-                                            >
-                                                ❌ Remove Access
-                                            </button>
-                                        </div>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                <div className='mb-6'>
-                    <div className='flex items-center gap-2 mb-2'>
-                        {getAccessIcon()}
-                        <h4 className='text-base font-semibold text-gray-900 dark:text-white'>General access</h4>
-                    </div>
-
-                    <div className='space-y-0'>
-                        <div className='flex flex-col sm:flex-row gap-2'>
-                            <Select value={generalAccess} onValueChange={setGeneralAccess}>
-                                <SelectTrigger className='h-fit w-full py-6 dark:bg-gray-800 border-gray-300 dark:border-gray-600'>
-                                    <SelectValue placeholder='Select role' />
-                                </SelectTrigger>
-
-                                <SelectContent className='bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg'>
-                                    <SelectItem
-                                        value='restricted'
-                                        className='p-3 m-0 text-gray-800 rounded-none mb-0 md:mb-0.5 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors
-                                    data-[state=checked]:bg-blue-100 dark:data-[state=checked]:bg-blue-700 data-[state=checked]:text-blue-700 dark:data-[state=checked]:text-white'
-                                    >
-                                        <div className='flex items-center gap-2'>
-                                            <Lock size={14} />
-                                            <span>Restricted</span>
-                                        </div>
-                                    </SelectItem>
-                                    <SelectItem
-                                        value='anyone-with-link'
-                                        className='p-3 text-gray-800 rounded-none mb-0 md:mb-0.5 dark:text-gray-200 hover:bg-blue-100 dark:hover:bg-gray-700 transition-colors
-                                    data-[state=checked]:bg-blue-100 dark:data-[state=checked]:bg-blue-700 data-[state=checked]:text-blue-700 dark:data-[state=checked]:text-white'
-                                    >
-                                        <div className='flex items-center gap-2'>
-                                            <Globe size={14} />
-                                            <span>Anyone with the link</span>
-                                        </div>
-                                    </SelectItem>
-                                    <SelectItem
-                                        value='anyone-in-org'
-                                        className='p-3 text-gray-800 rounded-none mb-0 md:mb-0.5 dark:text-gray-200 hover:bg-blue-100 dark:hover:bg-gray-700 transition-colors
-                                    data-[state=checked]:bg-blue-100 dark:data-[state=checked]:bg-blue-700 data-[state=checked]:text-blue-700 dark:data-[state=checked]:text-white'
-                                    >
-                                        <div className='flex items-center gap-2'>
-                                            <Building2 size={14} />
-                                            <span>Anyone in organization</span>
-                                        </div>
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-
-                            {generalAccess !== 'restricted' && (
-                                <Select value={generalAccessRole} onValueChange={setGeneralAccessRole}>
-                                    <SelectTrigger className='h-fit w-fit py-6 dark:bg-gray-800 border-gray-300 dark:border-gray-600'>
-                                        <SelectValue placeholder='Select role' />
-                                    </SelectTrigger>
-
-                                    <SelectContent className='bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg'>
-                                        <SelectItem
-                                            value='viewer'
-                                            className='p-3 m-0 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors mb-0.5
-                                    data-[state=checked]:bg-blue-100 dark:data-[state=checked]:bg-blue-700 data-[state=checked]:text-blue-700 dark:data-[state=checked]:text-white'
-                                        >
-                                            Viewer
-                                        </SelectItem>
-                                        <SelectItem
-                                            value='editor'
-                                            className='p-3 text-gray-800 dark:text-gray-200 hover:bg-blue-100 dark:hover:bg-gray-700 transition-colors
-                                    data-[state=checked]:bg-blue-100 dark:data-[state=checked]:bg-blue-700 data-[state=checked]:text-blue-700 dark:data-[state=checked]:text-white'
-                                        >
-                                            Editor
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            )}
-                        </div>
-
-                        <span className='text-xs text-gray-600 dark:text-gray-400 leading-relaxed'>
-                            {getAccessDescription()}
-                        </span>
-                    </div>
-                </div>
-                {/* Share Link */}
-                <div className='flex items-center justify-between gap-4'>
-                    {/* Save Button - Primary */}
-
-                    {/* Copy Button - Secondary */}
-                    <button
-                        onClick={copyToClipboard}
-                        aria-label='Copy to clipboard'
-                        className={`p-2 rounded-lg flex items-center justify-center gap-2 font-medium min-w-[110px] transition-colors duration-200
-                        ${
-                            copied
-                                ? 'bg-green-50 dark:bg-green-800 text-green-700 dark:text-green-500 ring-2 ring-green-300 dark:ring-green-600'
-                                : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 ring-2 ring-gray-300 dark:ring-gray-600'
-                        }
-            `}
-                    >
-                        {copied ? <FaCheckCircle size={16} /> : <Copy size={16} />}
-                        {copied ? 'Copied!' : 'Copy'}
-                    </button>
-                    <button
-                        onClick={() => console.log('DONE')}
-                        aria-label='Save content'
-                        className='p-2 rounded-lg flex items-center justify-center gap-2 font-medium min-w-[110px] transition-colors duration-200 
-        bg-blue-600 hover:bg-blue-700 text-white ring-2 ring-blue-500'
-                    >
-                        <FaCheckCircle size={16} />
-                        Save
-                    </button>
-                </div>
-            </div>
+                </DialogContent>
+            </Dialog>
         </>
     );
 };
@@ -1408,17 +1501,7 @@ const EnhancedNavbar = ({
                         </div>
 
                         {/* Share */}
-                        <Dialog>
-                            <DialogTrigger asChild>
-                                <button className='flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors'>
-                                    <Share2 size={16} />
-                                    <span className='hidden sm:inline'>Share</span>
-                                </button>
-                            </DialogTrigger>
-                            <DialogContent className='max-w-lg w-full mx-auto dark:bg-gray-900 border border-gray-500 dark:border-gray-700'>
-                                <ShareModal />
-                            </DialogContent>
-                        </Dialog>
+                        <ShareModal />
                     </div>
 
                     {/* Chat Toggle */}
