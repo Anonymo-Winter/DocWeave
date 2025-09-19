@@ -57,10 +57,11 @@ import { useMobile } from '../hooks/use-mobile.ts';
 import { DropDown } from '../pages/DashBoard.jsx';
 import { Separator } from '../components/ui/separator';
 import { Buffer } from 'buffer';
-import { useSaveVersionMutation } from '../api/docApi.js';
+import { useAddPeopleMutation, useGetDocShareableDataQuery, useSaveVersionMutation } from '../api/docApi.js';
 import * as Y from 'yjs';
 import { useSearchForEmailMutation } from '../api/userApi.js';
 import { getInitials } from '../util/getInitials.js';
+import Loader from '../components/Loader.jsx';
 
 // Mock data for collaborators
 const mockCollaborators = [
@@ -203,14 +204,6 @@ const mockCollaborator = [
     },
 ];
 
-// Mock users for suggestions
-const mockUsers = [
-    { id: 4, name: 'Alice Brown', email: 'alice@example.com', avatar: 'AB', color: '#7C3AED' },
-    { id: 5, name: 'David Chen', email: 'david.chen@tech.com', avatar: 'DC', color: '#EA580C' },
-    { id: 6, name: 'Emma Davis', email: 'emma.davis@design.co', avatar: 'ED', color: '#DB2777' },
-    { id: 7, name: 'Frank Miller', email: 'frank@creative.agency', avatar: 'FM', color: '#0891B2' },
-];
-
 const MultiSelectInput = ({ selectedUsers, onUserSelect, onUserRemove, placeholder }) => {
     const [inputValue, setInputValue] = useState('');
     const [isOpen, setIsOpen] = useState(false);
@@ -218,17 +211,30 @@ const MultiSelectInput = ({ selectedUsers, onUserSelect, onUserRemove, placehold
     const [fetchedEmails, setFetchedEmails] = useState([]);
     const inputRef = useRef(null);
     const containerRef = useRef(null);
-    const [searchForEmail, { isLoading, error }] = useSearchForEmailMutation();
+    const [searchForEmail, { isLoading }] = useSearchForEmailMutation();
+
+    // Use a separate state for the search term to avoid rate-limiting issues
+    const [searchTerm, setSearchTerm] = useState('');
+
+    // Debounce the search term
+    useEffect(() => {
+        if (searchTerm.length > 0) {
+            const delayDebounceFn = setTimeout(() => {
+                handleSearchTerm(searchTerm);
+            }, 300); // 300ms delay
+
+            return () => clearTimeout(delayDebounceFn);
+        } else {
+            // Clear fetched emails when the search term is empty
+            setFetchedEmails([]);
+        }
+    }, [searchTerm]);
 
     useEffect(() => {
-        const filtered = fetchedEmails.filter(
-            (user) =>
-                !selectedUsers.find((selected) => selected.id === user.id) &&
-                (user.name.toLowerCase().includes(inputValue.toLowerCase()) ||
-                    user.email.toLowerCase().includes(inputValue.toLowerCase())),
-        );
+        // Filter the fetched emails. This will run whenever fetchedEmails or selectedUsers changes.
+        const filtered = fetchedEmails.filter((user) => !selectedUsers.find((selected) => selected._id === user._id));
         setFilteredUsers(filtered);
-    }, [inputValue, selectedUsers, fetchedEmails]);
+    }, [fetchedEmails, selectedUsers]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -241,25 +247,29 @@ const MultiSelectInput = ({ selectedUsers, onUserSelect, onUserRemove, placehold
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const handleSearchTerm = async () => {
-        const res = await searchForEmail({ emailTerm: inputValue });
+    const handleSearchTerm = async (value) => {
         setIsOpen(true);
-        setFetchedEmails(res?.data?.matchingEmails);
+        try {
+            const res = await searchForEmail({ emailTerm: value });
+            setFetchedEmails(res?.data?.matchingEmails ?? []);
+        } catch (err) {
+            console.error('Failed to fetch emails:', err);
+        }
     };
 
     const handleInputChange = (e) => {
-        setInputValue(e.target.value);
-        setFetchedEmails([]);
-        setFilteredUsers([]);
-        if (inputValue.length > 0) {
-            handleSearchTerm();
-        }
+        const newValue = e.target.value;
+        setInputValue(newValue);
+        // Only trigger the API search if the input value is not empty
+        setSearchTerm(newValue);
     };
 
     const handleUserSelect = (user) => {
         onUserSelect(user);
+        // Reset the input value after selecting a user
         setInputValue('');
-        setIsOpen(false);
+        setSearchTerm('');
+        setIsOpen(true);
         inputRef.current?.focus();
     };
 
@@ -277,9 +287,9 @@ const MultiSelectInput = ({ selectedUsers, onUserSelect, onUserRemove, placehold
                         >
                             {getInitials(user.name)}
                         </div>
-                        <span className='max-w-24 truncate'>{user.name}</span>
+                        <span className=''>{user.name}</span>
                         <button
-                            onClick={() => onUserRemove(user.id)}
+                            onClick={() => onUserRemove(user._id)}
                             className='ml-1 hover:bg-blue-200 dark:hover:bg-blue-800 rounded-full p-0.5 transition-colors'
                         >
                             <X size={12} />
@@ -297,107 +307,47 @@ const MultiSelectInput = ({ selectedUsers, onUserSelect, onUserRemove, placehold
                 />
             </div>
 
-            {isOpen && filteredUsers.length > 0 && (
+            {isOpen && (
                 <div className='absolute top-full left-0 right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20 max-h-48 overflow-y-auto mt-1'>
-                    {filteredUsers.map((user) => (
-                        <button
-                            key={user.id}
-                            onClick={() => handleUserSelect(user)}
-                            className='w-full flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 text-left transition-colors first:rounded-t-lg last:rounded-b-lg'
-                        >
-                            <div
-                                className='w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold'
-                                style={{ backgroundColor: user.color }}
+                    {isLoading ? (
+                        <div className='p-3 text-center text-gray-500 dark:text-gray-400'>Loading...</div>
+                    ) : filteredUsers.length > 0 ? (
+                        filteredUsers.map((user) => (
+                            <button
+                                key={user.id}
+                                onClick={() => handleUserSelect(user)}
+                                className='w-full flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-700 text-left transition-colors first:rounded-t-lg last:rounded-b-lg'
                             >
-                                {getInitials(user.name)}
-                            </div>
-                            <div className='flex-1 min-w-0'>
-                                <div className='text-sm font-medium text-gray-900 dark:text-white truncate'>
-                                    {user.name}
+                                <div
+                                    className='w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold'
+                                    style={{ backgroundColor: user.color }}
+                                >
+                                    {getInitials(user.name)}
                                 </div>
-                                <div className='text-xs text-gray-600 dark:text-gray-400 truncate'>{user.email}</div>
-                            </div>
-                        </button>
-                    ))}
+                                <div className='flex-1 min-w-0'>
+                                    <div className='text-sm font-medium text-gray-900 dark:text-white truncate'>
+                                        {user.name}
+                                    </div>
+                                    <div className='text-xs text-gray-600 dark:text-gray-400 truncate'>
+                                        {user.email}
+                                    </div>
+                                </div>
+                            </button>
+                        ))
+                    ) : inputValue ? (
+                        <div className='p-3 text-center text-gray-500 dark:text-gray-400'>
+                            No matching emails found.
+                        </div>
+                    ) : (
+                        <div className='p-3 text-center text-gray-500 dark:text-gray-400'>
+                            Type an email to search for users
+                        </div>
+                    )}
                 </div>
             )}
         </div>
     );
 };
-
-// const AddPeopleModal = ({
-//     isOpen,
-//     onClose,
-//     onSendInvites,
-//     selectedUsers,
-//     handleUserSelect,
-//     setSelectedRole,
-//     selectedRole,
-//     handleUserRemove,
-// }) => {
-//     return (
-//         <Dialog open={isOpen} onOpenChange={onClose}>
-//             <DialogContent className='max-w-md w-full dark:bg-gray-900 border border-gray-600'>
-//                 <DialogHeader>
-//                     <DialogTitle className='font-semibold text-left ps-1 text-gray-900 dark:text-white mb-2'>
-//                         <span className='text-[20px] text-left'>Share 'Collaborative document'</span>
-//                     </DialogTitle>
-//                 </DialogHeader>
-
-//                 <div className='mb-3'>
-//                     <h4 className='text-sm  hidden sm:flex text-gray-900 dark:text-white items-center gap-2 mb-2'>
-//                         <UserPlus size={16} />
-//                         Invite people
-//                     </h4>
-//                     <div className='space-y-3'>
-//                         <div className='flex flex-nowrap gap-2'>
-//                             <div className='w-10/12'>
-//                                 <MultiSelectInput
-//                                     selectedUsers={selectedUsers}
-//                                     onUserSelect={handleUserSelect}
-//                                     onUserRemove={handleUserRemove}
-//                                     placeholder='Add people and groups'
-//                                 />
-//                             </div>
-//                             <Select value={selectedRole} onValueChange={setSelectedRole}>
-//                                 <SelectTrigger className='h-fit w-fit py-5.5 dark:bg-gray-800 border-gray-300 dark:border-gray-600'>
-//                                     <SelectValue placeholder='Select role' />
-//                                 </SelectTrigger>
-
-//                                 <SelectContent className='bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg'>
-//                                     <SelectItem
-//                                         value='viewer'
-//                                         className='p-3 m-0 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors mb-0.5
-//                                         data-[state=checked]:bg-blue-100 dark:data-[state=checked]:bg-blue-700 data-[state=checked]:text-blue-700 dark:data-[state=checked]:text-white'
-//                                     >
-//                                         Viewer
-//                                     </SelectItem>
-//                                     <SelectItem
-//                                         value='editor'
-//                                         className='p-3 text-gray-800 dark:text-gray-200 hover:bg-blue-100 dark:hover:bg-gray-700 transition-colors
-//                                         data-[state=checked]:bg-blue-100 dark:data-[state=checked]:bg-blue-700 data-[state=checked]:text-blue-700 dark:data-[state=checked]:text-white'
-//                                     >
-//                                         Editor
-//                                     </SelectItem>
-//                                 </SelectContent>
-//                             </Select>
-//                         </div>
-
-//                         {selectedUsers.length > 0 && (
-//                             <button
-//                                 onClick={onSendInvites}
-//                                 className='w-full px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-200 font-medium'
-//                             >
-//                                 Send {selectedUsers.length} invitation
-//                                 {selectedUsers.length > 1 ? 's' : ''}
-//                             </button>
-//                         )}
-//                     </div>
-//                 </div>
-//             </DialogContent>
-//         </Dialog>
-//     );
-// };
 
 const ShareModal = () => {
     const [shareLink] = useState('https://collabdocs.app/doc/abc123xyz');
@@ -408,7 +358,15 @@ const ShareModal = () => {
     const [generalAccessRole, setGeneralAccessRole] = useState('viewer');
     const isMobile = useMobile();
     const [isOpen, setIsOpen] = useState(false);
-    // const [isAddModalOpen, setIsAddModalOpen] = useState(false); // Add People Modal
+    const { editorId: documentId } = useParams();
+
+    const { data, isLoading } = useGetDocShareableDataQuery(documentId, {
+        refetchOnMountOrArgChange: true,
+        refetchOnReconnect: true,
+        refetchOnFocus: true,
+    });
+
+    const [addPeople] = useAddPeopleMutation();
 
     const copyToClipboard = async () => {
         try {
@@ -425,19 +383,21 @@ const ShareModal = () => {
     };
 
     const handleUserRemove = (userId) => {
-        setSelectedUsers((prev) => prev.filter((user) => user.id !== userId));
+        setSelectedUsers((prev) => prev.filter((user) => user._id !== userId));
     };
 
     const handleEmailClick = (email) => {
         window.open(`mailto:${email}`, '_blank');
     };
 
-    const sendInvites = () => {
+    const sendInvites = async () => {
         if (selectedUsers.length > 0) {
-            console.log(
-                'Sending invites to:',
-                selectedUsers.map((u) => u.email),
-            );
+            const res = await addPeople({
+                documentId: documentId,
+                emails: selectedUsers.map((u) => u.email),
+                role: selectedRole,
+            });
+            console.log(res);
             setSelectedUsers([]);
         }
     };
@@ -466,6 +426,10 @@ const ShareModal = () => {
     const handleModalContentClick = (e) => {
         e.stopPropagation();
     };
+
+    if (isLoading) {
+        console.log('its loading');
+    }
 
     return (
         <>
@@ -1240,11 +1204,17 @@ const EnhancedNavbar = ({
             console.warn('❌ Cannot save version: editor or Ydoc missing');
             return;
         }
+        console.log(awareness.getStates());
+        if (!ydoc || !awareness || awareness.getStates().size === 0) {
+            console.warn('❌ Cannot save version: Ydoc or awareness not ready');
+            toast.error('Editor is not ready yet. Please wait.');
+            return;
+        }
         try {
             const update = Y.encodeStateAsUpdate(ydoc);
             const fragment = ydoc.getXmlFragment('default');
-            console.log('📝 Saving fragment:', fragment.toJSON());
-            console.log('💾 Saving update with length:', update.byteLength);
+            // console.log('📝 Saving fragment:', fragment.toJSON());
+            // console.log('💾 Saving update with length:', update.byteLength);
             if (!update || update.byteLength < 20) {
                 console.warn('⚠️ Update too small. Likely not ready. Skipping save.');
                 return;
@@ -1257,15 +1227,18 @@ const EnhancedNavbar = ({
                 console.error('❌ Cannot save: Invalid Yjs update:', decodeErr.message);
                 return;
             }
-            Array.from(awareness.getStates()).map(([clientId, state]) => {
-                console.log(state);
-                console.log(clientId);
-            });
-            const collaborators = Array.from(awareness.getStates()).map(([clientId, state]) => ({
-                user: state?.user?.id,
-                role: state?.user?.role,
-                color: state?.user?.color,
-            }));
+            const collaborators = Array.from(awareness.getStates())
+                .map(([clientId, state]) => {
+                    if (!state?.user?.id) return null; // skip invalid entries
+                    return {
+                        user: state.user.id,
+                        role: state.user.role || 'editor',
+                        color: state.user.color || null,
+                    };
+                })
+                .filter(Boolean);
+            console.log(collaborators);
+
             const res = await saveVersion({
                 documentId: editorId,
                 update: updateBase64,

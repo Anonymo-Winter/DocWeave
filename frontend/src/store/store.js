@@ -6,6 +6,7 @@ import { userApi } from '../api/userApi';
 import userReducer from './userSlice';
 
 import { docApi } from '../api/docApi';
+import { versionApi } from '../api/versionApi';
 
 const persistUserReducer = persistReducer({ key: 'user', storage }, userReducer);
 
@@ -14,6 +15,7 @@ const store = configureStore({
         [userApi.reducerPath]: userApi.reducer,
         user: persistUserReducer,
         [docApi.reducerPath]: docApi.reducer,
+        [versionApi.reducerPath]: versionApi.reducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware({
@@ -21,7 +23,7 @@ const store = configureStore({
                 ignoredPaths: ['register'],
                 ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
             },
-        }).concat(userApi.middleware, docApi.middleware),
+        }).concat(userApi.middleware, docApi.middleware, versionApi.middleware),
 });
 
 const persistor = persistStore(store);

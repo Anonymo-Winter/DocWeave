@@ -25,3 +25,16 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
+
+# Logs from coverage or testing
+coverage/
+*.lcov
+
+# Vite or Next.js cache folders
+.vite/
+.next/

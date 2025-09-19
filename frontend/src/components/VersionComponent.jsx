@@ -48,27 +48,39 @@ import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popove
 import { getInitials } from '../util/getInitials.js';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from './ui/hover-card.js';
 import { useEditor, EditorContext, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
 import { FaRedo } from 'react-icons/fa';
 
 // VersionViewer.jsx
 import { Collaboration } from '@tiptap/extension-collaboration';
+import { useDeleteVersionMutation, useUpdateVersionMutation } from '../api/versionApi.js';
 
-export const VersionViewer = ({ versionUpdateBase64 }) => {
+import { StarterKit } from '@tiptap/starter-kit';
+import { Image } from '@tiptap/extension-image';
+import { TaskItem } from '@tiptap/extension-task-item';
+import { TaskList } from '@tiptap/extension-task-list';
+import { TextAlign } from '@tiptap/extension-text-align';
+import { Typography } from '@tiptap/extension-typography';
+import { Highlight } from '@tiptap/extension-highlight';
+import { Subscript } from '@tiptap/extension-subscript';
+import { Superscript } from '@tiptap/extension-superscript';
+import { Underline } from '@tiptap/extension-underline';
+import { Link } from '@/components/tiptap-extension/link-extension';
+import { Selection } from '@/components/tiptap-extension/selection-extension';
+import { TrailingNode } from '@/components/tiptap-extension/trailing-node-extension';
+import '@/components/tiptap-node/list-node/list-node.scss';
+import '@/components/tiptap-node/image-node/image-node.scss';
+import '@/components/tiptap-node/paragraph-node/paragraph-node.scss';
+
+import TurndownService from 'turndown';
+
+export const VersionViewer = ({ versionUpdateBase64, onEditorReady }) => {
     const [ydoc] = useState(() => new Y.Doc());
 
+    // Apply update before editor is created
     useEffect(() => {
         if (versionUpdateBase64) {
-            try {
-                const binaryUpdate = Buffer.from(versionUpdateBase64, 'base64');
-                Y.applyUpdate(ydoc, binaryUpdate);
-                console.log('✅ Version applied to Ydoc successfully');
-            } catch (err) {
-                console.error('Failed to apply update:', err);
-            }
-            return () => {
-                ydoc.destroy();
-            };
+            const binaryUpdate = Buffer.from(versionUpdateBase64, 'base64');
+            Y.applyUpdate(ydoc, binaryUpdate);
         }
     }, [versionUpdateBase64]);
 
@@ -78,8 +90,23 @@ export const VersionViewer = ({ versionUpdateBase64 }) => {
             StarterKit,
             Collaboration.configure({
                 document: ydoc,
+                field: 'default',
             }),
+            StarterKit.configure({ history: false }),
+            TextAlign.configure({ types: ['heading', 'paragraph'] }),
+            Underline,
+            TaskList,
+            TaskItem.configure({ nested: true }),
+            Highlight.configure({ multicolor: true }),
+            Image,
+            Typography,
+            Superscript,
+            Subscript,
+            Selection,
+            TrailingNode,
+            Link.configure({ openOnClick: false }),
         ],
+        onCreate: ({ editor }) => onEditorReady?.(editor),
     });
 
     if (!editor) return <div>Loading...</div>;
@@ -96,28 +123,29 @@ const VersionComponent = ({ setVersionopen }) => {
     const [showRestoreModal, setShowRestoreModal] = useState(false);
     const [showRemoveModal, setShowRemoveModal] = useState(false);
     const [showNameModal, setShowNameModal] = useState(false);
-    const [showSaveModal, setShowSaveModal] = useState(false);
     const [expandedVersions, setExpandedVersions] = useState({});
-    const [newVersionName, setNewVersionName] = useState('');
-    const [versionToRemove, setVersionToRemove] = useState(null);
-    const [versionToName, setVersionToName] = useState(null);
     const [isSidebarHidden, setIsSidebarHidden] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
     const [versionName, setVersionName] = useState('');
     const [versionDescription, setVersionDescription] = useState('');
     const [saveVersionDialogOpen, setSaveVersionDialogOpen] = useState(false);
+    const [previewEditor, setPreviewEditor] = useState(null);
 
     const [restoreLoading, setIsRestoreLoading] = useState(false);
 
     const { editorId } = useParams();
-    const { ydoc, addSnapshot, snapshots, awareness, assignedColor } = useSocket();
+    const { ydoc, awareness, assignedColor } = useSocket();
     const user = useSelector((state) => state.user.user);
+
     const [saveVersion] = useSaveVersionMutation();
+    const [deleteVersion, { isLoading: isDeleteLoading }] = useDeleteVersionMutation();
+    const [updateVersion, { isLoading: isUpdating }] = useUpdateVersionMutation();
 
     const {
         data,
         isLoading: isVersionLoading,
-        error,
+        // error,
+        refetch,
     } = useGetAllversionsQuery(
         { editorId },
         {
@@ -125,18 +153,23 @@ const VersionComponent = ({ setVersionopen }) => {
             pollingInterval: 5000,
         },
     );
-    // console.log(data?.versions);
 
     const confirmSaveVersion = async () => {
         if (!ydoc || !awareness) {
             console.warn('❌ Cannot save version: editor or Ydoc missing');
             return;
         }
+        console.log(awareness.getStates());
+        if (!ydoc || !awareness || awareness.getStates().size === 0) {
+            console.warn('❌ Cannot save version: Ydoc or awareness not ready');
+            toast.error('Editor is not ready yet. Please wait.');
+            return;
+        }
         try {
             const update = Y.encodeStateAsUpdate(ydoc);
             const fragment = ydoc.getXmlFragment('default');
-            // console.log('📝 Saving fragment:', fragment.toJSON());
-            // console.log('💾 Saving update with length:', update.byteLength);
+            console.log('📝 Saving fragment:', fragment.toJSON());
+            console.log('💾 Saving update with length:', update.byteLength);
             if (!update || update.byteLength < 20) {
                 console.warn('⚠️ Update too small. Likely not ready. Skipping save.');
                 return;
@@ -149,15 +182,17 @@ const VersionComponent = ({ setVersionopen }) => {
                 console.error('❌ Cannot save: Invalid Yjs update:', decodeErr.message);
                 return;
             }
-            Array.from(awareness.getStates()).map(([clientId, state]) => {
-                console.log(state);
-                console.log(clientId);
-            });
-            const collaborators = Array.from(awareness.getStates()).map(([clientId, state]) => ({
-                user: state?.user?.id,
-                role: state?.user?.role,
-                color: state?.user?.color,
-            }));
+            const collaborators = Array.from(awareness.getStates())
+                .map(([clientId, state]) => {
+                    if (!state?.user?.id) return null; // skip invalid entries
+                    return {
+                        user: state.user.id,
+                        role: state.user.role || 'editor',
+                        color: state.user.color || null,
+                    };
+                })
+                .filter(Boolean);
+
             const res = await saveVersion({
                 documentId: editorId,
                 update: updateBase64,
@@ -244,26 +279,9 @@ const VersionComponent = ({ setVersionopen }) => {
         }
     };
 
-    const handleCreateSnapshot = () => {
-        const name = prompt('Snapshot name:');
-        if (!name) return;
-
-        const snapshot = createNamedSnapshot(ydoc, name, {
-            id: user._id,
-            name: user.name,
-        });
-
-        addSnapshot(snapshot);
-        alert('✅ Snapshot saved');
-    };
-
-    const restore = (snap) => {
-        applySnapshotToDoc(ydoc, snap.snapshot);
-        alert(`Restored snapshot "${snap.name}"`);
-    };
-
     const handleVersionClick = (version) => {
-        // setSelectedVersion(version._id === selectedVersion?._id ? null : version);
+        const fragment = ydoc.getXmlFragment('default');
+        console.log('📝 selected fragment:', fragment.toJSON());
         setSelectedVersion(version);
     };
 
@@ -279,41 +297,51 @@ const VersionComponent = ({ setVersionopen }) => {
         setSelectedVersion(version);
     };
 
-    const handleRemove = (version) => {
-        setVersionToRemove(version);
-        setShowRemoveModal(true);
-    };
-
-    const handleNameVersion = (version) => {
-        setVersionToName(version);
-        setNewVersionName(version.name || '');
-        setShowNameModal(true);
-    };
-
-    const confirmRestore = () => {
-        if (!selectedVersion) {
-            toast.error('No version selected');
-            return;
+    const handleNameVersion = async () => {
+        try {
+            const res = await updateVersion({
+                documentId: editorId,
+                title: versionName,
+                description: versionDescription,
+                versionId: selectedVersion._id,
+            });
+            if (res?.data?.success) {
+                setSelectedVersion((prev) => ({
+                    ...prev,
+                    title: versionName,
+                    description: versionDescription,
+                }));
+                setVersionName('');
+                setVersionDescription('');
+                refetch();
+                toast.success('Success', { description: res?.data?.message || "Successfully updated version's name" });
+                setShowNameModal(false);
+            } else {
+                console.log(res);
+                throw new Error(res?.error?.data?.message);
+            }
+        } catch (error) {
+            toast.error('Error updating version', {
+                description: error.message,
+            });
         }
-
-        restoreVersion(selectedVersion);
-        setShowRestoreModal(false);
-        setSelectedVersion(null);
     };
 
-    const confirmRemove = () => {
-        console.log('Removing version:', versionToRemove.id);
-        setShowRemoveModal(false);
-        setVersionToRemove(null);
+    const removeVersion = async () => {
+        try {
+            const res = await deleteVersion({ documentId: editorId, versionId: selectedVersion._id });
+            if (res?.data?.success) {
+                toast.success('Successfully removed version');
+                setSelectedVersion(null);
+                refetch();
+            }
+        } catch (error) {
+            console.log(error.message);
+            toast.error('Failed to remove version', {
+                description: error.message,
+            });
+        }
     };
-
-    const confirmNameVersion = () => {
-        console.log('Naming version:', versionToName.id, 'as:', newVersionName);
-        setShowNameModal(false);
-        setVersionToName(null);
-        setNewVersionName('');
-    };
-
     const UserAvatar = ({ name, size = 'sm', bgColor }) => {
         const sizeClasses = {
             xs: 'w-5 h-5 text-xs',
@@ -347,6 +375,83 @@ const VersionComponent = ({ setVersionopen }) => {
     };
 
     const navigate = useNavigate();
+
+    const handleDownload = (editor, format, versionName = 'version') => {
+        if (!editor) return;
+
+        let blob, fileName;
+
+        switch (format) {
+            case 'txt': {
+                const walker = editor.state.doc.content.content.map((node) => {
+                    if (node.type.name === 'image') {
+                        const src = node.attrs?.src || '[Image]';
+                        return `[Image: ${src}]`;
+                    }
+                    return node.textContent;
+                });
+
+                const plainText = walker.join('\n\n');
+                blob = new Blob([plainText], { type: 'text/plain' });
+                fileName = `${versionName}.txt`;
+                break;
+            }
+
+            // good
+            case 'md': {
+                const turndownService = new TurndownService();
+
+                // Highlight rule
+                turndownService.addRule('mark', {
+                    filter: 'mark',
+                    replacement: (content) => `==${content}==`,
+                });
+
+                // (Optional) keep figure captions
+                turndownService.addRule('figureWithCaption', {
+                    filter: 'figure',
+                    replacement: (content, node) => {
+                        const img = node.querySelector('img');
+                        const caption = node.querySelector('figcaption');
+                        if (img) {
+                            const alt = img.alt || '';
+                            const src = img.src || '';
+                            let md = `![${alt}](${src})`;
+                            if (caption) {
+                                md += `\n*${caption.textContent}*`;
+                            }
+                            return md;
+                        }
+                        return content;
+                    },
+                });
+
+                const markdown = turndownService.turndown(editor.getHTML());
+                blob = new Blob([markdown], { type: 'text/markdown' });
+                fileName = `${versionName}.md`;
+                break;
+            }
+
+            case 'html': {
+                // Get HTML with inline styles if needed
+                const html = editor.getHTML();
+                blob = new Blob([html], { type: 'text/html' });
+                fileName = `${versionName}.html`;
+                break;
+            }
+
+            default:
+                toast.error('Unsupported format in frontend');
+                return;
+        }
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
 
     if (isVersionLoading) {
         return (
@@ -547,7 +652,10 @@ const VersionComponent = ({ setVersionopen }) => {
                     {selectedVersion && (
                         <>
                             <div className='mt-4' key={selectedVersion._id}>
-                                <VersionViewer versionUpdateBase64={selectedVersion.update} />
+                                <VersionViewer
+                                    versionUpdateBase64={selectedVersion?.update}
+                                    onEditorReady={setPreviewEditor}
+                                />
                             </div>
                         </>
                     )}
@@ -587,7 +695,6 @@ const VersionComponent = ({ setVersionopen }) => {
                             </div>
                         ) : (
                             <>
-                                {/* Hello */}
                                 {data?.versions.map((version, index) => {
                                     const baseClasses = `group rounded-xl transition-all duration-200 border-2`;
                                     const selectedClasses = `shadow-md ${
@@ -750,29 +857,270 @@ const VersionComponent = ({ setVersionopen }) => {
                                                                 Restore
                                                             </button>
                                                         )}
-                                                        <button
-                                                            onClick={() => handleNameVersion(version)}
-                                                            className='flex items-center justify-center gap-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 text-xs rounded-lg font-medium'
-                                                        >
-                                                            <Edit2 className='w-3 h-3' />
-                                                            Name
-                                                        </button>
+
+                                                        <Dialog open={showNameModal} onOpenChange={setShowNameModal}>
+                                                            <DialogTrigger asChild>
+                                                                <button
+                                                                    type='button'
+                                                                    className='flex items-center justify-center gap-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 text-xs rounded-lg font-medium'
+                                                                    onClick={() => {
+                                                                        setVersionName(selectedVersion.name);
+                                                                        setVersionDescription(
+                                                                            selectedVersion.description,
+                                                                        );
+                                                                    }}
+                                                                >
+                                                                    {isUpdating ? (
+                                                                        <>
+                                                                            <Loader2 className='w-4 h-4 animate-spin mr-2' />
+                                                                            Renaming...
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <Edit2 className='size-4' />
+                                                                            Name
+                                                                        </>
+                                                                    )}
+                                                                </button>
+                                                            </DialogTrigger>
+
+                                                            <DialogContent className='dark:bg-gray-800 bg-white rounded-lg max-w-md w-full mx-4 px-5 py-4'>
+                                                                <DialogHeader>
+                                                                    <DialogTitle className='font-medium dark:text-white text-gray-900'>
+                                                                        Name this version
+                                                                    </DialogTitle>
+                                                                    <DialogDescription>
+                                                                        <p className='text-sm text-gray-500 dark:text-gray-400'>
+                                                                            Give your version a name to make it easier
+                                                                            to identify.
+                                                                        </p>
+                                                                    </DialogDescription>
+                                                                </DialogHeader>
+
+                                                                {/* Version Name Input */}
+                                                                <div className=''>
+                                                                    <Label
+                                                                        htmlFor='version-name'
+                                                                        className='mb-4 block'
+                                                                    >
+                                                                        Version Name (optional)
+                                                                    </Label>
+                                                                    <div className='relative'>
+                                                                        <AiOutlineHistory
+                                                                            className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 transition-colors z-10 ${
+                                                                                isFocused
+                                                                                    ? 'text-green-500 dark:text-green-400'
+                                                                                    : 'text-gray-400 dark:text-gray-500'
+                                                                            }`}
+                                                                        />
+                                                                        <input
+                                                                            id='version-name'
+                                                                            type='text'
+                                                                            placeholder='Enter version name...'
+                                                                            value={versionName}
+                                                                            onChange={(e) =>
+                                                                                setVersionName(e.target.value)
+                                                                            }
+                                                                            onFocus={() => setIsFocused(true)}
+                                                                            onBlur={() =>
+                                                                                setTimeout(() => setIsFocused(false), 0)
+                                                                            }
+                                                                            className={`w-full py-3 pl-10 border-2 rounded-lg bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm font-light text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none transition-all duration-200 ${
+                                                                                isFocused
+                                                                                    ? 'border-green-500 dark:border-green-400'
+                                                                                    : 'border-gray-300 dark:border-gray-600'
+                                                                            }`}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Version Description Textarea */}
+                                                                <div className=''>
+                                                                    <Label
+                                                                        htmlFor='version-description'
+                                                                        className='mb-4 block'
+                                                                    >
+                                                                        Version Description (optional)
+                                                                    </Label>
+                                                                    <textarea
+                                                                        id='version-description'
+                                                                        rows={3}
+                                                                        placeholder='Add a short description...'
+                                                                        value={versionDescription}
+                                                                        onChange={(e) =>
+                                                                            setVersionDescription(e.target.value)
+                                                                        }
+                                                                        className='w-full min-h-12 max-h-20 custom-scrollbar p-3 border-2 rounded-lg bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm font-light text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none
+                                                                            transition-all duration-200 focus:border-green-500'
+                                                                    />
+                                                                </div>
+
+                                                                {/* Footer Actions */}
+                                                                <DialogFooter>
+                                                                    <DialogClose asChild>
+                                                                        <button
+                                                                            type='button'
+                                                                            className='px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md'
+                                                                        >
+                                                                            Cancel
+                                                                        </button>
+                                                                    </DialogClose>
+                                                                    <button
+                                                                        onClick={() => handleNameVersion()}
+                                                                        type='submit'
+                                                                        className='flex items-center justify-center px-4 py-2 bg-green-600 text-white hover:bg-green-700 rounded-md'
+                                                                    >
+                                                                        {isUpdating ? (
+                                                                            <>
+                                                                                <Loader2 className='w-4 h-4 animate-spin mr-2' />
+                                                                                Updating...
+                                                                            </>
+                                                                        ) : (
+                                                                            <>Update Version</>
+                                                                        )}
+                                                                    </button>
+                                                                </DialogFooter>
+                                                            </DialogContent>
+                                                        </Dialog>
+
                                                         <button className='flex items-center justify-center gap-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 text-xs rounded-lg font-medium'>
                                                             <Download className='w-3 h-3' />
                                                             Download
                                                         </button>
+                                                        <div className='flex flex-col gap-1'>
+                                                            <button
+                                                                onClick={() =>
+                                                                    handleDownload(
+                                                                        previewEditor,
+                                                                        'txt',
+                                                                        selectedVersion.name,
+                                                                    )
+                                                                }
+                                                            >
+                                                                Download TXT
+                                                            </button>
+                                                            <button
+                                                                onClick={() =>
+                                                                    handleDownload(
+                                                                        previewEditor,
+                                                                        'md',
+                                                                        selectedVersion.name,
+                                                                    )
+                                                                }
+                                                            >
+                                                                Download MD
+                                                            </button>
+                                                            <button
+                                                                onClick={() =>
+                                                                    handleDownload(
+                                                                        previewEditor,
+                                                                        'html',
+                                                                        selectedVersion.name,
+                                                                    )
+                                                                }
+                                                            >
+                                                                Download HTML
+                                                            </button>
+                                                            <a
+                                                                href={`/api/versions/${selectedVersion._id}/download?format=docx`}
+                                                                target='_blank'
+                                                                rel='noopener noreferrer'
+                                                            >
+                                                                Download DOCX
+                                                            </a>
+                                                            <a
+                                                                href={`/api/versions/${selectedVersion._id}/download?format=pdf`}
+                                                                target='_blank'
+                                                                rel='noopener noreferrer'
+                                                            >
+                                                                Download PDF
+                                                            </a>
+                                                            {/* <button onClick={() => handlePrint(previewEditor)}>
+                                                                🖨️ Print
+                                                            </button> */}
+                                                        </div>
+
                                                         <button className='flex items-center justify-center gap-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 text-xs rounded-lg font-medium'>
                                                             <Copy className='w-3 h-3' />
                                                             Duplicate
                                                         </button>
                                                         {!version.isCurrentVersion && (
-                                                            <button
-                                                                onClick={() => handleRemove(version)}
-                                                                className='col-span-2 flex items-center justify-center gap-1 px-3 py-2 bg-red-100 hover:bg-red-200 dark:bg-red-700 dark:text-red-200 dark:hover:bg-red-600 text-xs rounded-lg font-medium'
+                                                            // button to remove the version
+                                                            <Dialog
+                                                                open={showRemoveModal}
+                                                                onOpenChange={setShowRemoveModal}
                                                             >
-                                                                <Trash2 className='w-3 h-3' />
-                                                                Remove this version
-                                                            </button>
+                                                                <DialogTrigger asChild>
+                                                                    <button
+                                                                        type='button'
+                                                                        className='col-span-2 flex items-center justify-center gap-1 px-3 py-2 bg-red-100 hover:bg-red-200 dark:bg-red-700 dark:text-red-200 dark:hover:bg-red-600 text-xs rounded-lg font-medium'
+                                                                    >
+                                                                        {isDeleteLoading ? (
+                                                                            <>
+                                                                                <Loader2 className='w-4 h-4 animate-spin mr-2' />
+                                                                                Removing...
+                                                                            </>
+                                                                        ) : (
+                                                                            <>
+                                                                                <Trash2 className='size-4' />
+                                                                                Remove this version
+                                                                            </>
+                                                                        )}
+                                                                    </button>
+                                                                </DialogTrigger>
+
+                                                                <DialogContent className='dark:bg-gray-800 bg-white rounded-lg max-w-md w-full mx-4 p-5'>
+                                                                    <DialogHeader>
+                                                                        <DialogTitle className='text-lg font-semibold'>
+                                                                            Remove this version
+                                                                        </DialogTitle>
+                                                                        <DialogDescription className='text-md'>
+                                                                            <p
+                                                                                className={`dark:text-gray-300 text-md text-gray-600`}
+                                                                            >
+                                                                                This version will be permanently
+                                                                                deleted. This action cannot be undone.
+                                                                            </p>
+                                                                        </DialogDescription>
+                                                                    </DialogHeader>
+
+                                                                    <DialogFooter className='flex justify-end gap-2'>
+                                                                        <DialogClose asChild>
+                                                                            <Button
+                                                                                type='button'
+                                                                                variant='secondary'
+                                                                                className='p-5 bg-gray-800 text-white hover:bg-gray-700 rounded-md'
+                                                                                onClick={async () => {
+                                                                                    setShowRemoveModal(false);
+                                                                                }}
+                                                                            >
+                                                                                Cancel
+                                                                            </Button>
+                                                                        </DialogClose>
+                                                                        <Button
+                                                                            type='button'
+                                                                            variant='primary'
+                                                                            onClick={async () => {
+                                                                                await removeVersion(
+                                                                                    selectedVersion._id,
+                                                                                );
+                                                                                setShowRemoveModal(false);
+                                                                            }}
+                                                                            className='p-5 text-md bg-red-600 text-white hover:bg-red-700 rounded-md'
+                                                                            disabled={isDeleteLoading}
+                                                                        >
+                                                                            {isDeleteLoading ? (
+                                                                                <>
+                                                                                    <Loader2 className='w-4 h-4 animate-spin mr-2' />
+                                                                                    Removing...
+                                                                                </>
+                                                                            ) : (
+                                                                                'Remove'
+                                                                            )}
+                                                                        </Button>
+                                                                    </DialogFooter>
+                                                                </DialogContent>
+                                                            </Dialog>
                                                         )}
                                                     </div>
                                                 </div>
@@ -784,87 +1132,7 @@ const VersionComponent = ({ setVersionopen }) => {
                         )}
                     </div>
                 </div>
-
-                {/* Other modals (Remove, Name, Save) use same dark: patterns */}
             </div>
-
-            <Modal isOpen={showRemoveModal} onClose={() => setShowRemoveModal(false)} title='Remove this version?'>
-                <p className={`dark:text-gray-300 text-gray-600 mb-6`}>
-                    This version will be permanently deleted. This action cannot be undone.
-                </p>
-                <div className='flex gap-3 justify-end'>
-                    <button
-                        onClick={() => setShowRemoveModal(false)}
-                        className={`px-4 py-2 dark:text-gray-300 dark:hover:bg-gray-700 text-gray-600 hover:bg-gray-100 rounded-md`}
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={confirmRemove}
-                        className='px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded-md'
-                    >
-                        Remove
-                    </button>
-                </div>
-            </Modal>
-
-            <Modal isOpen={showNameModal} onClose={() => setShowNameModal(false)} title='Name this version'>
-                <div className='mb-4'>
-                    <label className={`block text-sm font-medium dark:text-gray-300 text-gray-700 mb-2`}>
-                        Version name
-                    </label>
-                    <input
-                        type='text'
-                        value={newVersionName}
-                        onChange={(e) => setNewVersionName(e.target.value)}
-                        className={`w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:ring-blue-500 border-gray-300 bg-white text-gray-900 focus:ring-blue-500 rounded-md focus:outline-none focus:ring-2`}
-                        placeholder='Enter version name...'
-                    />
-                </div>
-                <div className='flex gap-3 justify-end'>
-                    <button
-                        onClick={() => setShowNameModal(false)}
-                        className={`px-4 py-2 dark:text-gray-300 dark:hover:bg-gray-700 text-gray-600 hover:bg-gray-100 rounded-md`}
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={confirmNameVersion}
-                        className='px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-md'
-                    >
-                        Save
-                    </button>
-                </div>
-            </Modal>
-
-            <Modal isOpen={showSaveModal} onClose={() => setShowSaveModal(false)} title='Save current version'>
-                <div className='mb-4'>
-                    <label className={`block text-sm font-medium dark:text-gray-300 text-gray-700 mb-2`}>
-                        Version name (optional)
-                    </label>
-                    <input
-                        type='text'
-                        value={newVersionName}
-                        onChange={(e) => setNewVersionName(e.target.value)}
-                        className={`w-full px-3 py-2 border dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:ring-blue-500 border-gray-300 bg-white text-gray-900 focus:ring-blue-500 rounded-md focus:outline-none focus:ring-2`}
-                        placeholder='Enter version name...'
-                    />
-                </div>
-                <div className='flex gap-3 justify-end'>
-                    <button
-                        onClick={() => setShowSaveModal(false)}
-                        className={`px-4 py-2 dark:text-gray-300 dark:hover:bg-gray-700 text-gray-600 hover:bg-gray-100 rounded-md`}
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        onClick={confirmSaveVersion}
-                        className='px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-md'
-                    >
-                        Save Version
-                    </button>
-                </div>
-            </Modal>
         </div>
     );
 };

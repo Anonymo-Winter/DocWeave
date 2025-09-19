@@ -38,6 +38,7 @@ import '@/components/tiptap-node/paragraph-node/paragraph-node.scss';
 // --- Tiptap UI ---
 import { HeadingDropdownMenu } from '@/components/tiptap-ui/heading-dropdown-menu';
 import { ImageUploadButton } from '@/components/tiptap-ui/image-upload-button';
+
 import { ListDropdownMenu } from '@/components/tiptap-ui/list-dropdown-menu';
 import { NodeButton } from '@/components/tiptap-ui/node-button';
 import { HighlightPopover, HighlightContent, HighlighterButton } from '@/components/tiptap-ui/highlight-popover';
@@ -56,7 +57,7 @@ import { useMobile } from '@/hooks/use-mobile';
 import { useWindowSize } from '@/hooks/use-window-size';
 import { useCursorVisibility } from '@/hooks/use-cursor-visibility';
 
-// --- Components ---
+// --- Components ImageUploadButton
 import { ThemeToggle } from '@/components/tiptap-templates/simple/theme-toggle.tsx';
 
 // --- Lib ---
@@ -86,7 +87,9 @@ import { useParams } from 'react-router-dom';
 import { Buffer } from 'buffer';
 import ErrorPage from './ErrorMessage.jsx';
 
-const MainToolbarContent = ({ onHighlighterClick, onLinkClick, isMobile, editor }) => {
+// import ImageUploadButton from './ImageUploadButton.jsx';
+
+const MainToolbarContent = ({ onHighlighterClick, onLinkClick, isMobile, editor, editorId }) => {
     return (
         <>
             <ToolbarGroup>
@@ -135,7 +138,8 @@ const MainToolbarContent = ({ onHighlighterClick, onLinkClick, isMobile, editor 
             </ToolbarGroup>
             <ToolbarSeparator />
             <ToolbarGroup>
-                <ImageUploadButton text='Add' />
+                {/* <ImageUploadButton editor={editor} documentId={editorId} text='Add' /> */}
+                <ImageUploadButton documentId={editorId} />
             </ToolbarGroup>
             <Spacer />
             {isMobile && <ToolbarSeparator />}
@@ -267,6 +271,7 @@ export function SimpleEditor() {
         console.log('🚀 Creating editor with current Ydoc state...');
         const newEditor = new Editor({
             extensions,
+            autofocus: true,
         });
 
         setEditor(newEditor);
@@ -494,6 +499,7 @@ export function SimpleEditor() {
                     {mobileView === 'main' ? (
                         <MainToolbarContent
                             editor={editor}
+                            editorId={editorId}
                             onHighlighterClick={() => setMobileView('highlighter')}
                             onLinkClick={() => setMobileView('link')}
                             isMobile={isMobile}

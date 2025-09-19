@@ -57,6 +57,29 @@ export const docApi = createApi({
                 return `/doc/${editorId}/contributors`;
             },
         }),
+        addPeople: builder.mutation({
+            query: ({ documentId, emails, role }) => ({
+                url: '/doc/add-people',
+                method: 'POST',
+                body: { documentId, emails, role },
+            }),
+        }),
+        getDocShareableData: builder.query({
+            query: (editorId) => {
+                return `/doc/fetch-doc-sharable-access/${editorId}`;
+            },
+        }),
+        uploadDocumentImage: builder.mutation({
+            query: ({ documentId, file }) => {
+                const formData = new FormData();
+                formData.append('file', file);
+                return {
+                    url: `/doc/${documentId}/upload`,
+                    method: 'POST',
+                    body: formData,
+                };
+            },
+        }),
     }),
 });
 
@@ -66,4 +89,7 @@ export const {
     useCreateDocumentMutation,
     useGetAllversionsQuery,
     useGetContributorsQuery,
+    useAddPeopleMutation,
+    useGetDocShareableDataQuery,
+    useUploadDocumentImageMutation,
 } = docApi;

@@ -19,13 +19,20 @@ export const versionApi = createApi({
     tagTypes: ['Version'],
     endpoints: (builder) => ({
         updateVersion: builder.mutation({
-            query: ({ documentId, title, desciption }) => ({
+            query: ({ documentId, title, description, versionId }) => ({
                 url: `/version/${documentId}`,
                 method: 'POST',
-                body: { title, desciption },
+                body: { title, description, versionId },
+            }),
+        }),
+        deleteVersion: builder.mutation({
+            query: ({ documentId, versionId }) => ({
+                url: `/version/${documentId}`,
+                method: 'DELETE',
+                body: { versionId },
             }),
         }),
     }),
 });
 
-export const { useUpdateVersionMutation } = versionApi;
+export const { useUpdateVersionMutation, useDeleteVersionMutation } = versionApi;

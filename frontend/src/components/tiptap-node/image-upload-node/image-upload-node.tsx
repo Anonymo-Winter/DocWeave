@@ -3,7 +3,8 @@ import type { NodeViewProps } from '@tiptap/react';
 import { NodeViewWrapper } from '@tiptap/react';
 import { CloseIcon } from '@/components/tiptap-icons/close-icon';
 import '@/components/tiptap-node/image-upload-node/image-upload-node.scss';
-import { handleImageUpload } from '@/lib/tiptap-utils';
+// import { handleImageUpload } from '@/lib/tiptap-utils';
+import { uploadDocumentImageWithProgress } from '../../../api/imageUpload.js';
 
 export interface FileItem {
     id: string;
@@ -19,8 +20,8 @@ interface UploadOptions {
     limit: number;
     accept: string;
     upload: (file: File, onProgress: (event: { progress: number }) => void, signal: AbortSignal) => Promise<string>;
-    onSuccess?: (url: string) => void;
-    onError?: (error: Error) => void;
+    onSuccess: (url: string) => void;
+    onError: (error: Error) => void;
 }
 
 function useFileUpload(options: UploadOptions) {
@@ -297,8 +298,9 @@ const DropZoneContent: React.FC<{ maxSize: number }> = ({ maxSize }) => (
         </div>
     </>
 );
-
+import { useParams } from 'react-router-dom';
 export const ImageUploadNode: React.FC<NodeViewProps> = (props) => {
+    const { editorId } = useParams();
     const { accept, limit, maxSize } = props.node.attrs;
     const inputRef = React.useRef<HTMLInputElement>(null);
     const extension = props.extension;
@@ -307,7 +309,7 @@ export const ImageUploadNode: React.FC<NodeViewProps> = (props) => {
         maxSize,
         limit,
         accept,
-        upload: extension.options.upload,
+        upload: (file, onProgress, signal) => uploadDocumentImageWithProgress(editorId, file, onProgress, signal),
         onSuccess: extension.options.onSuccess,
         onError: extension.options.onError,
     };
@@ -324,12 +326,11 @@ export const ImageUploadNode: React.FC<NodeViewProps> = (props) => {
     };
 
     const handleUpload = async (files: File[]) => {
-        const file = files[0];
-        const url = await handleImageUpload(file); // ✅ Use the correct function
+        const url = await uploadFiles(files);
 
         if (url) {
             const pos = props.getPos();
-            const filename = file.name.replace(/\.[^/.]+$/, '') || 'unknown';
+            const filename = files[0].name.replace(/\.[^/.]+$/, '') || 'unknown';
 
             props.editor
                 .chain()
