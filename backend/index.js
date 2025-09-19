@@ -20,7 +20,7 @@ const mongo_url = process.env.MONGO_URL;
 app.use(
     cors({
         origin: ['http://localhost:5173', process.env.FRONTEND_URL],
-        methods: ['GET', 'POST'],
+        methods: ['GET', 'POST', 'DELETE'],
         credentials: true,
     }),
 );

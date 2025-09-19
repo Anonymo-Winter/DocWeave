@@ -1,9 +1,11 @@
 import express from 'express';
 // import { verifyToken } from '../middlewares/verifytoken.js';
-import { updateVersionDetails } from '../controllers/version.controller.js';
+import { updateVersionDetails, deleteVersion } from '../controllers/version.controller.js';
+import { verifyToken } from '../middlewares/verifytoken.js';
 
 const router = express.Router();
 
-router.put('/:id', updateVersionDetails);
+router.post('/:documentId', updateVersionDetails);
+router.delete('/:documentId', verifyToken, deleteVersion);
 
 export default router;

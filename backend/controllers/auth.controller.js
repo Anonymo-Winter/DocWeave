@@ -124,7 +124,6 @@ export const searchForEmail = async (req, res) => {
         if (emailTerm.length == 0) {
             return res.status(400).json({ message: 'Please enter a valid search term' });
         }
-        // console.log(User.find({ email: { $regex: emailTerm, $options: 'i' } }));
         const matchingEmails = await User.find({ email: { $regex: emailTerm, $options: 'i' } })
             .select('email name')
             .exec();

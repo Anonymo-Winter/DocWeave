@@ -83,9 +83,15 @@ export function setupSocketIo(server) {
 
             const usersInRoom = roomUsers.get(roomId);
 
+            // if (!usersInRoom.has(userData.id)) {
+            //     usersInRoom.set(userData.id, {
+            //         user: userData,
+            //         sockets: new Set(),
+            //     });
+            // }
             if (!usersInRoom.has(userData.id)) {
                 usersInRoom.set(userData.id, {
-                    user: userData,
+                    user: { ...userData, color: assignedColor }, // ✅ attach color
                     sockets: new Set(),
                 });
             }
@@ -143,7 +149,7 @@ export function setupSocketIo(server) {
                 try {
                     const { awareness } = docsMap.get(roomId);
                     // Apply the update to the server awareness
-                    applyAwarenessUpdate(awareness, new Uint8Array(update));
+                    applyAwarenessUpdate(awareness, new Uint8Array(update), socket);
                     // Broadcast to other clients in the room
                     socket.to(roomId).emit('awareness-update', update);
                 } catch (error) {

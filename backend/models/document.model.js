@@ -4,7 +4,6 @@ const documentSchema = new mongoose.Schema(
     {
         title: {
             type: String,
-            required: [true, 'Title is required'],
             trim: true,
             default: 'Untitled Document',
         },
@@ -18,31 +17,38 @@ const documentSchema = new mongoose.Schema(
             ref: 'User',
             required: true,
         },
-        editors: [
+        collaborators: [
             {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: 'User',
-            },
-        ],
-        viewers: [
-            {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: 'User',
+                userId: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: 'User',
+                    required: true,
+                },
+                role: {
+                    type: String,
+                    enum: ['editor', 'viewer'],
+                    default: 'viewer',
+                },
             },
         ],
         visibility: {
             type: String,
-            enum: ['private', 'shared', 'public'],
-            default: 'private',
+            enum: ['restricted', 'public'],
+            default: 'restricted',
         },
         userColors: {
             type: Map,
-            of: String, // Map<userId, colorHex>
+            of: String, // userId -> colorHex
             default: {},
         },
     },
     { timestamps: true },
 );
+
+// indexes for performance
+documentSchema.index({ ownerId: 1 });
+documentSchema.index({ 'collaborators.userId': 1 });
+documentSchema.index({ visibility: 1 });
 
 const Document = mongoose.model('Document', documentSchema);
 export default Document;
