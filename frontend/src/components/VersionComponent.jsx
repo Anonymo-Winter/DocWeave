@@ -536,10 +536,12 @@ const VersionComponent = ({ setVersionopen }) => {
                 break;
             }
 
-            // FIXME: moving on to html
+            // NOTE: done with the html file formatting
             case 'html': {
                 // Get HTML with inline styles if needed
-                const css = `
+                const style = `
+                 <style>
+                                
                 :root {
         /****************** Basics  ******************/
         overflow-wrap: break-word;
@@ -815,418 +817,117 @@ const VersionComponent = ({ setVersionopen }) => {
         --tt-color-highlight-pink-contrast: rgba(220, 76, 145, 0.22);
       }
 
-      /* Basic editor styles */
-      .tiptap :first-child {
-        margin-top: 0;
-      }
-
       /* List styles */
-      .tiptap ul,
-      .tiptap ol {
+      ul,ol {
         padding: 0 1rem;
         margin: 1.25rem 1rem 1.25rem 0.4rem;
       }
 
-      .tiptap ul li p,
-      .tiptap ol li p {
+      ul li p, ol li p {
         margin-top: 0.25em;
         margin-bottom: 0.25em;
       }
 
-      /* Heading styles */
-      .tiptap h1,
-      .tiptap h2,
-      .tiptap h3,
-      .tiptap h4,
-      .tiptap h5,
-      .tiptap h6 {
-        line-height: 1.1;
-        margin-top: 2.5rem;
-        text-wrap: pretty;
-      }
-
-      .tiptap h1,
-      .tiptap h2 {
-        margin-top: 3.5rem;
-        margin-bottom: 1.5rem;
-      }
-
-      .tiptap h1 {
-        font-size: 1.4rem;
-      }
-
-      .tiptap h2 {
-        font-size: 1.2rem;
-      }
-
-      .tiptap h3 {
-        font-size: 1.1rem;
-      }
-
-      .tiptap h4,
-      .tiptap h5,
-      .tiptap h6 {
-        font-size: 1rem;
-      }
-
       /* Code and preformatted text styles */
-      .tiptap code {
-        background-color: var(--purple-light);
+      code {
+        background-color: #F3F7F7;
         border-radius: 0.4rem;
         color: var(--black);
         font-size: 0.85rem;
         padding: 0.25em 0.3em;
       }
 
-      .tiptap pre {
-        background: var(--black);
+      pre {
+        background: #F3F7F7;
         border-radius: 0.5rem;
-        color: var(--white);
+        color: black;
         font-family: 'JetBrainsMono', monospace;
         margin: 1.5rem 0;
         padding: 0.75rem 1rem;
       }
 
-      .tiptap pre code {
+      pre code {
         background: none;
         color: inherit;
         font-size: 0.8rem;
         padding: 0;
       }
 
-      .tiptap blockquote {
-        border-left: 3px solid var(--gray-3);
+	  /*
+      blockquote {
+        border-left: 4px solid #D1D5DB;
         margin: 1.5rem 0;
-        padding-left: 1rem;
+        padding-left: 0.6rem;
       }
+      */
 
-      .tiptap hr {
+      hr {
         border: none;
-        border-top: 1px solid var(--gray-2);
+        border-top: 1px solid #9CA3AF;
         margin: 2rem 0;
       }
 
-      /* styles.scss or tailwind.scss */
-      .yjs-cursor {
-        transition: none !important;
+	
+      ul li label input[type="checkbox"] {
+        appearance: none;        /* reset native styling */
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid #2940D3;  /* black border */
+        border-radius: 0.25rem;  /* optional: rounded corners */
+        display: inline-block;
+        vertical-align: middle;
       }
 
-      /* Tick icon in light mode */
-      [data-state='checked'] svg {
-        color: #1d4ed8; /* Light mode tick color */
-        height: 1.25rem;
-        width: 1.25rem;
+      ul li label input[type="checkbox"]:checked {
+        background-color: #2940D3;  /* fill when checked */
+        border-color: #2940D3;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='white'><path d='M16.7 5.3a1 1 0 0 0-1.4-1.4L8 11.17 4.7 7.88a1 1 0 0 0-1.4 1.42l4 4a1 1 0 0 0 1.4 0l8-8z'/></svg>");
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: 1rem 1rem;
       }
 
-      /* Tick icon in dark mode */
-      .dark [data-state='checked'] svg {
-        color: white; /* Dark mode tick color */
-      }
 
       body {
-        --tt-toolbar-height: 44px;
-        --tt-theme-text: var(--tt-gray-light-900);
-      }
-
-      .dark body {
-        --tt-theme-text: var(--tt-gray-dark-900);
-      }
-
-      html,
-      body,
-      #root,
-      #app {
-        height: 100%;
-        background-color: var(--tt-bg-color);
-      }
-
-      .tiptap.ProseMirror {
         font-family: 'Inter', sans-serif;
       }
 
-      .content-wrapper {
-        overflow-y: auto;
-      }
-
-      .content-wrapper::-webkit-scrollbar {
-        display: block;
-        width: 0.5rem;
-      }
-
-      .content-wrapper::-webkit-scrollbar-track {
-        background: transparent;
-      }
-
-      .content-wrapper::-webkit-scrollbar-thumb {
-        background-color: var(--tt-scrollbar-color);
-        border-radius: 4px;
-      }
-
-      /* Firefox scrollbar */
-      .content-wrapper {
-        scrollbar-width: thin;
-        scrollbar-color: var(--tt-scrollbar-color) transparent;
-      }
-
-      .simple-editor-content {
-        background-color: yellowgreen;
-        width: 100%;
-        height: 100%;
-        margin: 0 auto;
-        border: 1px solid silver;
-        overflow-y: auto;
-        overflow-x: auto;
-        padding: 10px;
-      }
-
-      .simple-editor-content .tiptap.ProseMirror {
-        padding: 3rem 3rem;
-      }
-
-      @media screen and (max-width: 480px) {
-        .simple-editor-content .tiptap.ProseMirror {
-          padding: 1rem 1.5rem;
-        }
-      }
-
-      .yjs-selection-highlight {
-        /* Use a fallback color if needed */
-        background-color: rgba(128, 128, 128, 0.2);
-      }
-
-      .yjs-cursor {
-        border-left: 2px solid var(--user-color, gray);
-        background-color: var(--user-color, gray);
-        margin-left: -1px;
-        margin-bottom: -0.2em;
-        height: 1.2em;
-        display: inline-block;
-        position: relative;
-        z-index: 10;
-        width: 2px;
-      }
-
-      .yjs-cursor::after {
-        content: '';
-        position: absolute;
-        left: 0px;
-        top: 0px;
-        width: 4px;
-        height: 4px;
-        background-color: var(--user-color, gray);
-        transition: transform 0.3s ease, opacity 0.3s ease;
-      }
-
-      .yjs-cursor:hover {
-        cursor: pointer;
-      }
-
-      .yjs-cursor:hover::after {
-        transform: scale(1.2);
-        opacity: 1;
-      }
-
-      .yjs-cursor:hover::before {
-        content: attr(data-user-name);
-        position: absolute;
-        top: -20px;
-        left: -2px;
-        background-color: var(--user-color, gray);
-        color: white;
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 12px;
-        white-space: nowrap;
-        pointer-events: none;
-        user-select: none;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-        z-index: 20;
-        opacity: 1;
-        transition: transform 0.3s ease, opacity 0.3s ease;
-      }
-
-      .yjs-cursor-wrapper {
-        position: relative;
-      }
-
-      .cursor-label {
-        background-color: var(--user-color, gray);
-        color: white;
-        padding: 2px 6px;
-        font-size: 12px;
-        border-radius: 4px;
-        margin-left: 4px;
-        position: absolute;
-        top: -1.4em;
-        left: -3px;
-        white-space: nowrap;
-        user-select: none;
-        pointer-events: none;
-        z-index: 15;
-      }
-
-      .tiptap.ProseMirror {
-        --blockquote-bg-color: var(--tt-gray-light-900);
-        --link-text-color: var(--tt-brand-color-500);
-        --separator-color: var(--tt-gray-light-a-200);
-        --thread-text: var(--tt-gray-light-900);
-        --placeholder-color: var(--tt-gray-light-a-400);
-
-        /* Mathematics variables */
-        --tiptap-mathematics-bg-color: var(--tt-gray-light-a-200);
-        --tiptap-mathematics-border-color: var(--tt-brand-color-500);
-      }
-
-      .tiptap.ProseMirror .dark,
-      .tiptap.ProseMirror.dark {
-        --blockquote-bg-color: var(--tt-gray-dark-900);
-        --link-text-color: var(--tt-brand-color-400);
-        --separator-color: var(--tt-gray-dark-a-200);
-        --thread-text: var(--tt-gray-dark-900);
-        --placeholder-color: var(--tt-gray-dark-a-400);
-        --tiptap-mathematics-bg-color: var(--tt-gray-dark-a-200);
-        --tiptap-mathematics-border-color: var(--tt-brand-color-400);
-      }
-
-      /* =====================       CORE EDITOR STYLES       ===================== */
-      .tiptap.ProseMirror {
-        white-space: pre-wrap;
-        outline: none;
-        caret-color: var(--tt-cursor-color);
-      }
-
-      /* Paragraph spacing */
-      .tiptap.ProseMirror p:not(:first-child) {
-        font-size: 1rem;
-        line-height: 1.6;
-        font-weight: normal;
-      }
-
-      /* Selection styles */
-      .tiptap.ProseMirror:not(.readonly):not(.ProseMirror-hideselection) ::selection {
-        background-color: var(--tt-selection-color);
-      }
-
-      .tiptap.ProseMirror:not(.readonly):not(.ProseMirror-hideselection) .selection::selection {
-        background: transparent;
-      }
-
-      .tiptap.ProseMirror .selection {
-        display: inline;
-        background-color: var(--tt-selection-color);
-      }
-
-      .tiptap.ProseMirror .ProseMirror-hideselection {
-        caret-color: transparent;
-      }
-
-      /* Placeholder */
-      .tiptap.ProseMirror > p.is-editor-empty::before {
-        content: attr(data-placeholder);
-        pointer-events: none;
-        color: var(--placeholder-color);
-        float: left;
-        height: 0;
-      }
-
-      /* Resize cursor */
-      .tiptap.ProseMirror.resize-cursor {
-        cursor: ew-resize;
-        cursor: col-resize;
-      }
-
-      /* =====================       GAP CURSOR       ===================== */
-      .tiptap.ProseMirror .ProseMirror-gapcursor {
-        display: none;
-        pointer-events: none;
-        position: absolute;
-      }
-
-      .tiptap.ProseMirror .ProseMirror-gapcursor:after {
-        content: '';
-        display: block;
-        position: absolute;
-        top: 1em;
-        width: 1.25em;
-        border-top: 1px solid black;
-        animation: ProseMirror-cursor-blink 1.1s steps(2, start) infinite;
-      }
-
-      .tiptap.ProseMirror.ProseMirror-focused,
-      .tiptap.ProseMirror.ProseMirror-focused {
-        .ProseMirror-gapcursor {
-          display: block;
-        }
-      }
-
-      @keyframes ProseMirror-cursor-blink {
-        to {
-          visibility: hidden;
-        }
-      }
-
       /* =====================       TEXT DECORATION       ===================== */
-      .tiptap.ProseMirror a span {
+      a {
         text-decoration: underline;
       }
 
-      .tiptap.ProseMirror s span {
+      s {
         text-decoration: line-through;
       }
 
-      .tiptap.ProseMirror u span {
+      u {
         text-decoration: underline;
       }
 
       /* =====================       BLOCKQUOTE       ===================== */
-      .tiptap.ProseMirror blockquote {
+      blockquote {
         position: relative;
         padding-left: 1em;
-        padding-top: 0.375em;
-        padding-bottom: 0.375em;
+        padding-top: 0.3em;
         margin: 1.5rem 0;
       }
 
-      .tiptap.ProseMirror blockquote p {
+      blockquote p {
         margin-top: 0;
       }
 
-      .tiptap.ProseMirror blockquote::before,
-      .tiptap.ProseMirror blockquote.is-empty::before {
+      blockquote::before,
+      blockquote.is-empty::before {
         position: absolute;
         bottom: 0;
         left: 0;
         top: 0;
         height: 100%;
         width: 0.25em;
-        background-color: var(--blockquote-bg-color);
+        background-color: rgba(34, 35, 37, 1);
         content: '';
         border-radius: 0;
-      }
-
-      /* =====================       COLLABORATION       ===================== */
-      .tiptap.ProseMirror .collaboration-cursor__caret {
-        border-right: 1px solid transparent;
-        border-left: 1px solid transparent;
-        pointer-events: none;
-        margin-left: -1px;
-        margin-right: -1px;
-        position: relative;
-        word-break: normal;
-      }
-
-      .tiptap.ProseMirror .collaboration-cursor__label {
-        border-radius: 0.25rem;
-        border-bottom-left-radius: 0;
-        font-size: 0.75rem;
-        font-weight: 600;
-        left: -1px;
-        line-height: 1;
-        padding: 0.125rem 0.375rem;
-        position: absolute;
-        top: -1.3em;
-        user-select: none;
-        white-space: nowrap;
       }
 
       /* =====================       EMOJI       ===================== */
@@ -1236,307 +937,124 @@ const VersionComponent = ({ setVersionopen }) => {
         height: 1.25em;
         cursor: text;
       }
-
-      /* =====================       HEADINGS       ===================== */
-      .tiptap.ProseMirror h1,
-      .tiptap.ProseMirror h2,
-      .tiptap.ProseMirror h3,
-      .tiptap.ProseMirror h4 {
-        position: relative;
-        color: inherit;
-        font-style: inherit;
-      }
-
-      .tiptap.ProseMirror h1:first-child,
-      .tiptap.ProseMirror h2:first-child,
-      .tiptap.ProseMirror h3:first-child,
-      .tiptap.ProseMirror h4:first-child {
-        margin-top: 0;
-      }
-
-      .tiptap.ProseMirror h1 {
-        font-size: 1.5em;
-        font-weight: 700;
-        margin-top: 3em;
-      }
-
-      .tiptap.ProseMirror h2 {
-        font-size: 1.25em;
-        font-weight: 700;
-        margin-top: 2.5em;
-      }
-
-      .tiptap.ProseMirror h3 {
-        font-size: 1.125em;
-        font-weight: 600;
-        margin-top: 2em;
-      }
-
-      .tiptap.ProseMirror h4 {
-        font-size: 1em;
-        font-weight: 600;
-        margin-top: 2em;
-      }
-
+      
       /* =====================       HORIZONTAL RULE       ===================== */
-      .tiptap.ProseMirror hr {
-        margin-top: 3em;
-        margin-bottom: 3em;
+      hr {
         border: none;
         height: 1px;
-        background-color: var(--separator-color);
-      }
-
-      .tiptap.ProseMirror.ProseMirror-focused hr.ProseMirror-selectednode {
-        border-radius: 9999px;
-        outline: 3px solid var(--tt-brand-color-500);
-        outline-offset: 2px;
+        background-color: var(--tt-gray-light-a-200);
       }
 
       /* =====================       LINKS       ===================== */
-      .tiptap.ProseMirror a {
-        color: var(--link-text-color);
+      a {
+        color: var(--tt-brand-color-500);
         text-decoration: underline;
       }
 
-      /* =====================       MENTION       ===================== */
-      .tiptap.ProseMirror [data-type='mention'] {
-        display: inline-block;
-        color: var(--tt-brand-color-500);
-      }
-
-      /* =====================       THREADS       ===================== */
-      /* Base styles for inline threads */
-      .tiptap.ProseMirror
-        .tiptap-thread.tiptap-thread--unresolved.tiptap-thread--inline {
-        transition: color 0.2s ease-in-out, background-color 0.2s ease-in-out;
-        color: var(--thread-text);
-        border-bottom: 2px dashed var(--tt-color-yellow-base);
-        font-weight: 600;
-      }
-
-      .tiptap.ProseMirror
-        .tiptap-thread.tiptap-thread--unresolved.tiptap-thread--inline.tiptap-thread--selected,
-      .tiptap.ProseMirror
-        .tiptap-thread.tiptap-thread--unresolved.tiptap-thread--inline.tiptap-thread--hovered {
-        background-color: var(--tt-color-yellow-inc-2);
-        border-bottom-color: transparent;
-      }
-
-      /* Block thread styles with images */
-      .tiptap.ProseMirror .tiptap-thread.tiptap-thread--unresolved.tiptap-thread--block:has(img) {
-        outline: 0.125rem solid var(--tt-color-yellow-base);
-        border-radius: var(--tt-radius-xs, 0.25rem);
-        overflow: hidden;
-        width: fit-content;
-      }
-
-      .tiptap.ProseMirror .tiptap-thread.tiptap-thread--unresolved.tiptap-thread--block:has(img).tiptap-thread--selected {
-        outline-width: 0.25rem;
-        outline-color: var(--tt-color-yellow-base);
-      }
-
-      .tiptap.ProseMirror .tiptap-thread.tiptap-thread--unresolved.tiptap-thread--block:has(img).tiptap-thread--hovered {
-        outline-width: 0.25rem;
-      }
-
-      /* Block thread styles without images */
-      .tiptap.ProseMirror .tiptap-thread.tiptap-thread--unresolved.tiptap-thread--block:not(:has(img)) {
-        border-radius: 0.25rem;
-        border-bottom: 0.125rem dashed var(--tt-color-yellow-base);
-        padding-bottom: 0.5rem;
-        outline: 0.25rem solid transparent;
-      }
-
-      .tiptap.ProseMirror .tiptap-thread.tiptap-thread--unresolved.tiptap-thread--block:not(:has(img)).tiptap-thread--hovered,
-      .tiptap.ProseMirror .tiptap-thread.tiptap-thread--unresolved.tiptap-thread--block:not(:has(img)).tiptap-thread--selected {
-        background-color: var(--tt-color-yellow-base);
-        outline-color: var(--tt-color-yellow-base);
-      }
-
-      /* Resolved thread styles */
-      .tiptap.ProseMirror
-        .tiptap-thread.tiptap-thread--resolved.tiptap-thread--inline.tiptap-thread--selected {
-        background-color: var(--tt-color-yellow-base);
-        border-color: transparent;
-        opacity: 0.5;
-      }
-
-      /* React renderer specific styles */
-      .tiptap.ProseMirror .tiptap-thread.tiptap-thread--block:has(.react-renderer) {
-        margin-top: 3rem;
-        margin-bottom: 3rem;
-      }
-
-      /* =====================       Mathematics       ===================== */
-      .tiptap.ProseMirror .Tiptap-mathematics-editor {
-        padding: 0 0.25rem;
-        margin: 0 0.25rem;
-        border: 1px solid var(--tiptap-mathematics-border-color);
-        font-family: monospace;
-        font-size: 0.875rem;
-      }
-
-      .tiptap.ProseMirror .Tiptap-mathematics-render {
-        padding: 0 0.25rem;
-      }
-
-      .tiptap.ProseMirror .Tiptap-mathematics-render--editable {
-        cursor: pointer;
-        transition: background 0.2s;
-      }
-
-      .tiptap.ProseMirror .Tiptap-mathematics-render--editable:hover {
-        background: var(--tiptap-mathematics-bg-color);
-      }
-
-      .tiptap.ProseMirror .Tiptap-mathematics-editor,
-      .tiptap.ProseMirror .Tiptap-mathematics-render {
-        border-radius: var(--tt-radius-xs);
-        display: inline-block;
-      }
-
-      /* =====================       PLACEHOLDER       ===================== */
-      .is-empty[data-placeholder]:has(> .ProseMirror-trailingBreak:only-child)::before {
-        content: "Write, type '/' for commands…";
-      }
-
-      .is-empty[data-placeholder]:has(> .ProseMirror-trailingBreak:only-child):before {
-        pointer-events: none;
-        height: 0;
-        position: absolute;
-        font-style: italic;
-      }
-
-      .is-empty[data-placeholder]:has(> .ProseMirror-trailingBreak):before {
-        color: var(--placeholder-color);
-      }
-
-      .tiptap.ProseMirror {
-        --tt-checklist-bg-color: var(--tt-gray-light-a-100);
-        --tt-checklist-bg-active-color: var(--tt-gray-light-a-900);
-        --tt-checklist-border-color: var(--tt-gray-light-a-200);
-        --tt-checklist-border-active-color: var(--tt-gray-light-a-900);
-        --tt-checklist-check-icon-color: var(--white);
-        --tt-checklist-text-active: var(--tt-gray-light-a-500);
-      }
-
-      .tiptap.ProseMirror .dark,
-      .tiptap.ProseMirror.dark {
-        --tt-checklist-bg-color: var(--tt-gray-dark-a-100);
-        --tt-checklist-bg-active-color: var(--tt-gray-dark-a-900);
-        --tt-checklist-border-color: var(--tt-gray-dark-a-200);
-        --tt-checklist-border-active-color: var(--tt-gray-dark-a-900);
-        --tt-checklist-check-icon-color: var(--black);
-        --tt-checklist-text-active: var(--tt-gray-dark-a-500);
-      }
-
       /* =====================       LISTS       ===================== */
-      .tiptap.ProseMirror ul,
-      .tiptap.ProseMirror ol {
+      ul, ol {
         margin-top: 1.5em;
         margin-bottom: 1.5em;
         padding-left: 1.5em;
       }
 
-      .tiptap.ProseMirror ol:first-child,
-      .tiptap.ProseMirror ul:first-child {
+      ol:first-child,ul:first-child {
         margin-top: 0;
       }
 
-      .tiptap.ProseMirror ol:last-child,
-      .tiptap.ProseMirror ul:last-child {
+      ol:last-child,
+      ul:last-child {
         margin-bottom: 0;
       }
 
-      .tiptap.ProseMirror ol ol,
-      .tiptap.ProseMirror ul ul,
-      .tiptap.ProseMirror ol ul,
-      .tiptap.ProseMirror ul ol {
+      ol ol,
+      ul ul,
+      ol ul,
+      ul ol {
         margin-top: 0;
         margin-bottom: 0;
       }
 
-      .tiptap.ProseMirror li p {
+      li p {
         margin-top: 0;
       }
 
       /* Ordered lists */
-      .tiptap.ProseMirror ol {
+      ol {
         list-style: decimal;
       }
 
-      .tiptap.ProseMirror ol ol {
+      ol ol {
         list-style: lower-alpha;
       }
 
-      .tiptap.ProseMirror ol ol ol {
+      ol ol ol {
         list-style: lower-roman;
       }
 
       /* Unordered lists */
-      .tiptap.ProseMirror ul:not([data-type="taskList"]) {
+      ul:not([data-type="taskList"]) {
         list-style: disc;
       }
 
-      .tiptap.ProseMirror ul:not([data-type="taskList"]) ul {
+      ul:not([data-type="taskList"]) ul {
         list-style: circle;
       }
 
-      .tiptap.ProseMirror ul:not([data-type="taskList"]) ul ul {
+      ul:not([data-type="taskList"]) ul ul {
         list-style: disc;
       }
 
       /* Task lists */
-      .tiptap.ProseMirror ul[data-type="taskList"] {
+      ul[data-type="taskList"] {
         padding-left: 0.25em;
       }
 
-      .tiptap.ProseMirror ul[data-type="taskList"] li {
+      ul[data-type="taskList"] li {
         display: flex;
         flex-direction: row;
         align-items: flex-start;
       }
 
-      .tiptap.ProseMirror ul[data-type="taskList"] li:not(:has(> p:first-child)) {
+      ul[data-type="taskList"] li:not(:has(> p:first-child)) {
         list-style-type: none;
       }
 
-      .tiptap.ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div > p {
+      ul[data-type="taskList"] li[data-checked="true"] > div > p {
         opacity: 0.5;
         text-decoration: line-through;
       }
 
-      .tiptap.ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div > p span {
+      ul[data-type="taskList"] li[data-checked="true"] > div > p span {
         text-decoration: line-through;
       }
 
-      .tiptap.ProseMirror ul[data-type="taskList"] li label {
+      ul[data-type="taskList"] li label {
         position: relative;
         padding-top: 4px;
         padding-right: 8px;
       }
 
-      .tiptap.ProseMirror ul[data-type="taskList"] li label input[type="checkbox"] {
+      ul[data-type="taskList"] li label input[type="checkbox"] {
         position: absolute;
         opacity: 0;
         width: 0;
         height: 0;
       }
 
-      .tiptap.ProseMirror ul[data-type="taskList"] li label span {
+      ul[data-type="taskList"] li label span {
         display: block;
         width: 1em;
         height: 1em;
-        border: 1px solid var(--tt-checklist-border-color);
-        border-radius: var(--tt-radius-xs, 0.25rem);
+        border: 1px solid var(--tt-gray-light-a-200);
+        border-radius: 0.25rem;
         position: relative;
         cursor: pointer;
-        background-color: var(--tt-checklist-bg-color);
+        background-color: var(--tt-gray-light-a-100);
         transition: background-color 80ms ease-out, border-color 80ms ease-out;
       }
 
-      .tiptap.ProseMirror ul[data-type="taskList"] li label span::before {
+      ul[data-type="taskList"] li label span::before {
         content: "";
         position: absolute;
         left: 50%;
@@ -1544,81 +1062,59 @@ const VersionComponent = ({ setVersionopen }) => {
         transform: translate(-50%, -50%);
         width: 0.75em;
         height: 0.75em;
-        background-color: var(--tt-checklist-check-icon-color);
+        background-color:  white;
         opacity: 0;
         -webkit-mask: url("data:image/svg+xml,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22currentColor%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20clip-rule%3D%22evenodd%22%20d%3D%22M21.4142%204.58579C22.1953%205.36683%2022.1953%206.63317%2021.4142%207.41421L10.4142%2018.4142C9.63317%2019.1953%208.36684%2019.1953%207.58579%2018.4142L2.58579%2013.4142C1.80474%2012.6332%201.80474%2011.3668%202.58579%2010.5858C3.36683%209.80474%204.63317%209.80474%205.41421%2010.5858L9%2014.1716L18.5858%204.58579C19.3668%203.80474%2020.6332%203.80474%2021.4142%204.58579Z%22%20fill%3D%22currentColor%22%2F%3E%3C%2Fsvg%3E") center/contain no-repeat;
         mask: url("data:image/svg+xml,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22currentColor%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20clip-rule%3D%22evenodd%22%20d%3D%22M21.4142%204.58579C22.1953%205.36683%2022.1953%206.63317%2021.4142%207.41421L10.4142%2018.4142C9.63317%2019.1953%208.36684%2019.1953%207.58579%2018.4142L2.58579%2013.4142C1.80474%2012.6332%201.80474%2011.3668%202.58579%2010.5858C3.36683%209.80474%204.63317%209.80474%205.41421%2010.5858L9%2014.1716L18.5858%204.58579C19.3668%203.80474%2020.6332%203.80474%2021.4142%204.58579Z%22%20fill%3D%22currentColor%22%2F%3E%3C%2Fsvg%3E") center/contain no-repeat;
       }
 
-      .tiptap.ProseMirror ul[data-type="taskList"] li label input[type="checkbox"]:checked + span {
-        background: var(--tt-checklist-bg-active-color);
-        border-color: var(--tt-checklist-border-active-color);
+      ul[data-type="taskList"] li label input[type="checkbox"]:checked + span {
+        background: var(--tt-gray-light-a-900);
+        border-color: var(--tt-gray-light-a-900);
       }
 
-      .tiptap.ProseMirror ul[data-type="taskList"] li label input[type="checkbox"]:checked + span::before {
+      ul[data-type="taskList"] li label input[type="checkbox"]:checked + span::before {
         opacity: 1;
       }
 
-      .tiptap.ProseMirror ul[data-type="taskList"] li div {
+      ul[data-type="taskList"] li div {
         flex: 1 1 0%;
         min-width: 0;
       }
 
-      .tiptap.ProseMirror img {
+      img {
         max-width: 100%;
         height: auto;
         display: block;
       }
 
-      .tiptap.ProseMirror > img:not([data-type="emoji"] img) {
+      img:not([data-type="emoji"] img) {
         margin: 2rem 0;
         outline: 0.125rem solid transparent;
-        border-radius: var(--tt-radius-xs, 0.25rem);
+        border-radius: 0.25rem;
       }
 
-      .tiptap.ProseMirror.ProseMirror-focused img:not([data-type="emoji"] img).ProseMirror-selectednode {
-        outline-color: var(--tt-brand-color-500);
+      img:not([data-type="emoji"] img).ProseMirror-selectednode {
+        outline-color: rgba(98, 41, 255, 1);
       }
 
-      /* Thread image handling */
-      .tiptap.ProseMirror .tiptap-thread:has(> img) {
-        margin: 2rem 0;
-      }
-
-      .tiptap.ProseMirror .tiptap-thread:has(> img) img {
-        outline: 0.125rem solid transparent;
-        border-radius: var(--tt-radius-xs, 0.25rem);
-      }
-
-      .tiptap.ProseMirror .tiptap-thread img {
+      img {
         margin: 0;
       }
-
-      :root {
-        --tt-button-default-icon-color: var(--tt-gray-light-a-600);
-        --tiptap-image-upload-active: var(--tt-brand-color-500);
-        --tiptap-image-upload-progress-bg: var(--tt-brand-color-50);
-        --tiptap-image-upload-icon-bg: var(--tt-brand-color-500);
-        --tiptap-image-upload-text-color: var(--tt-gray-light-a-700);
-        --tiptap-image-upload-subtext-color: var(--tt-gray-light-a-400);
-        --tiptap-image-upload-border: var(--tt-gray-light-a-300);
-        --tiptap-image-upload-border-hover: var(--tt-gray-light-a-400);
-        --tiptap-image-upload-border-active: var(--tt-brand-color-500);
-      }
-`;
+                            </style>
+                `;
                 const html = `
                     <html>
                         <head>
-                            <style>
-                                ${css}
-                            </style>
+                            ${style}
+                            <title>${versionName}</title>
                         </head>
-                        <body>
+                        <body class='tiptap'>
                         ${editor.getHTML()}
                         </body>
                     </html>
                 `;
-                // const html = editor.getHTML();
+
                 blob = new Blob([html], { type: 'text/html' });
                 fileName = `${versionName}.html`;
                 break;
