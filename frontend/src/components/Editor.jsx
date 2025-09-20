@@ -88,6 +88,7 @@ import { Buffer } from 'buffer';
 import ErrorPage from './ErrorMessage.jsx';
 
 // import ImageUploadButton from './ImageUploadButton.jsx';
+import { toast } from 'sonner';
 
 const MainToolbarContent = ({ onHighlighterClick, onLinkClick, isMobile, editor, editorId }) => {
     return (
@@ -222,7 +223,10 @@ export function SimpleEditor() {
                 maxSize: MAX_FILE_SIZE,
                 limit: 3,
                 upload: handleImageUpload,
-                onError: (error) => console.error('Upload failed:', error),
+                onError: (error) =>
+                    toast.error('Upload Failed', {
+                        description: error.message,
+                    }),
             }),
             TrailingNode,
             Link.configure({ openOnClick: false }),
