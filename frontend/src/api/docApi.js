@@ -80,6 +80,27 @@ export const docApi = createApi({
                 };
             },
         }),
+        generatePdf: builder.mutation({
+            query: (htmlContent) => ({
+                url: '/doc/generate-pdf',
+                method: 'POST',
+                body: { htmlContent },
+                responseHandler: (response) => response.blob(),
+            }),
+            // Add this onQueryStarted property to prevent caching the data
+            onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
+                try {
+                    const { data } = await queryFulfilled;
+                    // You could handle the download directly here,
+                    // or just ensure the promise resolves
+                } catch (error) {
+                    // Handle any errors
+                    console.error('Download failed:', error);
+                }
+            },
+            // Set keepUnusedDataFor to 0 to prevent RTK from caching the result
+            keepUnusedDataFor: 0,
+        }),
     }),
 });
 
@@ -92,4 +113,5 @@ export const {
     useAddPeopleMutation,
     useGetDocShareableDataQuery,
     useUploadDocumentImageMutation,
+    useGeneratePdfMutation,
 } = docApi;
