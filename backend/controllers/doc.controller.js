@@ -347,6 +347,36 @@ export const uploadImageInEditor = async (req, res) => {
     }
 };
 
+// backend/controllers/doc.controller.js
+import puppeteer from 'puppeteer';
+
+export const generatePDF = async (req, res) => {
+    try {
+        const { htmlContent } = req.body;
+
+        const browser = await puppeteer.launch({ headless: false }); // Use headless: false for debugging!
+        const page = await browser.newPage();
+
+        // Listen for console messages from the browser
+        page.on('console', (msg) => console.log('BROWSER LOG:', msg.text()));
+
+        // Log the received HTML to inspect it
+        console.log('Received HTML:', htmlContent);
+
+        await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+
+        const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
+
+        await browser.close();
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Length', pdfBuffer.length);
+        res.end(pdfBuffer);
+    } catch (error) {
+        console.error('Puppeteer Error:', error);
+        res.status(500).json({ error: 'Failed to generate PDF' });
+    }
+};
 // export const getContributors = async (req, res) => {
 //     const { editorId: roomId } = req.params;
 //     if (!mongoose.Types.ObjectId.isValid(roomId)) {

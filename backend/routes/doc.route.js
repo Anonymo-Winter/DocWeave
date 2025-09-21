@@ -11,6 +11,7 @@ import {
     addPeople,
     fetchDocShareableData,
     uploadImageInEditor,
+    generatePDF,
     // getContributors,
 } from '../controllers/doc.controller.js';
 
@@ -28,4 +29,5 @@ router.post('/create', verifyToken, createDocument);
 router.post('/add-people', addPeople);
 router.get('/fetch-doc-sharable-access/:editorId', fetchDocShareableData);
 router.post('/:documentId/upload', upload.single('file'), verifyToken, uploadImageInEditor);
+router.post('/generate-pdf', generatePDF);
 export default router;
