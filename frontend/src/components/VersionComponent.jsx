@@ -88,8 +88,9 @@ import fs from 'fs';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ImageRun, UnderlineType } from 'docx';
 import { saveAs } from 'file-saver';
 import html2pdf from 'html2pdf.js';
+import { Awareness } from 'y-protocols/awareness.js';
 
-export const VersionViewer = ({ versionUpdateBase64, onEditorReady }) => {
+export const VersionViewer = ({ selectedVersion, versionUpdateBase64, onEditorReady }) => {
     const [ydoc] = useState(() => new Y.Doc());
 
     // Apply update before editor is created
@@ -134,30 +135,12 @@ export const VersionViewer = ({ versionUpdateBase64, onEditorReady }) => {
     );
 };
 
-function sanitizeColors(element) {
-    const walker = document.createTreeWalker(element, NodeFilter.SHOW_ELEMENT, null, false);
-
-    while (walker.nextNode()) {
-        const el = walker.currentNode;
-
-        const computedStyle = window.getComputedStyle(el);
-
-        // Loop through relevant color properties
-        ['color', 'backgroundColor', 'borderColor'].forEach((prop) => {
-            const value = computedStyle[prop];
-            if (value && value.includes('oklch')) {
-                // Replace oklch with fallback black/white or approximate RGB
-                el.style[prop] = '#000'; // fallback (or choose another)
-            }
-        });
-    }
-}
-
 const VersionComponent = ({ setVersionopen }) => {
     const [selectedVersion, setSelectedVersion] = useState(null);
     const [showRestoreModal, setShowRestoreModal] = useState(false);
     const [showRemoveModal, setShowRemoveModal] = useState(false);
     const [showNameModal, setShowNameModal] = useState(false);
+    const [showCloningModal, setShowCloningModal] = useState(false);
     const [expandedVersions, setExpandedVersions] = useState({});
     const [isSidebarHidden, setIsSidebarHidden] = useState(false);
     const [isFocused, setIsFocused] = useState(false);
@@ -167,6 +150,7 @@ const VersionComponent = ({ setVersionopen }) => {
     const [previewEditor, setPreviewEditor] = useState(null);
 
     const [restoreLoading, setIsRestoreLoading] = useState(false);
+    const [iscloneLoading, setIsCloneLoading] = useState(false);
 
     const { editorId } = useParams();
     const { ydoc, awareness, assignedColor } = useSocket();
@@ -248,6 +232,43 @@ const VersionComponent = ({ setVersionopen }) => {
         } catch (err) {
             console.error('❌ Failed to save version:', err);
             toast.error('Failed to save version. Please try again.');
+        }
+    };
+
+    const duplicateSelectedVersion = async () => {
+        if (!selectedVersion) {
+            toast.error('No version selected');
+            return;
+        }
+        setIsCloneLoading(true);
+
+        try {
+            // Mongo stores Buffer under { type: 'Buffer', data: [...] }
+            const updateBase64 = Buffer.from(selectedVersion.update.data).toString('base64');
+
+            const res = await saveVersion({
+                documentId: selectedVersion.documentId,
+                update: updateBase64,
+                name: versionName || `${selectedVersion.name} (Copy)`,
+                description: versionDescription || selectedVersion.description,
+                author: selectedVersion.author, // keep original author metadata
+                wordCount: selectedVersion.wordCount,
+                collaborators: selectedVersion.collaborators,
+                source: 'manual',
+            }).unwrap();
+
+            if (!res || !res.success) {
+                throw new Error('Failed to duplicate version');
+            }
+
+            setShowCloningModal(false);
+            toast.success('✅ Version duplicated successfully!');
+            return res;
+        } catch (err) {
+            console.error('❌ Failed to duplicate version:', err);
+            toast.error('Failed to duplicate version');
+        } finally {
+            setIsCloneLoading(false);
         }
     };
 
@@ -378,6 +399,7 @@ const VersionComponent = ({ setVersionopen }) => {
             });
         }
     };
+
     const UserAvatar = ({ name, size = 'sm', bgColor }) => {
         const sizeClasses = {
             xs: 'w-5 h-5 text-xs',
@@ -402,24 +424,97 @@ const VersionComponent = ({ setVersionopen }) => {
 
         let blob, fileName;
 
-        // FIXME: bullet points or showing in inline and other formats also
         switch (format) {
             case 'txt': {
-                const walker = editor.state.doc.content.content.map((node) => {
-                    if (node.type.name === 'image') {
-                        const src = node.attrs?.src || '[Image]';
-                        return `[Image: ${src}]`;
+                function serializeNode(node, context = {}, index = 0, depth = 0) {
+                    switch (node.type.name) {
+                        case 'heading': {
+                            const level = node.attrs.level;
+                            return `${'#'.repeat(level)} ${node.textContent}\n`;
+                        }
+
+                        case 'paragraph': {
+                            return `${'  '.repeat(depth)}${node.textContent}\n`;
+                        }
+
+                        case 'bulletList': {
+                            return node.content.content
+                                .map((li) => serializeNode(li, { list: 'bullet' }, 0, depth))
+                                .join('\n');
+                        }
+
+                        case 'orderedList': {
+                            return node.content.content
+                                .map((li, i) => serializeNode(li, { list: 'ordered' }, i, depth))
+                                .join('\n');
+                        }
+
+                        case 'listItem': {
+                            let marker = '';
+                            if (node.attrs?.checked !== undefined) {
+                                // Task list
+                                marker = node.attrs.checked ? '[x]' : '[ ]';
+                            } else if (context.list === 'bullet') {
+                                marker = '-';
+                            } else if (context.list === 'ordered') {
+                                marker = `${index + 1}.`;
+                            }
+
+                            const content = node.content.content
+                                .map((child, i) => serializeNode(child, {}, i, depth + 1))
+                                .join('');
+
+                            return `${'  '.repeat(depth)}${marker} ${content.trim()}`;
+                        }
+
+                        case 'blockquote': {
+                            return node.content.content
+                                .map((child) => `${'  '.repeat(depth)}> ${serializeNode(child, {}, 0, depth + 1)}`)
+                                .join('\n');
+                        }
+
+                        case 'codeBlock': {
+                            return `\n${'  '.repeat(depth)}\`\`\`\n${node.textContent}\n${'  '.repeat(depth)}\`\`\`\n`;
+                        }
+
+                        case 'image': {
+                            const src = node.attrs?.src || '[Image]';
+                            return `${'  '.repeat(depth)}[Image: ${src}]`;
+                        }
+
+                        case 'text': {
+                            let text = node.text || '';
+                            if (node.marks) {
+                                node.marks.forEach((mark) => {
+                                    if (mark.type.name === 'bold') text = `**${text}**`;
+                                    if (mark.type.name === 'italic') text = `*${text}*`;
+                                    if (mark.type.name === 'strike') text = `~~${text}~~`;
+                                    if (mark.type.name === 'underline') text = `__${text}__`;
+                                    if (mark.type.name === 'code') text = `\`${text}\``;
+                                });
+                            }
+                            return text;
+                        }
+
+                        default: {
+                            if (node.content?.content) {
+                                return node.content.content
+                                    .map((child, i) => serializeNode(child, context, i, depth))
+                                    .join('\n');
+                            }
+                            return node.textContent || '';
+                        }
                     }
-                    return node.textContent;
-                });
+                }
+
+                const walker = editor.state.doc.content.content.map((node, i) => serializeNode(node, {}, i));
 
                 const plainText = walker.join('\n\n');
-                blob = new Blob([plainText], { type: 'text/plain' });
+                blob = new Blob([plainText], { type: 'text/plain;charset=utf-8' });
                 fileName = `${versionName}.txt`;
                 break;
             }
 
-            // NOTE: md file is working fine.
             case 'md': {
                 const turndownService = new TurndownService();
 
@@ -428,28 +523,6 @@ const VersionComponent = ({ setVersionopen }) => {
                     filter: 'mark',
                     replacement: (content, node) => {
                         const color = node.getAttribute('data-color') || node.style.backgroundColor || '';
-
-                        // const colorMap = {
-                        //     'var(--tt-color-highlight-yellow)': '#faf594',
-                        //     'var(--tt-color-highlight-green)': '#99f9bb',
-                        //     'var(--tt-color-highlight-blue)': '#9ab2ff',
-                        //     'var(--tt-color-highlight-purple)': '#c697f9',
-                        //     'var(--tt-color-highlight-red)': 'hsl(356, 90%, 77%)',
-                        //     'var(--tt-color-highlight-gray)': 'rgb(190, 190, 188)',
-                        //     'var(--tt-color-highlight-brown)': 'rgb(132, 97, 97)',
-                        //     'var(--tt-color-highlight-orange)': 'rgb(252, 176, 99)',
-                        //     'var(--tt-color-highlight-pink)': 'rgb(222, 96, 212)',
-
-                        //     'var(--tt-color-highlight-yellow-contrast)': '#faf594',
-                        //     'var(--tt-color-highlight-green-contrast)': '#94feb7',
-                        //     'var(--tt-color-highlight-blue-contrast)': '#9ed7fe',
-                        //     'var(--tt-color-highlight-purple-contrast)': '#c99cfc',
-                        //     'var(--tt-color-highlight-red-contrast)': '#ffccd0',
-                        //     'var(--tt-color-highlight-gray-contrast)': 'rgba(84, 72, 49, 0.15)',
-                        //     'var(--tt-color-highlight-brown-contrast)': 'rgba(210, 162, 141, 0.35)',
-                        //     'var(--tt-color-highlight-orange-contrast)': 'rgba(224, 124, 57, 0.27)',
-                        //     'var(--tt-color-highlight-pink-contrast)': 'rgba(225, 136, 179, 0.27)',
-                        // };
 
                         const colorMap2 = {
                             'var(--tt-color-highlight-yellow)': '#b1a205',
@@ -557,7 +630,6 @@ const VersionComponent = ({ setVersionopen }) => {
                 break;
             }
 
-            // NOTE: done with the html file formatting
             case 'html': {
                 const html = `
                     <html>
@@ -576,52 +648,12 @@ const VersionComponent = ({ setVersionopen }) => {
                 break;
             }
 
+            // TASK: Fix this formatting ASAP
             case 'docx': {
-                const htmlContent = editor.getHTML();
-
-                // Simple parser: split by <p>, <h1>-<h6>, <mark>
-                const parser = new DOMParser();
-                const docHTML = parser.parseFromString(htmlContent, 'text/html');
-                const children = [];
-
-                docHTML.body.childNodes.forEach((node) => {
-                    if (node.nodeType !== 1) return; // skip non-elements
-
-                    let textRunProps = {};
-                    let textContent = node.textContent || '';
-
-                    // Handle highlights
-                    if (node.tagName === 'MARK') {
-                        textRunProps.highlight = 'yellow';
-                    }
-
-                    // Handle headings
-                    let headingLevel = 0;
-                    if (/H[1-6]/.test(node.tagName)) {
-                        headingLevel = parseInt(node.tagName[1]);
-                    }
-
-                    const paragraph = new Paragraph({
-                        text: textContent,
-                        heading: headingLevel > 0 ? `HEADING_${headingLevel}` : undefined,
-                        children: [new TextRun(textRunProps)],
-                    });
-
-                    children.push(paragraph);
+                toast.info('This format is not supported yet.', {
+                    description: 'Please try other formats.',
                 });
-
-                const doc = new Document({
-                    sections: [{ children }],
-                });
-
-                try {
-                    const blob = await Packer.toBlob(doc);
-                    saveAs(blob, `${versionName}.docx`);
-                } catch (err) {
-                    console.error('Failed to generate DOCX:', err);
-                }
-
-                break;
+                return;
             }
 
             case 'pdf': {
@@ -669,6 +701,7 @@ const VersionComponent = ({ setVersionopen }) => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     };
+
     const [downloadingFormat, setDownloadingFormat] = useState(null);
     const [completedFormat, setCompletedFormat] = useState(null);
 
@@ -778,6 +811,8 @@ const VersionComponent = ({ setVersionopen }) => {
         },
     ];
 
+    console.log(selectedVersion);
+
     if (isVersionLoading) {
         return (
             <div className='flex items-center justify-center h-screen'>
@@ -814,12 +849,12 @@ const VersionComponent = ({ setVersionopen }) => {
                                         {restoreLoading ? (
                                             <>
                                                 <Loader2 className='w-4 h-4 animate-spin' />
-                                                <span>Restoring...</span>
+                                                <span className='hidden md:block'>Restoring...</span>
                                             </>
                                         ) : (
                                             <>
                                                 <FaRedo className='w-4 h-4 rotate-40' />
-                                                <span>Restore Version</span>
+                                                <span className='hidden md:block'>Restore Version</span>
                                             </>
                                         )}
                                     </button>
@@ -978,6 +1013,7 @@ const VersionComponent = ({ setVersionopen }) => {
                         <>
                             <div className='mt-4' key={selectedVersion._id}>
                                 <VersionViewer
+                                    selectedVersion={selectedVersion}
                                     versionUpdateBase64={selectedVersion?.update}
                                     onEditorReady={setPreviewEditor}
                                 />
@@ -1187,7 +1223,18 @@ const VersionComponent = ({ setVersionopen }) => {
                                                             <DialogTrigger asChild>
                                                                 <button
                                                                     type='button'
-                                                                    className='flex items-center justify-center gap-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 text-xs rounded-lg font-medium'
+                                                                    className='
+                                                                        flex items-center justify-center gap-1
+                                                                        px-4 py-2
+                                                                        text-xs font-medium
+                                                                        text-white
+                                                                        bg-green-600 hover:bg-green-700
+                                                                        dark:bg-green-500 dark:hover:bg-green-600
+                                                                        rounded-lg
+                                                                        focus:outline-none
+                                                                        transition-colors duration-200
+                                                                        shadow-sm
+                                                                        '
                                                                     onClick={() => {
                                                                         setVersionName(selectedVersion.name);
                                                                         setVersionDescription(
@@ -1203,7 +1250,7 @@ const VersionComponent = ({ setVersionopen }) => {
                                                                     ) : (
                                                                         <>
                                                                             <Edit2 className='size-4' />
-                                                                            Name
+                                                                            Rename
                                                                         </>
                                                                     )}
                                                                 </button>
@@ -1310,8 +1357,22 @@ const VersionComponent = ({ setVersionopen }) => {
 
                                                         <Dialog>
                                                             <DialogTrigger asChild>
-                                                                <button className='flex items-center justify-center gap-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 text-xs rounded-lg font-medium'>
-                                                                    <Download className='w-4 h-4 text-black dark:text-white' />
+                                                                <button
+                                                                    // className='flex items-center justify-center gap-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 text-xs rounded-lg font-medium'
+                                                                    className='
+                                                                        flex items-center justify-center gap-1
+                                                                        px-4 py-2
+                                                                        text-xs font-medium
+                                                                        text-white
+                                                                        bg-amber-600 hover:bg-amber-700
+                                                                        dark:bg-amber-500 dark:hover:bg-amber-600
+                                                                        rounded-lg
+                                                                        focus:outline-none
+                                                                        transition-colors duration-200
+                                                                        shadow-sm
+                                                                        '
+                                                                >
+                                                                    <Download className='w-4 h-4' />
                                                                     <span className='text-xs text-nowrap'>Export</span>
                                                                 </button>
                                                             </DialogTrigger>
@@ -1473,10 +1534,144 @@ const VersionComponent = ({ setVersionopen }) => {
                                                             </DialogContent>
                                                         </Dialog>
 
-                                                        <button className='flex items-center justify-center gap-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 text-xs rounded-lg font-medium'>
-                                                            <Copy className='w-3 h-3' />
-                                                            Duplicate
-                                                        </button>
+                                                        <Dialog
+                                                            open={showCloningModal}
+                                                            onOpenChange={setShowCloningModal}
+                                                        >
+                                                            <DialogTrigger asChild>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setVersionName(selectedVersion.name);
+                                                                        setVersionDescription(
+                                                                            selectedVersion.description,
+                                                                        );
+                                                                    }}
+                                                                    // className='flex items-center justify-center gap-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 text-xs rounded-lg font-medium'
+                                                                    className='flex items-center justify-center gap-1
+                                                                        text-xs font-medium
+                                                                        text-white
+                                                                        bg-purple-600 hover:bg-purple-700
+                                                                        dark:bg-purple-500 dark:hover:bg-purple-600
+                                                                        rounded-lg
+                                                                        focus:outline-none
+                                                                        transition-colors duration-200
+                                                                        shadow-sm'
+                                                                >
+                                                                    <Copy className='size-3' />
+                                                                    <span className='py-2'>Clone</span>
+                                                                </button>
+                                                            </DialogTrigger>
+
+                                                            <DialogContent className='dark:bg-gray-800 bg-white rounded-lg max-w-md w-full mx-4 px-5 py-4'>
+                                                                <DialogHeader>
+                                                                    <DialogTitle className='font-medium dark:text-white text-gray-900'>
+                                                                        Clone this version
+                                                                    </DialogTitle>
+                                                                    <DialogDescription>
+                                                                        <p className='text-sm text-gray-500 dark:text-gray-400'>
+                                                                            Preserve this version by saving a duplicate
+                                                                            record in the database.
+                                                                        </p>
+                                                                    </DialogDescription>
+                                                                </DialogHeader>
+
+                                                                {/* Version Name Input */}
+                                                                <div className=''>
+                                                                    <Label
+                                                                        htmlFor='version-name'
+                                                                        className='mb-4 block'
+                                                                    >
+                                                                        Version Name (optional)
+                                                                    </Label>
+                                                                    <div className='relative'>
+                                                                        <AiOutlineHistory
+                                                                            className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 transition-colors z-10 ${
+                                                                                isFocused
+                                                                                    ? 'text-purple-500 dark:text-purple-500'
+                                                                                    : 'text-gray-400 dark:text-gray-500'
+                                                                            }`}
+                                                                        />
+                                                                        <input
+                                                                            id='version-name'
+                                                                            type='text'
+                                                                            placeholder='Enter version name...'
+                                                                            value={versionName}
+                                                                            onChange={(e) =>
+                                                                                setVersionName(e.target.value)
+                                                                            }
+                                                                            onFocus={() => setIsFocused(true)}
+                                                                            onBlur={() =>
+                                                                                setTimeout(() => setIsFocused(false), 0)
+                                                                            }
+                                                                            className={`w-full py-3 pl-10 border-2 rounded-lg bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm font-light text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none transition-all duration-200 ${
+                                                                                isFocused
+                                                                                    ? 'border-purple-500 dark:border-purple-500'
+                                                                                    : 'border-gray-300 dark:border-gray-600'
+                                                                            }`}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Version Description Textarea */}
+                                                                <div className=''>
+                                                                    <Label
+                                                                        htmlFor='version-description'
+                                                                        className='mb-4 block'
+                                                                    >
+                                                                        Version Description (optional)
+                                                                    </Label>
+                                                                    <textarea
+                                                                        id='version-description'
+                                                                        rows={3}
+                                                                        placeholder='Add a short description...'
+                                                                        value={versionDescription}
+                                                                        onChange={(e) =>
+                                                                            setVersionDescription(e.target.value)
+                                                                        }
+                                                                        className='w-full min-h-12 max-h-20 custom-scrollbar p-3 border-2 rounded-lg bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm font-light text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none
+                                                                            transition-all duration-200 focus:border-purple-500'
+                                                                    />
+                                                                </div>
+
+                                                                {/* Footer Actions */}
+                                                                <DialogFooter>
+                                                                    <DialogClose asChild>
+                                                                        <button
+                                                                            type='button'
+                                                                            className='px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md'
+                                                                        >
+                                                                            Cancel
+                                                                        </button>
+                                                                    </DialogClose>
+                                                                    <button
+                                                                        onClick={() => duplicateSelectedVersion()}
+                                                                        type='submit'
+                                                                        // className='flex items-center justify-center px-4 py-2 bg-purple-600 text-white hover:bg-purple-700 rounded-md'
+                                                                        className='
+                                                                                    flex items-center justify-center
+                                                                                    px-5 py-2.5
+                                                                                    bg-purple-600 text-white
+                                                                                    hover:bg-purple-700
+                                                                                    focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2
+                                                                                    rounded-lg
+                                                                                    font-medium
+                                                                                    transition-colors duration-200
+                                                                                    shadow-sm
+                                                                                    '
+                                                                    >
+                                                                        {iscloneLoading ? (
+                                                                            <>
+                                                                                <Loader2 className='w-4 h-4 animate-spin mr-2' />
+                                                                                Cloning...
+                                                                            </>
+                                                                        ) : (
+                                                                            <>Clone Version</>
+                                                                        )}
+                                                                    </button>
+                                                                </DialogFooter>
+                                                            </DialogContent>
+                                                        </Dialog>
+
                                                         {!version.isCurrentVersion && (
                                                             // button to remove the version
                                                             <Dialog
