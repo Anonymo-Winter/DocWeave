@@ -18,7 +18,16 @@ import {
     Menu,
     Mail,
     Circle,
+    Code,
+    File,
     Loader2,
+    FileText,
+    Check,
+    Sparkles,
+    Globe,
+    FileCode,
+    ArrowRight,
+    CheckCircle2,
 } from 'lucide-react';
 import { createNamedSnapshot, applySnapshotToDoc } from '../util/yjsSnapshots';
 import * as Y from 'yjs';
@@ -49,6 +58,8 @@ import { getInitials } from '../util/getInitials.js';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from './ui/hover-card.js';
 import { useEditor, EditorContext, EditorContent } from '@tiptap/react';
 import { FaRedo } from 'react-icons/fa';
+import { FaRegFilePdf } from 'react-icons/fa6';
+import { IoLogoMarkdown } from 'react-icons/io5';
 
 // VersionViewer.jsx
 import { Collaboration } from '@tiptap/extension-collaboration';
@@ -658,6 +669,114 @@ const VersionComponent = ({ setVersionopen }) => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     };
+    const [downloadingFormat, setDownloadingFormat] = useState(null);
+    const [completedFormat, setCompletedFormat] = useState(null);
+
+    const handleFormatDownload = async (format) => {
+        setDownloadingFormat(format.type);
+        await handleDownload(previewEditor, format.type, selectedVersion.name);
+        setDownloadingFormat(null);
+        setCompletedFormat(format.type);
+        setTimeout(() => setCompletedFormat(null), 2500);
+    };
+
+    const formats = [
+        {
+            type: 'pdf',
+            label: 'PDF Document',
+            description: 'Best for printing and official documents',
+            icon: FaRegFilePdf,
+            colorLight: 'text-red-600',
+            colorDark: 'dark:text-red-400',
+            bgColorLight: 'bg-red-50',
+            bgColorDark: 'dark:bg-red-950/30',
+            borderColorLight: 'border-red-200',
+            borderColorDark: 'dark:border-red-800/50',
+            hoverBgLight: 'hover:bg-red-100',
+            hoverBgDark: 'dark:hover:bg-red-900/30',
+            iconBgLight: 'bg-red-50',
+            iconBgDark: 'dark:bg-red-950/50',
+            iconBorderLight: 'border-red-200',
+            iconBorderDark: 'dark:border-red-800/50',
+            popular: true,
+        },
+        {
+            type: 'docx',
+            label: 'Word Document',
+            description: 'Editable in Microsoft Word',
+            icon: FileText,
+            colorLight: 'text-blue-600',
+            colorDark: 'dark:text-blue-400',
+            bgColorLight: 'bg-blue-50',
+            bgColorDark: 'dark:bg-blue-950/30',
+            borderColorLight: 'border-blue-200',
+            borderColorDark: 'dark:border-blue-800/50',
+            hoverBgLight: 'hover:bg-blue-100',
+            hoverBgDark: 'dark:hover:bg-blue-900/30',
+            iconBgLight: 'bg-blue-50',
+            iconBgDark: 'dark:bg-blue-950/50',
+            iconBorderLight: 'border-blue-200',
+            iconBorderDark: 'dark:border-blue-800/50',
+            popular: false,
+        },
+        {
+            type: 'md',
+            label: 'Markdown',
+            description: 'Developer-friendly plain text',
+            icon: IoLogoMarkdown,
+            colorLight: 'text-purple-600',
+            colorDark: 'dark:text-purple-400',
+            bgColorLight: 'bg-purple-50',
+            bgColorDark: 'dark:bg-purple-950/30',
+            borderColorLight: 'border-purple-200',
+            borderColorDark: 'dark:border-purple-800/50',
+            hoverBgLight: 'hover:bg-purple-100',
+            hoverBgDark: 'dark:hover:bg-purple-900/30',
+            iconBgLight: 'bg-purple-50',
+            iconBgDark: 'dark:bg-purple-950/50',
+            iconBorderLight: 'border-purple-200',
+            iconBorderDark: 'dark:border-purple-800/50',
+            popular: false,
+        },
+        {
+            type: 'html',
+            label: 'HTML',
+            description: 'Web page format',
+            icon: Globe,
+            colorLight: 'text-orange-600',
+            colorDark: 'dark:text-orange-400',
+            bgColorLight: 'bg-orange-50',
+            bgColorDark: 'dark:bg-orange-950/30',
+            borderColorLight: 'border-orange-200',
+            borderColorDark: 'dark:border-orange-800/50',
+            hoverBgLight: 'hover:bg-orange-100',
+            hoverBgDark: 'dark:hover:bg-orange-900/30',
+            iconBgLight: 'bg-orange-50',
+            iconBgDark: 'dark:bg-orange-950/50',
+            iconBorderLight: 'border-orange-200',
+            iconBorderDark: 'dark:border-orange-800/50',
+            popular: false,
+        },
+        {
+            type: 'txt',
+            label: 'Plain Text',
+            description: 'Simple text file',
+            icon: File,
+            colorLight: 'text-slate-600',
+            colorDark: 'dark:text-slate-400',
+            bgColorLight: 'bg-slate-50',
+            bgColorDark: 'dark:bg-slate-950/30',
+            borderColorLight: 'border-slate-200',
+            borderColorDark: 'dark:border-slate-800/50',
+            hoverBgLight: 'hover:bg-slate-100',
+            hoverBgDark: 'dark:hover:bg-slate-900/30',
+            iconBgLight: 'bg-slate-50',
+            iconBgDark: 'dark:bg-slate-950/50',
+            iconBorderLight: 'border-slate-200',
+            iconBorderDark: 'dark:border-slate-800/50',
+            popular: false,
+        },
+    ];
 
     if (isVersionLoading) {
         return (
@@ -1189,70 +1308,170 @@ const VersionComponent = ({ setVersionopen }) => {
                                                             </DialogContent>
                                                         </Dialog>
 
-                                                        <button className='flex items-center justify-center gap-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 text-xs rounded-lg font-medium'>
-                                                            <Download className='w-3 h-3' />
-                                                            Download
-                                                        </button>
-                                                        <div className='flex flex-col gap-1'>
-                                                            <button
-                                                                onClick={() =>
-                                                                    handleDownload(
-                                                                        previewEditor,
-                                                                        'txt',
-                                                                        selectedVersion.name,
-                                                                    )
-                                                                }
-                                                            >
-                                                                Download TXT
-                                                            </button>
-                                                            <button
-                                                                onClick={() =>
-                                                                    handleDownload(
-                                                                        previewEditor,
-                                                                        'md',
-                                                                        selectedVersion.name,
-                                                                    )
-                                                                }
-                                                            >
-                                                                Download MD
-                                                            </button>
-                                                            <button
-                                                                onClick={() =>
-                                                                    handleDownload(
-                                                                        previewEditor,
-                                                                        'html',
-                                                                        selectedVersion.name,
-                                                                    )
-                                                                }
-                                                            >
-                                                                Download HTML
-                                                            </button>
-                                                            <button
-                                                                onClick={() =>
-                                                                    handleDownload(
-                                                                        previewEditor,
-                                                                        'docx',
-                                                                        selectedVersion.name,
-                                                                    )
-                                                                }
-                                                            >
-                                                                Download DOCX`
-                                                            </button>
-                                                            <button
-                                                                onClick={() =>
-                                                                    handleDownload(
-                                                                        previewEditor,
-                                                                        'pdf',
-                                                                        selectedVersion.name,
-                                                                    )
-                                                                }
-                                                            >
-                                                                Download PDF
-                                                            </button>
-                                                            {/* <button onClick={() => handlePrint(previewEditor)}>
-                                                                🖨️ Print
-                                                            </button> */}
-                                                        </div>
+                                                        <Dialog>
+                                                            <DialogTrigger asChild>
+                                                                <button className='flex items-center justify-center gap-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 text-xs rounded-lg font-medium'>
+                                                                    <Download className='w-4 h-4 text-black dark:text-white' />
+                                                                    <span className='text-xs text-nowrap'>Export</span>
+                                                                </button>
+                                                            </DialogTrigger>
+
+                                                            <DialogContent className='sm:max-w-[500px] p-0 gap-0 bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'>
+                                                                {/* Header Section */}
+                                                                <div className='px-6 pt-6 pb-4 border-b border-slate-100 dark:border-slate-800'>
+                                                                    <DialogHeader>
+                                                                        <DialogTitle className='text-xl font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-2'>
+                                                                            <div className='w-8 h-8 rounded-lg bg-slate-900 dark:bg-slate-100 flex items-center justify-center'>
+                                                                                <Download className='w-4 h-4 text-white dark:text-slate-900' />
+                                                                            </div>
+                                                                            Export Document
+                                                                        </DialogTitle>
+                                                                        <DialogDescription className='text-sm text-slate-600 dark:text-slate-400 mt-2'>
+                                                                            Select a format to download{' '}
+                                                                            <span className='font-medium text-slate-900 dark:text-slate-100'>
+                                                                                {selectedVersion?.name ||
+                                                                                    'your document'}
+                                                                            </span>
+                                                                        </DialogDescription>
+                                                                    </DialogHeader>
+                                                                </div>
+
+                                                                {/* Format Grid */}
+                                                                <div className='px-6 py-5 space-y-2 max-h-[60vh] overflow-y-auto'>
+                                                                    {formats.map((format) => {
+                                                                        const Icon = format.icon;
+                                                                        const isDownloading =
+                                                                            downloadingFormat === format.type;
+                                                                        const isCompleted =
+                                                                            completedFormat === format.type;
+                                                                        const isDisabled =
+                                                                            downloadingFormat !== null &&
+                                                                            !isDownloading;
+
+                                                                        return (
+                                                                            <button
+                                                                                key={format.type}
+                                                                                onClick={() =>
+                                                                                    handleFormatDownload(format)
+                                                                                }
+                                                                                disabled={isDisabled}
+                                                                                className={`group w-full flex items-center justify-between p-4 rounded-lg border-2 transition-all duration-200 ${
+                                                                                    isDisabled
+                                                                                        ? 'opacity-40 cursor-not-allowed'
+                                                                                        : `${format.borderColorLight} ${format.borderColorDark} ${format.hoverBgLight} ${format.hoverBgDark} hover:shadow-md hover:shadow-slate-200/50 dark:hover:shadow-slate-950/50 hover:scale-[1.02] active:scale-[0.98]`
+                                                                                } focus:outline-none focus:ring-2 focus:ring-slate-400 dark:focus:ring-slate-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 relative overflow-hidden`}
+                                                                            >
+                                                                                {/* Background Effect */}
+                                                                                <div
+                                                                                    className={`absolute inset-0 ${format.bgColorLight} ${format.bgColorDark} opacity-50`}
+                                                                                />
+
+                                                                                {/* Popular Badge */}
+                                                                                {format.popular &&
+                                                                                    !isDownloading &&
+                                                                                    !isCompleted && (
+                                                                                        <div className='absolute top-2 right-2 px-2 py-0.5 bg-amber-400 dark:bg-amber-500 text-amber-900 dark:text-amber-950 text-xs font-semibold rounded-full flex items-center gap-1 shadow-sm'>
+                                                                                            <Sparkles className='w-3 h-3' />
+                                                                                            Popular
+                                                                                        </div>
+                                                                                    )}
+
+                                                                                <div className='relative flex items-center gap-4 flex-1'>
+                                                                                    {/* Icon */}
+                                                                                    <div
+                                                                                        className={`flex-shrink-0 w-12 h-12 rounded-lg ${
+                                                                                            format.iconBgLight
+                                                                                        } ${format.iconBgDark} border ${
+                                                                                            format.iconBorderLight
+                                                                                        } ${
+                                                                                            format.iconBorderDark
+                                                                                        } flex items-center justify-center transition-transform ${
+                                                                                            !isDisabled &&
+                                                                                            'group-hover:scale-110'
+                                                                                        }`}
+                                                                                    >
+                                                                                        {isDownloading ? (
+                                                                                            <Loader2
+                                                                                                className={`w-6 h-6 ${format.colorLight} ${format.colorDark} animate-spin`}
+                                                                                            />
+                                                                                        ) : isCompleted ? (
+                                                                                            <CheckCircle2 className='w-6 h-6 text-green-600 dark:text-green-400' />
+                                                                                        ) : (
+                                                                                            <Icon
+                                                                                                className={`w-6 h-6 ${format.colorLight} ${format.colorDark}`}
+                                                                                            />
+                                                                                        )}
+                                                                                    </div>
+
+                                                                                    {/* Text Content */}
+                                                                                    <div className='flex-1 text-left min-w-0'>
+                                                                                        <div className='flex items-center gap-2'>
+                                                                                            <h4 className='font-semibold text-slate-900 dark:text-slate-100 text-sm'>
+                                                                                                {format.label}
+                                                                                            </h4>
+                                                                                            <span className='text-xs font-mono text-slate-500 dark:text-slate-400'>
+                                                                                                .{format.type}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                        <p className='text-xs text-slate-600 dark:text-slate-400 mt-0.5 truncate'>
+                                                                                            {format.description}
+                                                                                        </p>
+                                                                                    </div>
+                                                                                </div>
+
+                                                                                {/* Status/Action */}
+                                                                                <div className='relative flex-shrink-0 ml-3'>
+                                                                                    {isDownloading ? (
+                                                                                        <div className='text-right'>
+                                                                                            <span className='text-xs font-medium text-slate-700 dark:text-slate-300'>
+                                                                                                Preparing...
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    ) : isCompleted ? (
+                                                                                        <div className='flex items-center gap-1.5 px-2.5 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-md border border-green-200 dark:border-green-800/50'>
+                                                                                            <CheckCircle2 className='w-3.5 h-3.5' />
+                                                                                            <span className='text-xs font-medium'>
+                                                                                                Downloaded
+                                                                                            </span>
+                                                                                        </div>
+                                                                                    ) : (
+                                                                                        <ArrowRight
+                                                                                            className={`w-5 h-5 ${
+                                                                                                format.colorLight
+                                                                                            } ${
+                                                                                                format.colorDark
+                                                                                            } transition-transform ${
+                                                                                                !isDisabled &&
+                                                                                                'group-hover:translate-x-1'
+                                                                                            }`}
+                                                                                        />
+                                                                                    )}
+                                                                                </div>
+                                                                            </button>
+                                                                        );
+                                                                    })}
+                                                                </div>
+
+                                                                {/* Footer Info */}
+                                                                <div className='px-6 py-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800'>
+                                                                    <div className='flex items-start gap-3'>
+                                                                        <div className='flex-shrink-0 w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800/50 flex items-center justify-center'>
+                                                                            <Sparkles className='w-4 h-4 text-blue-600 dark:text-blue-400' />
+                                                                        </div>
+                                                                        <div className='flex-1'>
+                                                                            <p className='text-xs font-medium text-slate-900 dark:text-slate-100 mb-0.5'>
+                                                                                Quick Tip
+                                                                            </p>
+                                                                            <p className='text-xs text-slate-600 dark:text-slate-400 leading-relaxed'>
+                                                                                PDF is ideal for viewing and printing,
+                                                                                while DOCX allows full editing
+                                                                                capabilities.
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </DialogContent>
+                                                        </Dialog>
 
                                                         <button className='flex items-center justify-center gap-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 text-xs rounded-lg font-medium'>
                                                             <Copy className='w-3 h-3' />
