@@ -46,6 +46,18 @@ export const docApi = createApi({
                 return `/doc/version/${editorId}`;
             },
         }),
+        getDocument: builder.query({
+            query: (editorId) => {
+                return `/doc/document/${editorId}`;
+            },
+        }),
+        updateDocument: builder.mutation({
+            query: ({ visibility, userswithupdatedrole, editorId }) => ({
+                url: `/doc/document/${editorId}`,
+                method: 'POST',
+                body: { visibility, userswithupdatedrole },
+            }),
+        }),
         getAllversions: builder.query({
             query: ({ editorId }) => {
                 return `/doc/versions/${editorId}`;
@@ -63,11 +75,6 @@ export const docApi = createApi({
                 method: 'POST',
                 body: { documentId, emails, role },
             }),
-        }),
-        getDocShareableData: builder.query({
-            query: (editorId) => {
-                return `/doc/fetch-doc-sharable-access/${editorId}`;
-            },
         }),
         uploadDocumentImage: builder.mutation({
             query: ({ documentId, file }) => {
@@ -111,7 +118,8 @@ export const {
     useGetAllversionsQuery,
     useGetContributorsQuery,
     useAddPeopleMutation,
-    useGetDocShareableDataQuery,
     useUploadDocumentImageMutation,
     useGeneratePdfMutation,
+    useGetDocumentQuery,
+    useUpdateDocumentMutation,
 } = docApi;

@@ -811,8 +811,6 @@ const VersionComponent = ({ setVersionopen }) => {
         },
     ];
 
-    console.log(selectedVersion);
-
     if (isVersionLoading) {
         return (
             <div className='flex items-center justify-center h-screen'>
