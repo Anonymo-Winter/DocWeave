@@ -33,12 +33,12 @@ const documentSchema = new mongoose.Schema(
         ],
         visibility: {
             type: String,
-            enum: ['restricted', 'public'],
+            enum: ['restricted', 'anyone-with-link:r', 'anyone-with-link:w', 'anyone-in-org:r', 'anyone-in-org:w'],
             default: 'restricted',
         },
         userColors: {
             type: Map,
-            of: String, // userId -> colorHex
+            of: String,
             default: {},
         },
     },

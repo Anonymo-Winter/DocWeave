@@ -1,0 +1,1416 @@
+export const SEND_INVITE_TEMPLATE = `
+    <!DOCTYPE html>
+    <html
+        lang="en"
+        xmlns="http://www.w3.org/1999/xhtml"
+        xmlns:v="urn:schemas-microsoft-com:vml"
+        xmlns:o="urn:schemas-microsoft-com:office:office"
+    >
+        <head>
+            <meta charset="utf-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+            <meta name="x-apple-disable-message-reformatting" />
+            <title>Collaboration Invitation</title>
+            <!--[if mso]>
+                <style type="text/css">
+                    table {
+                        border-collapse: collapse;
+                        border-spacing: 0;
+                        margin: 0;
+                    }
+                    div,
+                    td {
+                        padding: 0;
+                    }
+                    div {
+                        margin: 0 !important;
+                    }
+                </style>
+                <noscript>
+                    <xml>
+                        <o:OfficeDocumentSettings>
+                            <o:PixelsPerInch>96</o:PixelsPerInch>
+                        </o:OfficeDocumentSettings>
+                    </xml>
+                </noscript>
+            <![endif]-->
+            <style type="text/css">
+                /* Reset */
+                body,
+                table,
+                td,
+                a {
+                    -webkit-text-size-adjust: 100%;
+                    -ms-text-size-adjust: 100%;
+                }
+                table,
+                td {
+                    mso-table-lspace: 0pt;
+                    mso-table-rspace: 0pt;
+                }
+                img {
+                    -ms-interpolation-mode: bicubic;
+                    border: 0;
+                    height: auto;
+                    line-height: 100%;
+                    outline: none;
+                    text-decoration: none;
+                }
+
+                /* Global */
+                body {
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    width: 100% !important;
+                    height: 100% !important;
+                }
+
+                /* Prevent iOS auto-linking */
+                a[x-apple-data-detectors] {
+                    color: inherit !important;
+                    text-decoration: none !important;
+                    font-size: inherit !important;
+                    font-family: inherit !important;
+                    font-weight: inherit !important;
+                    line-height: inherit !important;
+                }
+
+                /* Gmail dark mode fix */
+                u + #body a {
+                    color: inherit;
+                    text-decoration: none;
+                    font-size: inherit;
+                    font-family: inherit;
+                    font-weight: inherit;
+                    line-height: inherit;
+                }
+
+                /* Mobile Styles */
+                @media only screen and (max-width: 600px) {
+                    /* Container adjustments */
+                    .wrapper {
+                        width: 100% !important;
+                        max-width: 100% !important;
+                    }
+                    .container {
+                        width: 100% !important;
+                        max-width: 100% !important;
+                    }
+
+                    /* Padding adjustments */
+                    .mobile-padding {
+                        padding: 24px 16px !important;
+                    }
+                    .mobile-padding-sm {
+                        padding: 16px !important;
+                    }
+                    .mobile-padding-xs {
+                        padding: 12px !important;
+                    }
+                    .mobile-header-padding {
+                        padding: 32px 16px !important;
+                    }
+                    .mobile-footer-padding {
+                        padding: 20px 16px !important;
+                    }
+
+                    /* Stacking */
+                    .mobile-stack {
+                        display: block !important;
+                        width: 100% !important;
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                    }
+
+                    /* Visibility */
+                    .mobile-hide {
+                        display: none !important;
+                        max-height: 0 !important;
+                        overflow: hidden !important;
+                    }
+                    .mobile-show {
+                        display: block !important;
+                        max-height: none !important;
+                    }
+
+                    /* Alignment */
+                    .mobile-center {
+                        text-align: center !important;
+                    }
+                    .mobile-left {
+                        text-align: left !important;
+                    }
+
+                    /* Width */
+                    .mobile-full-width {
+                        width: 100% !important;
+                        max-width: 100% !important;
+                    }
+
+                    /* Typography adjustments */
+                    .h1-mobile {
+                        font-size: 24px !important;
+                        line-height: 30px !important;
+                    }
+                    .h2-mobile {
+                        font-size: 18px !important;
+                        line-height: 24px !important;
+                    }
+                    .text-mobile {
+                        font-size: 15px !important;
+                        line-height: 22px !important;
+                    }
+                    .text-mobile-sm {
+                        font-size: 13px !important;
+                        line-height: 20px !important;
+                    }
+
+                    /* Logo adjustments */
+                    .logo-mobile {
+                        font-size: 20px !important;
+                    }
+                    .logo-icon-mobile {
+                        width: 36px !important;
+                        height: 36px !important;
+                        line-height: 36px !important;
+                        font-size: 16px !important;
+                    }
+
+                    /* Avatar adjustments */
+                    .avatar-mobile {
+                        width: 40px !important;
+                        height: 40px !important;
+                        line-height: 40px !important;
+                        font-size: 16px !important;
+                    }
+                    .avatar-cell-mobile {
+                        width: 40px !important;
+                    }
+
+                    /* Button adjustments */
+                    .button-mobile {
+                        padding: 14px 24px !important;
+                        font-size: 15px !important;
+                        width: 100% !important;
+                        max-width: 280px !important;
+                        box-sizing: border-box !important;
+                    }
+
+                    /* Card adjustments */
+                    .card-mobile {
+                        border-radius: 12px !important;
+                    }
+                    .card-icon-mobile {
+                        width: 36px !important;
+                        height: 36px !important;
+                        line-height: 36px !important;
+                        font-size: 16px !important;
+                    }
+                    .card-icon-cell-mobile {
+                        width: 36px !important;
+                    }
+
+                    /* Spacing adjustments */
+                    .mobile-mb-16 {
+                        margin-bottom: 16px !important;
+                    }
+                    .mobile-mb-12 {
+                        margin-bottom: 12px !important;
+                    }
+                    .mobile-mb-8 {
+                        margin-bottom: 8px !important;
+                    }
+                    .mobile-mt-16 {
+                        margin-top: 16px !important;
+                    }
+                    .mobile-mt-12 {
+                        margin-top: 12px !important;
+                    }
+                    .mobile-pb-16 {
+                        padding-bottom: 16px !important;
+                    }
+                    .mobile-pb-12 {
+                        padding-bottom: 12px !important;
+                    }
+                    .mobile-pb-8 {
+                        padding-bottom: 8px !important;
+                    }
+                    .mobile-pt-16 {
+                        padding-top: 16px !important;
+                    }
+                    .mobile-pt-12 {
+                        padding-top: 12px !important;
+                    }
+
+                    /* Permission grid fix */
+                    .permission-item {
+                        display: block !important;
+                        width: 100% !important;
+                        padding: 0 0 8px 0 !important;
+                    }
+                    .permission-item-last {
+                        padding-bottom: 0 !important;
+                    }
+
+                    /* Info cards side padding removal */
+                    .info-card-left {
+                        padding-right: 0 !important;
+                        padding-bottom: 12px !important;
+                    }
+                    .info-card-right {
+                        padding-left: 0 !important;
+                    }
+                }
+
+                /* Tablet adjustments (601px - 768px) */
+                @media only screen and (min-width: 601px) and (max-width: 768px) {
+                    .wrapper {
+                        width: 100% !important;
+                        max-width: 100% !important;
+                    }
+                    .tablet-padding {
+                        padding: 32px 24px !important;
+                    }
+                }
+
+                /* Dark mode support */
+                @media (prefers-color-scheme: dark) {
+                    .dark-mode-text {
+                        color: #f1f5f9 !important;
+                    }
+                    .dark-mode-subtext {
+                        color: #94a3b8 !important;
+                    }
+                }
+            </style>
+        </head>
+        <body
+            id="body"
+            style="
+                margin: 0;
+                padding: 0;
+                background-color: #0f172a;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            "
+        >
+            <!-- Preview Text -->
+            <div style="display: none; max-height: 0px; overflow: hidden">
+                You've been invited to collaborate on documentname
+            </div>
+
+            <!-- Preheader spacer -->
+            <div style="display: none; max-height: 0px; overflow: hidden">
+                &nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;
+            </div>
+
+            <!-- Main Wrapper -->
+            <table
+                border="0"
+                cellpadding="0"
+                cellspacing="0"
+                width="100%"
+                style="background-color: #0f172a; padding: 20px 0"
+            >
+                <tr>
+                    <td align="center" style="padding: 0">
+                        <!-- Container -->
+                        <table
+                            class="wrapper"
+                            border="0"
+                            cellpadding="0"
+                            cellspacing="0"
+                            width="600"
+                            style="max-width: 600px; width: 100%"
+                        >
+                            <tr>
+                                <td align="center" style="padding: 0">
+                                    <!-- Main Card -->
+                                    <table
+                                        class="container"
+                                        border="0"
+                                        cellpadding="0"
+                                        cellspacing="0"
+                                        width="100%"
+                                        style="
+                                            background-color: #0f172a;
+                                            border-radius: 24px;
+                                            overflow: hidden;
+                                            box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05);
+                                        "
+                                    >
+                                        <!-- Top Border -->
+                                        <tr>
+                                            <td
+                                                height="1"
+                                                style="
+                                                    height: 1px;
+                                                    background: linear-gradient(90deg, transparent, #6366f1, transparent);
+                                                "
+                                            ></td>
+                                        </tr>
+
+                                        <!-- Header -->
+                                        <tr>
+                                            <td
+                                                class="mobile-header-padding"
+                                                style="background-color: #1e293b; padding: 40px 20px; text-align: center"
+                                            >
+                                                <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                                    <tr>
+                                                        <td align="center">
+                                                            <!-- Logo -->
+                                                            <table
+                                                                border="0"
+                                                                cellpadding="0"
+                                                                cellspacing="0"
+                                                                style="margin-bottom: 20px"
+                                                            >
+                                                                <tr>
+                                                                    <td
+                                                                        class="logo-icon-mobile"
+                                                                        style="
+                                                                            width: 40px;
+                                                                            height: 40px;
+                                                                            background-color: #6366f1;
+                                                                            border-radius: 12px;
+                                                                            text-align: center;
+                                                                            font-weight: bold;
+                                                                            font-size: 18px;
+                                                                            color: #ffffff;
+                                                                            line-height: 40px;
+                                                                            vertical-align: middle;
+                                                                        "
+                                                                    >
+                                                                        C
+                                                                    </td>
+                                                                    <td
+                                                                        class="logo-mobile"
+                                                                        style="
+                                                                            padding-left: 12px;
+                                                                            font-size: 24px;
+                                                                            font-weight: 700;
+                                                                            color: #f1f5f9;
+                                                                            vertical-align: middle;
+                                                                        "
+                                                                    >
+                                                                        CollabDocx
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+
+                                                            <h1
+                                                                class="h1-mobile"
+                                                                style="
+                                                                    font-size: 28px;
+                                                                    font-weight: 800;
+                                                                    margin: 0 0 12px 0;
+                                                                    color: #f1f5f9;
+                                                                    line-height: 1.2;
+                                                                "
+                                                            >
+                                                                Collaboration Invitation
+                                                            </h1>
+                                                            <p
+                                                                class="text-mobile"
+                                                                style="
+                                                                    font-size: 16px;
+                                                                    color: #94a3b8;
+                                                                    margin: 0;
+                                                                    line-height: 1.5;
+                                                                "
+                                                            >
+                                                                You've been invited to join a workspace
+                                                            </p>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+
+                                        <!-- Content -->
+                                        <tr>
+                                            <td class="mobile-padding tablet-padding" style="padding: 40px 32px">
+                                                <!-- Greeting with Avatar -->
+                                                <table
+                                                    border="0"
+                                                    cellpadding="0"
+                                                    cellspacing="0"
+                                                    width="100%"
+                                                    style="margin-bottom: 24px"
+                                                >
+                                                    <tr>
+                                                        <td
+                                                            class="avatar-cell-mobile"
+                                                            width="48"
+                                                            style="width: 48px; vertical-align: middle"
+                                                        >
+                                                            <div
+                                                                class="avatar-mobile"
+                                                                style="
+                                                                    width: 48px;
+                                                                    height: 48px;
+                                                                    border-radius: 50%;
+                                                                    background-color: #6366f1;
+                                                                    text-align: center;
+                                                                    line-height: 48px;
+                                                                    font-weight: bold;
+                                                                    font-size: 18px;
+                                                                    color: #ffffff;
+                                                                "
+                                                            >
+                                                                toUserInitials
+                                                            </div>
+                                                        </td>
+                                                        <td
+                                                            class="text-mobile"
+                                                            style="
+                                                                padding-left: 12px;
+                                                                vertical-align: middle;
+                                                                font-size: 18px;
+                                                                color: #94a3b8;
+                                                            "
+                                                        >
+                                                            Hello <strong style="color: #f1f5f9">tousername</strong>,
+                                                        </td>
+                                                    </tr>
+                                                </table>
+
+                                                <!-- Message -->
+                                                <p
+                                                    class="text-mobile mobile-mb-16"
+                                                    style="
+                                                        font-size: 16px;
+                                                        color: #94a3b8;
+                                                        margin: 0 0 32px 0;
+                                                        line-height: 1.7;
+                                                    "
+                                                >
+                                                    <strong style="color: #f1f5f9">fromusername</strong> has invited you
+                                                    to collaborate on a document in the
+                                                    <strong style="color: #f1f5f9">documentname</strong> workspace. You
+                                                    now have access to contribute, edit, and share feedback with the team.
+                                                </p>
+
+                                                <!-- Document Card -->
+                                                <table
+                                                    border="0"
+                                                    cellpadding="0"
+                                                    cellspacing="0"
+                                                    width="100%"
+                                                    class="card-mobile mobile-mb-16"
+                                                    style="
+                                                        background-color: #1e293b;
+                                                        border-radius: 16px;
+                                                        border: 1px solid rgba(255, 255, 255, 0.05);
+                                                        margin-bottom: 32px;
+                                                    "
+                                                >
+                                                    <tr>
+                                                        <td
+                                                            width="4"
+                                                            style="
+                                                                width: 4px;
+                                                                background-color: #6366f1;
+                                                                border-radius: 16px 0 0 16px;
+                                                            "
+                                                        ></td>
+                                                        <td class="mobile-padding-sm" style="padding: 24px">
+                                                            <!-- Document Header -->
+                                                            <table
+                                                                border="0"
+                                                                cellpadding="0"
+                                                                cellspacing="0"
+                                                                width="100%"
+                                                                class="mobile-mb-12"
+                                                                style="margin-bottom: 16px"
+                                                            >
+                                                                <tr>
+                                                                    <td
+                                                                        class="card-icon-cell-mobile"
+                                                                        width="48"
+                                                                        style="width: 48px; vertical-align: top"
+                                                                    >
+                                                                        <div
+                                                                            class="card-icon-mobile"
+                                                                            style="
+                                                                                width: 48px;
+                                                                                height: 48px;
+                                                                                background-color: rgba(99, 102, 241, 0.1);
+                                                                                border-radius: 12px;
+                                                                                text-align: center;
+                                                                                line-height: 48px;
+                                                                                font-size: 20px;
+                                                                            "
+                                                                        >
+                                                                            📊
+                                                                        </div>
+                                                                    </td>
+                                                                    <td style="padding-left: 16px; vertical-align: middle">
+                                                                        <div
+                                                                            class="h2-mobile"
+                                                                            style="
+                                                                                font-size: 20px;
+                                                                                font-weight: 700;
+                                                                                color: #f1f5f9;
+                                                                                margin-bottom: 4px;
+                                                                                line-height: 1.3;
+                                                                            "
+                                                                        >
+                                                                            documentname
+                                                                        </div>
+                                                                        <div
+                                                                            class="text-mobile-sm"
+                                                                            style="
+                                                                                font-size: 14px;
+                                                                                color: #94a3b8;
+                                                                                line-height: 1.4;
+                                                                            "
+                                                                        >
+                                                                            documentdescription
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+
+                                                            <!-- Document Meta -->
+                                                            <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                                                <tr>
+                                                                    <td
+                                                                        class="text-mobile-sm mobile-pb-8"
+                                                                        style="padding-bottom: 8px"
+                                                                    >
+                                                                        <span style="font-size: 14px; color: #94a3b8"
+                                                                            >Role:</span
+                                                                        >
+                                                                        <span
+                                                                            style="
+                                                                                background-color: rgba(99, 102, 241, 0.1);
+                                                                                color: #6366f1;
+                                                                                padding: 4px 12px;
+                                                                                border-radius: 20px;
+                                                                                font-size: 12px;
+                                                                                font-weight: 600;
+                                                                                margin-left: 8px;
+                                                                                display: inline-block;
+                                                                            "
+                                                                            >userrole</span
+                                                                        >
+                                                                    </td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td
+                                                                        class="text-mobile-sm mobile-pb-8"
+                                                                        style="padding-bottom: 8px"
+                                                                    >
+                                                                        <span style="font-size: 14px; color: #94a3b8"
+                                                                            >Access Level:</span
+                                                                        >
+                                                                        <span
+                                                                            style="
+                                                                                background-color: rgba(16, 185, 129, 0.1);
+                                                                                color: #10b981;
+                                                                                padding: 4px 12px;
+                                                                                border-radius: 20px;
+                                                                                font-size: 12px;
+                                                                                font-weight: 600;
+                                                                                margin-left: 8px;
+                                                                                display: inline-block;
+                                                                            "
+                                                                            >Full Access</span
+                                                                        >
+                                                                    </td>
+                                                                </tr>
+                                                                <tr>
+                                                                    <td
+                                                                        class="text-mobile-sm"
+                                                                        style="word-break: break-all"
+                                                                    >
+                                                                        <span style="font-size: 14px; color: #94a3b8"
+                                                                            >Document ID:</span
+                                                                        >
+                                                                        <span
+                                                                            style="
+                                                                                margin-left: 8px;
+                                                                                font-size: 14px;
+                                                                                color: #f1f5f9;
+                                                                            "
+                                                                            >documentId</span
+                                                                        >
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+
+                                                <!-- CTA Button -->
+                                                <table
+                                                    border="0"
+                                                    cellpadding="0"
+                                                    cellspacing="0"
+                                                    width="100%"
+                                                    class="mobile-mb-16"
+                                                    style="margin: 40px 0"
+                                                >
+                                                    <tr>
+                                                        <td align="center">
+                                                            <!--[if mso]>
+                                                                <v:roundrect
+                                                                    xmlns:v="urn:schemas-microsoft-com:vml"
+                                                                    xmlns:w="urn:schemas-microsoft-com:office:word"
+                                                                    href="documentLink"
+                                                                    style="
+                                                                        height: 52px;
+                                                                        v-text-anchor: middle;
+                                                                        width: 200px;
+                                                                    "
+                                                                    arcsize="27%"
+                                                                    stroke="f"
+                                                                    fillcolor="#6366F1"
+                                                                >
+                                                                    <w:anchorlock />
+                                                                    <center
+                                                                        style="
+                                                                            color: #ffffff;
+                                                                            font-family: sans-serif;
+                                                                            font-size: 16px;
+                                                                            font-weight: 600;
+                                                                        "
+                                                                    >
+                                                                        Open Document →
+                                                                    </center>
+                                                                </v:roundrect>
+                                                            <![endif]-->
+                                                            <!--[if !mso]><!-->
+                                                            <a
+                                                                href="documentLink"
+                                                                target="_blank"
+                                                                class="button-mobile"
+                                                                style="
+                                                                    background-color: #6366f1;
+                                                                    color: #ffffff;
+                                                                    text-decoration: none;
+                                                                    padding: 16px 32px;
+                                                                    border-radius: 14px;
+                                                                    font-weight: 600;
+                                                                    font-size: 16px;
+                                                                    display: inline-block;
+                                                                    mso-hide: all;
+                                                                "
+                                                            >
+                                                                Open Document →
+                                                            </a>
+                                                            <!--<![endif]-->
+                                                        </td>
+                                                    </tr>
+                                                </table>
+
+                                                <!-- Info Cards - Stacked on Mobile -->
+                                                <table
+                                                    border="0"
+                                                    cellpadding="0"
+                                                    cellspacing="0"
+                                                    width="100%"
+                                                    class="mobile-mb-16"
+                                                    style="margin: 32px 0"
+                                                >
+                                                    <tr>
+                                                        <td
+                                                            class="mobile-stack info-card-left"
+                                                            width="50%"
+                                                            style="width: 50%; padding-right: 10px; vertical-align: top"
+                                                        >
+                                                            <table
+                                                                border="0"
+                                                                cellpadding="0"
+                                                                cellspacing="0"
+                                                                width="100%"
+                                                                class="card-mobile"
+                                                                style="
+                                                                    background-color: #1e293b;
+                                                                    border-radius: 16px;
+                                                                    border: 1px solid rgba(255, 255, 255, 0.05);
+                                                                    padding: 20px;
+                                                                "
+                                                            >
+                                                                <tr>
+                                                                    <td
+                                                                        class="card-icon-cell-mobile"
+                                                                        width="40"
+                                                                        style="width: 40px; vertical-align: top"
+                                                                    >
+                                                                        <div
+                                                                            class="card-icon-mobile"
+                                                                            style="
+                                                                                width: 40px;
+                                                                                height: 40px;
+                                                                                background-color: rgba(99, 102, 241, 0.1);
+                                                                                border-radius: 10px;
+                                                                                text-align: center;
+                                                                                line-height: 40px;
+                                                                                font-size: 18px;
+                                                                            "
+                                                                        >
+                                                                            👤
+                                                                        </div>
+                                                                    </td>
+                                                                    <td style="padding-left: 12px; vertical-align: top">
+                                                                        <div
+                                                                            class="h2-mobile mobile-mb-8"
+                                                                            style="
+                                                                                font-size: 16px;
+                                                                                font-weight: 600;
+                                                                                color: #f1f5f9;
+                                                                                margin-bottom: 8px;
+                                                                            "
+                                                                        >
+                                                                            Invited By
+                                                                        </div>
+                                                                        <div
+                                                                            class="text-mobile-sm"
+                                                                            style="
+                                                                                font-size: 14px;
+                                                                                color: #94a3b8;
+                                                                                line-height: 1.5;
+                                                                                word-break: break-word;
+                                                                            "
+                                                                        >
+                                                                            fromusername<br />
+                                                                            fromuseremail
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+                                                        </td>
+                                                        <td
+                                                            class="mobile-stack info-card-right"
+                                                            width="50%"
+                                                            style="width: 50%; padding-left: 10px; vertical-align: top"
+                                                        >
+                                                            <table
+                                                                border="0"
+                                                                cellpadding="0"
+                                                                cellspacing="0"
+                                                                width="100%"
+                                                                class="card-mobile"
+                                                                style="
+                                                                    background-color: #1e293b;
+                                                                    border-radius: 16px;
+                                                                    border: 1px solid rgba(255, 255, 255, 0.05);
+                                                                    padding: 20px;
+                                                                "
+                                                            >
+                                                                <tr>
+                                                                    <td
+                                                                        class="card-icon-cell-mobile"
+                                                                        width="40"
+                                                                        style="width: 40px; vertical-align: top"
+                                                                    >
+                                                                        <div
+                                                                            class="card-icon-mobile"
+                                                                            style="
+                                                                                width: 40px;
+                                                                                height: 40px;
+                                                                                background-color: rgba(99, 102, 241, 0.1);
+                                                                                border-radius: 10px;
+                                                                                text-align: center;
+                                                                                line-height: 40px;
+                                                                                font-size: 18px;
+                                                                            "
+                                                                        >
+                                                                            📅
+                                                                        </div>
+                                                                    </td>
+                                                                    <td style="padding-left: 12px; vertical-align: top">
+                                                                        <div
+                                                                            class="h2-mobile mobile-mb-8"
+                                                                            style="
+                                                                                font-size: 16px;
+                                                                                font-weight: 600;
+                                                                                color: #f1f5f9;
+                                                                                margin-bottom: 8px;
+                                                                            "
+                                                                        >
+                                                                            Invitation Details
+                                                                        </div>
+                                                                        <div
+                                                                            class="text-mobile-sm"
+                                                                            style="
+                                                                                font-size: 14px;
+                                                                                color: #94a3b8;
+                                                                                line-height: 1.5;
+                                                                            "
+                                                                        >
+                                                                            Sent: invitationdate<br />
+                                                                            Time: invitationtime
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+
+                                                <!-- Permissions Section -->
+                                                <table
+                                                    border="0"
+                                                    cellpadding="0"
+                                                    cellspacing="0"
+                                                    width="100%"
+                                                    class="card-mobile mobile-mb-16"
+                                                    style="
+                                                        background-color: #1e293b;
+                                                        border-radius: 16px;
+                                                        border: 1px solid rgba(255, 255, 255, 0.05);
+                                                        margin: 32px 0;
+                                                        padding: 24px;
+                                                    "
+                                                >
+                                                    <tr>
+                                                        <td class="mobile-padding-xs" style="padding: 0">
+                                                            <div
+                                                                class="h2-mobile mobile-mb-12"
+                                                                style="
+                                                                    font-size: 18px;
+                                                                    font-weight: 700;
+                                                                    color: #f1f5f9;
+                                                                    margin-bottom: 16px;
+                                                                "
+                                                            >
+                                                                Your Permissions
+                                                            </div>
+
+                                                            <!-- Permission Items -->
+                                                            <table border="0" cellpadding="0" cellspacing="0" width="100%">
+                                                                <!-- Row 1 -->
+                                                                <tr>
+                                                                    <td
+                                                                        class="permission-item mobile-pb-8"
+                                                                        width="50%"
+                                                                        style="
+                                                                            width: 50%;
+                                                                            padding: 0 8px 12px 0;
+                                                                            vertical-align: top;
+                                                                        "
+                                                                    >
+                                                                        <table
+                                                                            border="0"
+                                                                            cellpadding="0"
+                                                                            cellspacing="0"
+                                                                            width="100%"
+                                                                            style="
+                                                                                background-color: rgba(255, 255, 255, 0.03);
+                                                                                border-radius: 10px;
+                                                                                padding: 12px;
+                                                                            "
+                                                                        >
+                                                                            <tr>
+                                                                                <td
+                                                                                    width="24"
+                                                                                    style="
+                                                                                        width: 24px;
+                                                                                        vertical-align: middle;
+                                                                                    "
+                                                                                >
+                                                                                    <div
+                                                                                        style="
+                                                                                            width: 24px;
+                                                                                            height: 24px;
+                                                                                            background-color: rgba(
+                                                                                                16,
+                                                                                                185,
+                                                                                                129,
+                                                                                                0.1
+                                                                                            );
+                                                                                            border-radius: 6px;
+                                                                                            text-align: center;
+                                                                                            line-height: 24px;
+                                                                                            color: #22c55e;
+                                                                                            font-size: 14px;
+                                                                                            flex-shrink: 0;
+                                                                                        "
+                                                                                    >
+                                                                                        ✓
+                                                                                    </div>
+                                                                                </td>
+                                                                                <td
+                                                                                    class="text-mobile-sm"
+                                                                                    style="
+                                                                                        padding-left: 12px;
+                                                                                        font-size: 14px;
+                                                                                        color: #f1f5f9;
+                                                                                        vertical-align: middle;
+                                                                                    "
+                                                                                >
+                                                                                    Edit document content
+                                                                                </td>
+                                                                            </tr>
+                                                                        </table>
+                                                                    </td>
+                                                                    <td
+                                                                        class="permission-item mobile-pb-8"
+                                                                        width="50%"
+                                                                        style="
+                                                                            width: 50%;
+                                                                            padding: 0 0 12px 8px;
+                                                                            vertical-align: top;
+                                                                        "
+                                                                    >
+                                                                        <table
+                                                                            border="0"
+                                                                            cellpadding="0"
+                                                                            cellspacing="0"
+                                                                            width="100%"
+                                                                            style="
+                                                                                background-color: rgba(255, 255, 255, 0.03);
+                                                                                border-radius: 10px;
+                                                                                padding: 12px;
+                                                                            "
+                                                                        >
+                                                                            <tr>
+                                                                                <td
+                                                                                    width="24"
+                                                                                    style="
+                                                                                        width: 24px;
+                                                                                        vertical-align: middle;
+                                                                                    "
+                                                                                >
+                                                                                    <div
+                                                                                        style="
+                                                                                            width: 24px;
+                                                                                            height: 24px;
+                                                                                            background-color: rgba(
+                                                                                                16,
+                                                                                                185,
+                                                                                                129,
+                                                                                                0.1
+                                                                                            );
+                                                                                            border-radius: 6px;
+                                                                                            text-align: center;
+                                                                                            line-height: 24px;
+                                                                                            color: #22c55e;
+                                                                                            font-size: 14px;
+                                                                                            flex-shrink: 0;
+                                                                                        "
+                                                                                    >
+                                                                                        ✓
+                                                                                    </div>
+                                                                                </td>
+                                                                                <td
+                                                                                    class="text-mobile-sm"
+                                                                                    style="
+                                                                                        padding-left: 12px;
+                                                                                        font-size: 14px;
+                                                                                        color: #f1f5f9;
+                                                                                        vertical-align: middle;
+                                                                                    "
+                                                                                >
+                                                                                    Invite others
+                                                                                </td>
+                                                                            </tr>
+                                                                        </table>
+                                                                    </td>
+                                                                </tr>
+                                                                <!-- Row 2 -->
+                                                                <tr>
+                                                                    <td
+                                                                        class="permission-item mobile-pb-8"
+                                                                        width="50%"
+                                                                        style="
+                                                                            width: 50%;
+                                                                            padding: 0 8px 12px 0;
+                                                                            vertical-align: top;
+                                                                        "
+                                                                    >
+                                                                        <table
+                                                                            border="0"
+                                                                            cellpadding="0"
+                                                                            cellspacing="0"
+                                                                            width="100%"
+                                                                            style="
+                                                                                background-color: rgba(255, 255, 255, 0.03);
+                                                                                border-radius: 10px;
+                                                                                padding: 12px;
+                                                                            "
+                                                                        >
+                                                                            <tr>
+                                                                                <td
+                                                                                    width="24"
+                                                                                    style="
+                                                                                        width: 24px;
+                                                                                        vertical-align: middle;
+                                                                                    "
+                                                                                >
+                                                                                    <div
+                                                                                        style="
+                                                                                            width: 24px;
+                                                                                            height: 24px;
+                                                                                            background-color: rgba(
+                                                                                                16,
+                                                                                                185,
+                                                                                                129,
+                                                                                                0.1
+                                                                                            );
+                                                                                            border-radius: 6px;
+                                                                                            text-align: center;
+                                                                                            line-height: 24px;
+                                                                                            color: #22c55e;
+                                                                                            font-size: 14px;
+                                                                                            flex-shrink: 0;
+                                                                                        "
+                                                                                    >
+                                                                                        ✓
+                                                                                    </div>
+                                                                                </td>
+                                                                                <td
+                                                                                    class="text-mobile-sm"
+                                                                                    style="
+                                                                                        padding-left: 12px;
+                                                                                        font-size: 14px;
+                                                                                        color: #f1f5f9;
+                                                                                        vertical-align: middle;
+                                                                                    "
+                                                                                >
+                                                                                    Share with team members
+                                                                                </td>
+                                                                            </tr>
+                                                                        </table>
+                                                                    </td>
+                                                                    <td
+                                                                        class="permission-item mobile-pb-8"
+                                                                        width="50%"
+                                                                        style="
+                                                                            width: 50%;
+                                                                            padding: 0 0 12px 8px;
+                                                                            vertical-align: top;
+                                                                        "
+                                                                    >
+                                                                        <table
+                                                                            border="0"
+                                                                            cellpadding="0"
+                                                                            cellspacing="0"
+                                                                            width="100%"
+                                                                            style="
+                                                                                background-color: rgba(255, 255, 255, 0.03);
+                                                                                border-radius: 10px;
+                                                                                padding: 12px;
+                                                                            "
+                                                                        >
+                                                                            <tr>
+                                                                                <td
+                                                                                    width="24"
+                                                                                    style="
+                                                                                        width: 24px;
+                                                                                        vertical-align: middle;
+                                                                                    "
+                                                                                >
+                                                                                    <div
+                                                                                        style="
+                                                                                            width: 24px;
+                                                                                            height: 24px;
+                                                                                            background-color: rgba(
+                                                                                                16,
+                                                                                                185,
+                                                                                                129,
+                                                                                                0.1
+                                                                                            );
+                                                                                            border-radius: 6px;
+                                                                                            text-align: center;
+                                                                                            line-height: 24px;
+                                                                                            color: #22c55e;
+                                                                                            font-size: 14px;
+                                                                                            flex-shrink: 0;
+                                                                                        "
+                                                                                    >
+                                                                                        ✓
+                                                                                    </div>
+                                                                                </td>
+                                                                                <td
+                                                                                    class="text-mobile-sm"
+                                                                                    style="
+                                                                                        padding-left: 12px;
+                                                                                        font-size: 14px;
+                                                                                        color: #f1f5f9;
+                                                                                        vertical-align: middle;
+                                                                                    "
+                                                                                >
+                                                                                    View version history
+                                                                                </td>
+                                                                            </tr>
+                                                                        </table>
+                                                                    </td>
+                                                                </tr>
+                                                                <!-- Row 3 -->
+                                                                <tr>
+                                                                    <td
+                                                                        class="permission-item mobile-pb-8"
+                                                                        width="50%"
+                                                                        style="
+                                                                            width: 50%;
+                                                                            padding: 0 8px 12px 0;
+                                                                            vertical-align: top;
+                                                                        "
+                                                                    >
+                                                                        <table
+                                                                            border="0"
+                                                                            cellpadding="0"
+                                                                            cellspacing="0"
+                                                                            width="100%"
+                                                                            style="
+                                                                                background-color: rgba(255, 255, 255, 0.03);
+                                                                                border-radius: 10px;
+                                                                                padding: 12px;
+                                                                            "
+                                                                        >
+                                                                            <tr>
+                                                                                <td
+                                                                                    width="24"
+                                                                                    style="
+                                                                                        width: 24px;
+                                                                                        vertical-align: middle;
+                                                                                    "
+                                                                                >
+                                                                                    <div
+                                                                                        style="
+                                                                                            width: 24px;
+                                                                                            height: 24px;
+                                                                                            background-color: rgba(
+                                                                                                16,
+                                                                                                185,
+                                                                                                129,
+                                                                                                0.1
+                                                                                            );
+                                                                                            border-radius: 6px;
+                                                                                            text-align: center;
+                                                                                            line-height: 24px;
+                                                                                            color: #22c55e;
+                                                                                            font-size: 14px;
+                                                                                            flex-shrink: 0;
+                                                                                        "
+                                                                                    >
+                                                                                        ✓
+                                                                                    </div>
+                                                                                </td>
+                                                                                <td
+                                                                                    class="text-mobile-sm"
+                                                                                    style="
+                                                                                        padding-left: 12px;
+                                                                                        font-size: 14px;
+                                                                                        color: #f1f5f9;
+                                                                                        vertical-align: middle;
+                                                                                    "
+                                                                                >
+                                                                                    Export in multiple formats
+                                                                                </td>
+                                                                            </tr>
+                                                                        </table>
+                                                                    </td>
+                                                                    <td
+                                                                        class="permission-item mobile-pb-8"
+                                                                        width="50%"
+                                                                        style="
+                                                                            width: 50%;
+                                                                            padding: 0 0 12px 8px;
+                                                                            vertical-align: top;
+                                                                        "
+                                                                    >
+                                                                        <table
+                                                                            border="0"
+                                                                            cellpadding="0"
+                                                                            cellspacing="0"
+                                                                            width="100%"
+                                                                            style="
+                                                                                background-color: rgba(255, 255, 255, 0.03);
+                                                                                border-radius: 10px;
+                                                                                padding: 12px;
+                                                                            "
+                                                                        >
+                                                                            <tr>
+                                                                                <td
+                                                                                    width="24"
+                                                                                    style="
+                                                                                        width: 24px;
+                                                                                        vertical-align: middle;
+                                                                                    "
+                                                                                >
+                                                                                    <div
+                                                                                        style="
+                                                                                            width: 24px;
+                                                                                            height: 24px;
+                                                                                            background-color: rgba(
+                                                                                                16,
+                                                                                                185,
+                                                                                                129,
+                                                                                                0.1
+                                                                                            );
+                                                                                            border-radius: 6px;
+                                                                                            text-align: center;
+                                                                                            line-height: 24px;
+                                                                                            color: #22c55e;
+                                                                                            font-size: 14px;
+                                                                                            flex-shrink: 0;
+                                                                                        "
+                                                                                    >
+                                                                                        ✓
+                                                                                    </div>
+                                                                                </td>
+                                                                                <td
+                                                                                    class="text-mobile-sm"
+                                                                                    style="
+                                                                                        padding-left: 12px;
+                                                                                        font-size: 14px;
+                                                                                        color: #f1f5f9;
+                                                                                        vertical-align: middle;
+                                                                                    "
+                                                                                >
+                                                                                    Manage document settings
+                                                                                </td>
+                                                                            </tr>
+                                                                        </table>
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+
+                                                            <!-- Security Notice -->
+                                                            <table
+                                                                border="0"
+                                                                cellpadding="0"
+                                                                cellspacing="0"
+                                                                width="100%"
+                                                                class="card-mobile mobile-mb-12"
+                                                                style="
+                                                                    background-color: rgba(239, 68, 68, 0.05);
+                                                                    border: 1px solid rgba(239, 68, 68, 0.2);
+                                                                    border-radius: 12px;
+                                                                    margin: 24px 0;
+                                                                    padding: 16px;
+                                                                "
+                                                            >
+                                                                <tr>
+                                                                    <td
+                                                                        width="24"
+                                                                        class="mobile-hide"
+                                                                        style="
+                                                                            width: 24px;
+                                                                            vertical-align: top;
+                                                                            color: #ef4444;
+                                                                            font-size: 18px;
+                                                                        "
+                                                                    >
+                                                                        🔒
+                                                                    </td>
+                                                                    <td
+                                                                        class="text-mobile-sm"
+                                                                        style="
+                                                                            padding-left: 12px;
+                                                                            font-size: 14px;
+                                                                            color: #f1f5f9;
+                                                                            line-height: 1.6;
+                                                                        "
+                                                                    >
+                                                                        <strong>Security Notice:</strong> This is a secure
+                                                                        invitation link. Please do not share it with others.
+                                                                        If you believe you received this in error, contact
+                                                                        our security team immediately.
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+
+                                                            <!-- Signature -->
+                                                            <table
+                                                                border="0"
+                                                                cellpadding="0"
+                                                                cellspacing="0"
+                                                                width="100%"
+                                                                class="mobile-mt-16"
+                                                                style="
+                                                                    margin-top: 40px;
+                                                                    padding-top: 24px;
+                                                                    border-top: 1px solid rgba(255, 255, 255, 0.05);
+                                                                "
+                                                            >
+                                                                <tr>
+                                                                    <td>
+                                                                        <p
+                                                                            class="text-mobile mobile-mb-8"
+                                                                            style="
+                                                                                font-size: 16px;
+                                                                                color: #94a3b8;
+                                                                                margin: 0 0 8px 0;
+                                                                                line-height: 1.5;
+                                                                            "
+                                                                        >
+                                                                            We're excited to have you join the
+                                                                            collaboration!
+                                                                        </p>
+                                                                        <p
+                                                                            class="h2-mobile"
+                                                                            style="
+                                                                                font-weight: 700;
+                                                                                font-size: 18px;
+                                                                                color: #6366f1;
+                                                                                margin: 0;
+                                                                            "
+                                                                        >
+                                                                            The CollabDocx Team
+                                                                        </p>
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+
+                                        <!-- Footer -->
+                                        <tr>
+                                            <td
+                                                class="mobile-footer-padding"
+                                                style="background-color: #1e293b; padding: 24px 32px; text-align: center"
+                                            >
+                                                <p
+                                                    class="text-mobile-sm mobile-mb-8"
+                                                    style="
+                                                        margin: 0 0 12px 0;
+                                                        font-size: 13px;
+                                                        color: #9ca3af;
+                                                        line-height: 1.6;
+                                                    "
+                                                >
+                                                    You're receiving this email because
+                                                    <strong>you were added as a collaborator</strong> on a document.<br />
+                                                    If this wasn't you, please safely ignore this message.
+                                                </p>
+                                                <p
+                                                    class="text-mobile-sm mobile-mb-8"
+                                                    style="margin: 0 0 12px 0; font-size: 13px; color: #9ca3af"
+                                                >
+                                                    © 2025 <strong>CollabDocx</strong> All rights reserved.
+                                                </p>
+                                                <p
+                                                    class="text-mobile-sm"
+                                                    style="
+                                                        margin: 0;
+                                                        font-size: 13px;
+                                                        font-style: italic;
+                                                        color: #9ca3af;
+                                                        word-break: break-all;
+                                                    "
+                                                >
+                                                    senderEmail
+                                                </p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+            </table>
+        </body>
+    </html>
+
+`;

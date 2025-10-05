@@ -5,6 +5,8 @@ import mongoose, { version } from 'mongoose';
 import * as Y from 'yjs';
 import fs from 'node:fs';
 import cloudinary from '../util/cloudinary.js';
+import puppeteer from 'puppeteer';
+import { sendInvite } from '../util/sendEmail.js';
 
 export const saveVersion = async (req, res) => {
     try {
@@ -224,6 +226,7 @@ export const deleteDocument = async (req, res) => {
 
 export const addPeople = async (req, res) => {
     const { documentId, emails, role } = req.body;
+    const userId = req.userId;
 
     try {
         // Validate request
@@ -268,20 +271,31 @@ export const addPeople = async (req, res) => {
             return res.status(404).json({ message: 'No matching users found' });
         }
 
-        // Push users into collaborators (deduplicated)
+        const newlyAddedUsers = [];
+
         users.forEach((user) => {
             if (!document.collaborators.some((c) => c.userId._id.toString() === user._id.toString())) {
                 document.collaborators.push({ userId: user._id, role });
+                newlyAddedUsers.push({ user, role });
             }
         });
 
         await document.save();
 
-        // Return updated doc with collaborators populated
-        const updatedDoc = await Document.findById(documentId)
-            .populate('ownerId')
-            .populate('collaborators.userId')
-            .exec();
+        const fromuser = await User.findById(userId).select('name email').exec();
+        console.log(fromuser);
+
+        for (const { user, role } of newlyAddedUsers) {
+            if (user.email) {
+                // IMPORTANT: complete this logic
+                await sendInvite(
+                    { username: user.name, email: user.email },
+                    { username: fromuser.name, email: fromuser.email },
+                    { documentId: documentId, name: document.title },
+                    role,
+                );
+            }
+        }
 
         return res.status(200).json({ success: true });
     } catch (error) {
@@ -290,7 +304,7 @@ export const addPeople = async (req, res) => {
     }
 };
 
-export const fetchDocShareableData = async (req, res) => {
+export const getDocument = async (req, res) => {
     const { editorId } = req.params;
 
     if (!editorId || !mongoose.Types.ObjectId.isValid(editorId)) {
@@ -310,7 +324,7 @@ export const fetchDocShareableData = async (req, res) => {
         // ✅ Send the populated doc to frontend
         return res.status(200).json({
             success: true,
-            message: 'Document fetched meta data successfully',
+            message: 'Document data fetched successfully',
             document: document,
         });
     } catch (error) {
@@ -347,9 +361,6 @@ export const uploadImageInEditor = async (req, res) => {
     }
 };
 
-// backend/controllers/doc.controller.js
-import puppeteer from 'puppeteer';
-
 export const generatePDF = async (req, res) => {
     try {
         const { htmlContent } = req.body;
@@ -377,24 +388,42 @@ export const generatePDF = async (req, res) => {
         res.status(500).json({ error: 'Failed to generate PDF' });
     }
 };
-// export const getContributors = async (req, res) => {
-//     const { editorId: roomId } = req.params;
-//     if (!mongoose.Types.ObjectId.isValid(roomId)) {
-//         return res.status(400).json({ error: 'Invalid document ID' });
-//     }
-//     const contributorIds = contributorsMap.get(roomId);
-//     if (!contributorIds || contributorIds.size === 0) {
-//         return res.json({ contributors: [] });
-//     }
-//     // Pull role/color from roomUsers (if user is still online), or set defaults
-//     const usersInRoom = roomUsers.get(roomId) || new Map();
-//     const contributors = Array.from(contributorIds).map((userId) => {
-//         const entry = usersInRoom.get(userId) || {};
-//         return {
-//             _id: userId,
-//             role: entry.user?.role || 'editor',
-//             color: entry.user?.color || '#999999',
-//         };
-//     });
-//     return res.json({ contributors });
-// };
+export const updateDocument = async (req, res) => {
+    const { visibility, userswithupdatedrole } = req.body;
+    const { editorId } = req.params;
+
+    try {
+        if (!editorId || !mongoose.Types.ObjectId.isValid(editorId)) {
+            return res.status(400).json({ message: 'Invalid or missing editor ID' });
+        }
+
+        const document = await Document.findById(editorId);
+        if (!document) {
+            return res.status(404).json({ message: 'Document not found' });
+        }
+
+        // Update visibility if provided
+        if (visibility) document.visibility = visibility;
+
+        // 🔥 Update collaborator roles if provided
+        if (Array.isArray(userswithupdatedrole) && userswithupdatedrole.length > 0) {
+            userswithupdatedrole.forEach((userUpdate) => {
+                const collab = document.collaborators.find((c) => c.userId.toString() === userUpdate.id);
+                if (collab) {
+                    collab.role = userUpdate.role;
+                }
+            });
+        }
+
+        await document.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Document updated successfully',
+            updatedDocument: document,
+        });
+    } catch (error) {
+        console.error('Error updating document:', error);
+        res.status(500).json({ error: 'Failed to update document' });
+    }
+};
