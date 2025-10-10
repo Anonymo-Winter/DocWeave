@@ -23,7 +23,9 @@
         "nodemailer": "^7.0.6",
         "nodemon": "^3.1.10",
         "puppeteer": "^24.22.0",
+        "rollup": "^4.52.4",
         "socket.io": "^4.8.1",
+        "vite": "^7.1.9",
         "y-protocols": "^1.0.6",
         "yjs": "^13.6.27"
     }
