@@ -169,3 +169,8 @@ h4 {
 .custom-checkbox {
     color: white;
 }
+
+.tiptap-readonly {
+    cursor: pointer;
+    pointer-events: none !important;
+}

@@ -77,7 +77,7 @@ import '@/components/tiptap-ui-primitive/button/button.scss';
 // --- Styles ---
 import '@/components/tiptap-templates/simple/simple-editor.scss';
 
-import { Redo2, Undo2, XCircle } from 'lucide-react';
+import { Edit, Eye, Lock, Redo2, Undo2, Unlock, XCircle } from 'lucide-react';
 import { useSocket } from '../context/socketContext.jsx';
 import { useSelector } from 'react-redux';
 import { useGetVersionQuery, useSaveVersionMutation } from '../api/docApi.js';
@@ -90,21 +90,23 @@ import ErrorPage from './ErrorMessage.jsx';
 // import ImageUploadButton from './ImageUploadButton.jsx';
 import { toast } from 'sonner';
 
-const MainToolbarContent = ({ onHighlighterClick, onLinkClick, isMobile, editor, editorId }) => {
+const MainToolbarContent = ({
+    onHighlighterClick,
+    onLinkClick,
+    isMobile,
+    editor,
+    editorId,
+    setIsReadOnly,
+    isReadOnly,
+}) => {
     return (
         <>
             <ToolbarGroup>
-                <Button
-                    disabled={!editor.storage.undoManager?.canUndo()}
-                    onClick={() => editor.storage.undoManager.undo()}
-                >
+                <Button onClick={() => editor.commands.undo()}>
                     <Undo2 className='size-4' />
                 </Button>
 
-                <Button
-                    disabled={!editor.storage.undoManager?.canRedo()}
-                    onClick={() => editor.storage.undoManager.redo()}
-                >
+                <Button onClick={() => editor.commands.redo()}>
                     <Redo2 className='size-4' />
                 </Button>
             </ToolbarGroup>
@@ -142,7 +144,27 @@ const MainToolbarContent = ({ onHighlighterClick, onLinkClick, isMobile, editor,
                 {/* <ImageUploadButton editor={editor} documentId={editorId} text='Add' /> */}
                 <ImageUploadButton documentId={editorId} />
             </ToolbarGroup>
+            <ToolbarSeparator />
             <Spacer />
+            <ToolbarGroup>
+                <Button
+                    onClick={() => {
+                        const newMode = !isReadOnly;
+                        setIsReadOnly(newMode);
+                        editor?.setEditable(!newMode);
+                    }}
+                >
+                    {isReadOnly ? (
+                        <>
+                            <Edit size={16} className='mr-1' /> Edit
+                        </>
+                    ) : (
+                        <>
+                            <Eye size={16} className='mr-1' /> Read
+                        </>
+                    )}
+                </Button>
+            </ToolbarGroup>
             {isMobile && <ToolbarSeparator />}
             <ToolbarGroup>
                 <ThemeToggle />
@@ -180,8 +202,8 @@ export function SimpleEditor() {
     const toolbarRef = React.useRef(null);
     const { editorId } = useParams();
     const [saveVersion] = useSaveVersionMutation();
-    const [updateApplied, setUpdateApplied] = React.useState(false);
     const [isInitialized, setIsInitialized] = React.useState(false);
+    const [isReadOnly, setIsReadOnly] = React.useState(false);
 
     const bodyRect = useCursorVisibility({
         editor,
@@ -197,7 +219,6 @@ export function SimpleEditor() {
             console.log('📊 Version word count:', data.version?.wordCount);
         }
     }, [data]);
-
     // Stable references to prevent recreation
     const extensions = React.useMemo(() => {
         if (!ydoc || !awareness || !assignedColor) return null;
@@ -498,6 +519,7 @@ export function SimpleEditor() {
                               }
                             : {}
                     }
+                    key={isReadOnly ? 'ro' : 'rw'}
                     className='h-16 border-b border-gray-200 dark:border-gray-700 p-2 sm:p-3 bg-gray-50 dark:bg-gray-800'
                 >
                     {mobileView === 'main' ? (
@@ -507,6 +529,8 @@ export function SimpleEditor() {
                             onHighlighterClick={() => setMobileView('highlighter')}
                             onLinkClick={() => setMobileView('link')}
                             isMobile={isMobile}
+                            setIsReadOnly={setIsReadOnly}
+                            isReadOnly={isReadOnly}
                         />
                     ) : (
                         <MobileToolbarContent
@@ -518,7 +542,11 @@ export function SimpleEditor() {
                 <div className='h-full overflow-y-auto custom-scrollbar'>
                     {/* // ${isReadOnly ? 'select-text' : ''} */}
                     <div className={`prose dark:prose-invert max-w-none p-4 `}>
-                        <EditorContent editor={editor} role='presentation' />
+                        <EditorContent
+                            editor={editor}
+                            role='presentation'
+                            className={isReadOnly ? 'tiptap-readonly' : ''}
+                        />
                     </div>
                 </div>
             </EditorContext>

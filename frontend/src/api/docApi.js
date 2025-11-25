@@ -108,6 +108,13 @@ export const docApi = createApi({
             // Set keepUnusedDataFor to 0 to prevent RTK from caching the result
             keepUnusedDataFor: 0,
         }),
+        changeDocName: builder.mutation({
+            query: ({ documentId, name }) => ({
+                url: '/doc/doc-rename',
+                method: 'POST',
+                body: { documentId, name },
+            }),
+        }),
     }),
 });
 
@@ -122,4 +129,5 @@ export const {
     useGeneratePdfMutation,
     useGetDocumentQuery,
     useUpdateDocumentMutation,
+    useChangeDocNameMutation,
 } = docApi;

@@ -62,11 +62,14 @@ import {
     useSaveVersionMutation,
     useGetDocumentQuery,
     useUpdateDocumentMutation,
+    useChangeDocNameMutation,
 } from '../api/docApi.js';
 import * as Y from 'yjs';
 import { useSearchForEmailMutation } from '../api/userApi.js';
 import { getInitials } from '../util/getInitials.js';
 import Loader from '../components/Loader.jsx';
+import debounce from 'lodash.debounce';
+import { useCallback } from 'react';
 
 // Mock data for collaborators
 const mockCollaborators = [
@@ -985,10 +988,11 @@ const ShareModal = () => {
 
 const UserRoleSelector = ({ currentRole, onRoleChange }) => {
     const roles = [
-        { value: 'viewer', label: 'Viewer', icon: Eye, description: 'Can only view the document' },
-        { value: 'editor', label: 'Editor', icon: Edit, description: 'Can view, comment, and edit' },
+        { value: 'reader', label: 'Read-Only', icon: Eye, description: 'Can only view the document' },
+        { value: 'editor', label: 'Editing', icon: Edit, description: 'Can view, comment, and edit' },
     ];
 
+    console.log(currentRole);
     const CurrentRole = roles.find((role) => role.value === currentRole);
 
     return (
@@ -1153,8 +1157,8 @@ const EnhancedChat = ({ setIsChatVisible, currentUserRole, activeUsers, messages
                     <div>
                         <span className='font-semibold text-white text-lg'>Live Chat</span>
                         <div className='flex items-center gap-2 mt-1'>
-                            {/* <div className='flex -space-x-1'>
-                                {mockCollaborators.slice(0, 3).map((collab, index) => {
+                            <div className='flex -space-x-1'>
+                                {/* {mockCollaborators.slice(0, 3).map((collab, index) => {
                                     return (
                                         <div
                                             key={collab.id}
@@ -1165,8 +1169,8 @@ const EnhancedChat = ({ setIsChatVisible, currentUserRole, activeUsers, messages
                                             {collab.avatar[0]}
                                         </div>
                                     );
-                                })}
-                            </div> */}
+                                })} */}
+                            </div>
                             <span className='text-xs text-blue-100'>{activeUsers.length} online</span>
                         </div>
                     </div>
@@ -1334,14 +1338,17 @@ const EnhancedNavbar = ({
     onRoleChange,
     onShareClick,
     onVersionHistoryClick,
+    Documenttitle,
 }) => {
     const [showCollaborators, setShowCollaborators] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const { ydoc, awareness, assignedColor } = useSocket();
+    const { ydoc, awareness, assignedColor, activeUsers, isMobile } = useSocket();
     const [saveVersion] = useSaveVersionMutation();
     const user = useSelector((state) => state.user.user);
     const { editorId } = useParams();
     const [saveVersionDialogOpen, setSaveVersionDialogOpen] = useState(false);
+    const [documentName, setDocumentName] = useState(Documenttitle);
+
     // const [copied, setCopied] = useState(false);
 
     const [isFocused, setIsFocused] = useState(false);
@@ -1350,6 +1357,8 @@ const EnhancedNavbar = ({
     // const [autoSave, setAutoSave] = useState(false);
 
     const [versionopen, setVersionopen] = useState(false);
+
+    const [renameDocument] = useChangeDocNameMutation();
 
     const handleSave = async () => {
         if (!ydoc || !awareness) {
@@ -1421,6 +1430,40 @@ const EnhancedNavbar = ({
         }
     };
 
+    useEffect(() => {
+        if (Documenttitle) {
+            setDocumentName(Documenttitle);
+        }
+    }, [Documenttitle]);
+
+    const useDebouncedDocumentRename = (renameDocument, toast, editorId) => {
+        const debouncedRename = useCallback(
+            debounce(async (name) => {
+                if (name == documentName) return;
+                if (!name) {
+                    toast.error('Document name cannot be empty');
+                    setDocumentName('Untitled Document');
+                    return;
+                }
+                try {
+                    await renameDocument({
+                        documentId: editorId,
+                        name,
+                    }).unwrap();
+                } catch (error) {
+                    toast.error('Failed to change document name', {
+                        description: error.message,
+                    });
+                }
+            }, 700),
+            [],
+        );
+
+        return debouncedRename;
+    };
+
+    const debouncedRename = useDebouncedDocumentRename(renameDocument, toast, editorId);
+
     return (
         <header className='bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm'>
             <div className='flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8'>
@@ -1439,12 +1482,16 @@ const EnhancedNavbar = ({
                     <div className='hidden lg:flex items-center gap-2'>
                         <input
                             type='text'
-                            defaultValue='Untitled Document'
-                            className='ml-2 bg-transparent text-gray-900 dark:text-white font-medium focus:outline-none focus:bg-gray-50 dark:focus:bg-gray-800 px-2 py-1 rounded'
+                            value={documentName}
+                            onChange={(e) => {
+                                setDocumentName(e.target.value);
+                            }}
+                            onBlur={(e) => {
+                                debouncedRename(e.target.value);
+                            }}
+                            title={documentName}
+                            className='bg-transparent text-ellipsis text-gray-900 dark:text-white font-medium focus:outline-none focus:bg-gray-50 dark:focus:bg-gray-800 px-2 py-1 rounded'
                         />
-                        {/* <span className='text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full font-medium'>
-                            Editor
-                        </span> */}
                     </div>
                 </div>
 
@@ -1454,23 +1501,141 @@ const EnhancedNavbar = ({
                     <div className='hidden md:flex items-center gap-3'>
                         {/* Collaborators Group */}
                         <div className='relative'>
-                            <button
-                                aria-label='Show collaborators'
-                                onClick={() => setShowCollaborators((show) => !show)}
-                                className='flex space-x-0 hover:space-x-1 transition-all duration-200'
-                            >
-                                {mockCollaborators.slice(0, 3).map((c, i) => (
-                                    <Avatar key={c.id} collab={c} index={i} />
-                                ))}
-                                <div className='w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-600'>
-                                    <Plus size={12} />
-                                </div>
-                            </button>
-                            {showCollaborators && <CollaboratorsDropdown list={mockCollaborators} />}
+                            <div className='flex items-center -space-x-2 hover:space-x-0 transition-all duration-200'>
+                                {activeUsers.slice(0, 3).map((c, i) => {
+                                    return isMobile ? (
+                                        <Popover className='block md:hidden'>
+                                            <PopoverTrigger>
+                                                <div
+                                                    key={i}
+                                                    style={{ backgroundColor: c.color }}
+                                                    className='w-7 h-7 rounded-full cursor-pointer flex items-center justify-center text-xs text-white border-2 border-white dark:border-gray-800 shadow'
+                                                >
+                                                    {getInitials(c.name)}
+                                                </div>
+                                            </PopoverTrigger>
+                                            <PopoverContent
+                                                // className='w-fit'
+                                                className='bg-white block md:hidden dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl p-4 w-72'
+                                            >
+                                                <div className='flex items-center gap-3 mb-4'>
+                                                    <div
+                                                        className='w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-semibold shadow-sm'
+                                                        style={{ backgroundColor: c.color }}
+                                                    >
+                                                        {c.profileImage ? (
+                                                            <img
+                                                                src={c.profileImage}
+                                                                alt={c.name}
+                                                                className='w-full h-full rounded-full object-cover'
+                                                            />
+                                                        ) : (
+                                                            getInitials(c?.name || '?')
+                                                        )}
+                                                    </div>
+                                                    <div className='flex-1 min-w-0'>
+                                                        <div className='font-semibold text-gray-900 dark:text-white truncate text-sm'>
+                                                            {c?.name}
+                                                        </div>
+                                                        <div className='text-sm text-gray-600 dark:text-gray-400 truncate'>
+                                                            {c?.email}
+                                                        </div>
+                                                        {c.isOnline && (
+                                                            <div className='flex items-center gap-1 mt-1'>
+                                                                <div className='w-2 h-2 bg-green-500 rounded-full'></div>
+                                                                <span className='text-xs text-green-600 dark:text-green-400'>
+                                                                    Online
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    // onClick={() => onEmailClick(collab.email)}
+                                                    className='w-full flex items-center justify-center gap-2 px-3 py-2.5 border text-sm bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-950/70 transition-all duration-200 font-medium'
+                                                >
+                                                    <Mail size={16} />
+                                                    Send email
+                                                </button>
+                                            </PopoverContent>
+                                        </Popover>
+                                    ) : (
+                                        <HoverCard className='hidden md:block'>
+                                            <HoverCardTrigger asChild>
+                                                <div
+                                                    key={i}
+                                                    style={{ backgroundColor: c.color }}
+                                                    className='w-7 h-7 rounded-full cursor-pointer flex items-center justify-center text-xs text-white border-2 border-white dark:border-gray-800 shadow'
+                                                >
+                                                    {getInitials(c.name)}
+                                                </div>
+                                            </HoverCardTrigger>
+                                            <HoverCardContent className='bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl p-4 w-72'>
+                                                <div className='flex items-center gap-3 mb-4'>
+                                                    <div
+                                                        className='w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-semibold shadow-sm'
+                                                        style={{ backgroundColor: c.color }}
+                                                    >
+                                                        {c.profileImage ? (
+                                                            <img
+                                                                src={c.profileImage}
+                                                                alt={c.name}
+                                                                className='w-full h-full rounded-full object-cover'
+                                                            />
+                                                        ) : (
+                                                            getInitials(c?.name || '?')
+                                                        )}
+                                                    </div>
+                                                    <div className='flex-1 min-w-0'>
+                                                        <div className='font-semibold text-gray-900 dark:text-white truncate text-sm'>
+                                                            {c?.name}
+                                                        </div>
+                                                        <div className='text-sm text-gray-600 dark:text-gray-400 truncate'>
+                                                            {c?.email}
+                                                        </div>
+                                                        {c.isOnline && (
+                                                            <div className='flex items-center gap-1 mt-1'>
+                                                                <div className='w-2 h-2 bg-green-500 rounded-full'></div>
+                                                                <span className='text-xs text-green-600 dark:text-green-400'>
+                                                                    Online
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    // onClick={() => onEmailClick(collab.email)}
+                                                    className='w-full flex items-center justify-center gap-2 px-3 py-2.5 border text-sm bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-950/70 transition-all duration-200 font-medium'
+                                                >
+                                                    <Mail size={16} />
+                                                    Send email
+                                                </button>
+                                            </HoverCardContent>
+                                        </HoverCard>
+                                    );
+                                })}
+                                <button
+                                    aria-label='Show collaborators'
+                                    onClick={() => setShowCollaborators((show) => !show)}
+                                    className='flex items-center -space-x-2 hover:space-x-0 transition-all duration-200 cursor-pointer'
+                                >
+                                    {/* If there are more collaborators, show +N like Google Docs */}
+                                    {activeUsers.length > 3 ? (
+                                        <div className='w-7 h-7 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-700 border-2 border-white dark:text-gray-200 dark:border-gray-800 shadow'>
+                                            +{activeUsers.length - 3}
+                                        </div>
+                                    ) : (
+                                        <div className='w-7 h-7 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-100 border-2 border-white dark:border-gray-800 shadow'>
+                                            <Plus size={12} />
+                                        </div>
+                                    )}
+                                </button>
+                            </div>
+                            {showCollaborators && <CollaboratorsDropdown list={activeUsers} />}
                         </div>
 
                         {/* Role selector */}
-                        <UserRoleSelector currentRole={currentUserRole} onRoleChange={onRoleChange} />
+                        {/* <UserRoleSelector currentRole={currentUserRole} onRoleChange={onRoleChange} /> */}
                         {/* History */}
 
                         <Dialog open={versionopen} onOpenChange={setVersionopen}>
@@ -1787,6 +1952,7 @@ const EnhancedEditorLayout = () => {
     const [showShareModal, setShowShareModal] = useState(false);
     const [showVersionHistory, setShowVersionHistory] = useState(false);
     const { socket, isConnected, assignedColor, activeUsers } = useSocket();
+    const { editorId } = useParams();
 
     const [messages, setMessages] = useState([
         {
@@ -1825,6 +1991,13 @@ const EnhancedEditorLayout = () => {
         };
     }, [socket.current]);
 
+    const { data } = useGetDocumentQuery(editorId, {
+        refetchOnMountOrArgChange: true,
+        refetchOnReconnect: true,
+        refetchOnFocus: true,
+        // skip: !isOpen,
+    });
+
     return (
         <div className='min-h-screen w-full flex flex-col bg-white text-black dark:bg-gray-900 dark:text-white transition-colors duration-300'>
             <EnhancedNavbar
@@ -1834,6 +2007,7 @@ const EnhancedEditorLayout = () => {
                 onRoleChange={setCurrentUserRole}
                 onShareClick={() => setShowShareModal(true)}
                 onVersionHistoryClick={() => setShowVersionHistory(true)}
+                Documenttitle={data?.document?.title}
             />
 
             <div className='flex flex-1 h-full w-full overflow-hidden'>
