@@ -427,3 +427,36 @@ export const updateDocument = async (req, res) => {
         res.status(500).json({ error: 'Failed to update document' });
     }
 };
+
+export const changeDocName = async (req, res) => {
+    const { documentId, name } = req.body;
+
+    try {
+        if (!documentId || !mongoose.Types.ObjectId.isValid(documentId)) {
+            return res.status(400).json({ message: 'Invalid or missing document ID' });
+        }
+
+        const document = await Document.findById(documentId);
+        if (!document) {
+            return res.status(404).json({ message: 'Document not found' });
+        }
+
+        if (name) {
+            document.title = name;
+        } else {
+            return res.status(400).json({ message: 'Missing document name' });
+        }
+
+        await document.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Document renamed successfully',
+            updatedDocument: document,
+        });
+        console.log('changed name : ', name);
+    } catch (error) {
+        console.error('Error renaming document:', error);
+        res.status(500).json({ error: 'Failed to rename document' });
+    }
+};
