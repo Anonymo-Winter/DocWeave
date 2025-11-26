@@ -10,6 +10,8 @@ import { useNavigate } from 'react-router-dom';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import { useOfflineStatus } from '../hooks/useOfflineStatus';
 
+import { ydoc, awareness, indexeddbProvider, DOC_NAME } from './yjsSetup';
+
 const SocketContext = createContext();
 
 export const SocketProvider = ({ children }) => {
@@ -19,18 +21,9 @@ export const SocketProvider = ({ children }) => {
     const user = useSelector((state) => state.user.user);
     const socketRef = useRef(null);
     const [snapshots, setSnapshots] = useState([]);
-    const ydocRef = useRef(null);
-    const awarenessRef = useRef(null);
-    if (!ydocRef.current) ydocRef.current = new Y.Doc();
-    if (!awarenessRef.current) awarenessRef.current = new Awareness(ydocRef.current);
-
-    const docName = 'doc123'; // same room/document name
-    const indexeddbProviderRef = useRef(null);
-
-    const ydoc = ydocRef.current;
-    const awareness = awarenessRef.current;
     const [isConnected, setIsConnected] = useState(false);
     const [users, setActiveUsers] = useState([]);
+    const awarenessRef = useRef(awareness);
     const [connectionStatus, setConnectionStatus] = useState({
         state: 'disconnected',
         message: 'Unable to connect',
@@ -43,13 +36,11 @@ export const SocketProvider = ({ children }) => {
     const [logout] = useLogoutMutation();
 
     useEffect(() => {
-        if (!indexeddbProviderRef.current) {
-            indexeddbProviderRef.current = new IndexeddbPersistence(docName, ydocRef.current);
-            indexeddbProviderRef.current.once('synced', () => {
-                console.log('[IndexedDB] Document loaded from local storage');
-                socketRef.current?.emit('sync');
-            });
-        }
+        // indexeddbProvider is already created in yjsSetup.js
+        indexeddbProvider.once('synced', () => {
+            console.log('[IndexedDB] Document loaded from local storage');
+            socketRef.current?.emit('sync'); // we’ll refine this in step 2
+        });
     }, []);
 
     useEffect(() => {
@@ -175,7 +166,7 @@ export const SocketProvider = ({ children }) => {
             // console.log('🧬 Current fragment after update:', fragment.toJSON());
         });
 
-        ydocRef.current.on('update', (update, origin) => {
+        ydoc.on('update', (update, origin) => {
             if (origin !== 'remote') {
                 // Don't echo back remote updates
                 // console.log('📤 Emitting local update');
