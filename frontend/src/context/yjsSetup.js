@@ -12,7 +12,7 @@ const docMap = new Map();
  */
 export function getYjsForDoc(docId) {
     if (!docId) {
-        throw new Error('getYjsForDoc: docId is required');
+        return null;
     }
 
     if (!docMap.has(docId)) {
@@ -24,4 +24,18 @@ export function getYjsForDoc(docId) {
     }
 
     return docMap.get(docId);
+}
+
+export function whenIndexeddbSynced(indexeddbProvider) {
+    if (!indexeddbProvider) return Promise.resolve();
+
+    // If already synced, resolve immediately
+    if (indexeddbProvider.synced) {
+        return Promise.resolve();
+    }
+
+    // Otherwise wait for the event
+    return new Promise((resolve) => {
+        indexeddbProvider.once('synced', resolve);
+    });
 }

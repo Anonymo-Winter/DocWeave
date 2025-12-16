@@ -204,6 +204,7 @@ export function SimpleEditor() {
     const [saveVersion] = useSaveVersionMutation();
     const [isInitialized, setIsInitialized] = React.useState(false);
     const [isReadOnly, setIsReadOnly] = React.useState(false);
+    const [ydocReadyState, setYdocReadyState] = React.useState(false);
 
     const bodyRect = useCursorVisibility({
         editor,
@@ -213,12 +214,34 @@ export function SimpleEditor() {
     const { data, isLoading: isVersionLoading, error } = useGetVersionQuery({ editorId });
 
     React.useEffect(() => {
+        if (!ydoc) return;
+
+        // If document already has content, we are ready
+        const fragment = ydoc.getXmlFragment('default');
+
+        if (fragment.toString().length > 0) {
+            setYdocReadyState(true);
+            return;
+        }
+
+        const handler = () => {
+            setYdocReadyState(true);
+            ydoc.off('update', handler);
+        };
+
+        ydoc.on('update', handler);
+        return () => ydoc.off('update', handler);
+    }, [ydoc]);
+
+    React.useEffect(() => {
         if (data) {
             console.log('📊 Fetched version data:', data);
             console.log('📊 Version update length:', data.version?.update?.length);
             console.log('📊 Version word count:', data.version?.wordCount);
         }
     }, [data]);
+    const provider = React.useMemo(() => ({ awareness }), [awareness]);
+
     // Stable references to prevent recreation
     const extensions = React.useMemo(() => {
         if (!ydoc || !awareness || !assignedColor) return null;
@@ -256,7 +279,7 @@ export function SimpleEditor() {
                 field: 'default',
             }),
             CollaborationCursor.configure({
-                provider: { awareness },
+                provider: provider,
                 user: {
                     name: user?.name || 'Anonymous',
                     color: assignedColor,
@@ -264,7 +287,7 @@ export function SimpleEditor() {
                 },
             }),
         ];
-    }, [ydoc, awareness, assignedColor, user]);
+    }, [ydoc, provider, assignedColor, user]);
 
     // React.useEffect(() => {
     //     if (!extensions || !isInitialized || editor) return;
@@ -291,7 +314,7 @@ export function SimpleEditor() {
     // }, [extensions, isInitialized, editor]);
 
     React.useEffect(() => {
-        if (!extensions || !isInitialized || editor) return;
+        if (!extensions || !isInitialized || !ydocReadyState || editor) return;
 
         console.log('🚀 Creating editor with current Ydoc state...');
         const newEditor = new Editor({
@@ -301,10 +324,11 @@ export function SimpleEditor() {
 
         setEditor(newEditor);
 
-        return () => {
-            // newEditor?.destroy();
-        };
-    }, [extensions, isInitialized]);
+        // return () => {
+        //     // newEditor?.destroy();
+        //     if (!editor) setEditor(newEditor);
+        // };
+    }, [extensions, isInitialized, ydocReadyState]);
 
     React.useEffect(() => {
         if (!editor || !ydoc) return;

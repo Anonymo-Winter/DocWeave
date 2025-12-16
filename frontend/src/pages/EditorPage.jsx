@@ -1082,6 +1082,7 @@ const EnhancedChat = ({ setIsChatVisible, currentUserRole, activeUsers, messages
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
     const { socket, isConnected, assignedColor } = useSocket();
+    const { editorId } = useParams();
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -1094,7 +1095,7 @@ const EnhancedChat = ({ setIsChatVisible, currentUserRole, activeUsers, messages
     const handleSend = async () => {
         if (input.trim() && currentUserRole !== 'viewer') {
             const newMessage = {
-                roomId: 'doc123',
+                roomId: editorId,
                 message: input,
                 user: { email: user.email, name: user.name, color: assignedColor + '' },
                 timestamp: new Date().toISOString(),

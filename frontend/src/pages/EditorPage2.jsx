@@ -77,19 +77,51 @@ const ProfessionalNavbar = ({ isChatVisible, setIsChatVisible }) => {
 
 const EditorPage = () => {
     const { socket, isConnected, connectionStatus, assignedColor } = useSocket();
+    const { editorId } = useParams();
+    console.log(editorId);
+    console.log('tarun sumanth');
 
     const [isChatVisible, setIsChatVisible] = useState(
         () => document.querySelector('.active-chats')?.style.display !== 'none',
     );
 
+    // const handleMessageSubmit = (data, user) => {
+    //     if (isConnected) {
+    //         socket.current.emit('message', {
+    //             roomId: 'doc123',
+    //             message: data,
+    //             user: { email: user.email, name: user.name, color: assignedColor + '' },
+    //         });
+    //     } else toast.error('You are not connected to the server.');
+    // };
+
     const handleMessageSubmit = (data, user) => {
-        if (isConnected) {
-            socket.current.emit('message', {
-                roomId: 'doc123',
-                message: data,
-                user: { email: user.email, name: user.name, color: assignedColor + '' },
-            });
-        } else toast.error('You are not connected to the server.');
+        if (!isConnected) return toast.error('You are not connected to the server.');
+        return new Promise((resolve, reject) => {
+            socket.current.emit(
+                'message',
+                {
+                    // roomId:,
+                    message: data,
+                    senderUserId: user._id,
+                    user: {
+                        email: user.email,
+                        name: user.name,
+                        color: assignedColor + '',
+                    },
+                },
+                (ack) => {
+                    if (!ack || ack.status !== 'ok') {
+                        reject(ack?.error || 'Send failed');
+                    } else {
+                        resolve();
+                    }
+                },
+            );
+
+            // ⏱ safety timeout
+            setTimeout(() => reject('Timeout'), 7000);
+        });
     };
 
     return (
