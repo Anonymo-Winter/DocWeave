@@ -279,7 +279,8 @@ const MultiSelectInput = ({ selectedUsers, onUserSelect, onUserRemove, placehold
             setFetchedEmails(matches);
             setIsOpen(true);
         } catch (err) {
-            console.error('Failed to fetch emails:', err);
+            console.error(err);
+            toast.error('Failed to search users. Please try again.');
         }
     };
 
@@ -451,7 +452,7 @@ const ShareModal = () => {
                     documentId: documentId,
                     emails: selectedUsers.map((u) => u.email),
                     role: selectedRole,
-                });
+                }).unwrap();
                 if (res?.data?.success) {
                     toast.success('Invitations sent successfully');
                     setSelectedUsers([]);
@@ -1343,7 +1344,7 @@ const EnhancedNavbar = ({
 }) => {
     const [showCollaborators, setShowCollaborators] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const { ydoc, awareness, assignedColor, activeUsers, isMobile } = useSocket();
+    const { ydoc, awareness, assignedColor, activeUsers, isMobile, fatalSocketError } = useSocket();
     const [saveVersion] = useSaveVersionMutation();
     const user = useSelector((state) => state.user.user);
     const { editorId } = useParams();
@@ -1452,8 +1453,10 @@ const EnhancedNavbar = ({
                         name,
                     }).unwrap();
                 } catch (error) {
+                    const message = error?.data?.message || error?.message || 'Something went wrong';
+
                     toast.error('Failed to change document name', {
-                        description: error.message,
+                        description: message,
                     });
                 }
             }, 700),
@@ -1464,6 +1467,10 @@ const EnhancedNavbar = ({
     };
 
     const debouncedRename = useDebouncedDocumentRename(renameDocument, toast, editorId);
+
+    if (fatalSocketError) {
+        return <ErrorMessage error={fatalSocketError} />;
+    }
 
     return (
         <header className='bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm'>
@@ -1945,6 +1952,7 @@ import { getWordCountFromYdoc } from '../util/wordCount.js';
 import { Label } from '../components/ui/label.tsx';
 import { AiOutlineHistory } from 'react-icons/ai';
 import VersionComponent from '../components/VersionComponent.jsx';
+import ErrorMessage from '../components/ErrorMessage.jsx';
 
 const EnhancedEditorLayout = () => {
     const [isChatVisible, setIsChatVisible] = useState(false);
@@ -1952,7 +1960,8 @@ const EnhancedEditorLayout = () => {
     const [currentUserRole, setCurrentUserRole] = useState('editor');
     const [showShareModal, setShowShareModal] = useState(false);
     const [showVersionHistory, setShowVersionHistory] = useState(false);
-    const { socket, isConnected, assignedColor, activeUsers } = useSocket();
+    const { socket, isConnected, assignedColor, activeUsers, fatalSocketError } = useSocket();
+    const [layoutError, setLayoutError] = useState(null);
     const { editorId } = useParams();
 
     const [messages, setMessages] = useState([
@@ -1999,6 +2008,13 @@ const EnhancedEditorLayout = () => {
         // skip: !isOpen,
     });
 
+    if (fatalSocketError) {
+        return <ErrorMessage error={fatalSocketError} />;
+    }
+    if (layoutError) {
+        return <ErrorMessage error={layoutError} />;
+    }
+
     return (
         <div className='min-h-screen w-full flex flex-col bg-white text-black dark:bg-gray-900 dark:text-white transition-colors duration-300'>
             <EnhancedNavbar
@@ -2014,7 +2030,7 @@ const EnhancedEditorLayout = () => {
             <div className='flex flex-1 h-full w-full overflow-hidden'>
                 {/* Editor Section */}
                 <section className='flex-1 min-w-0 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex flex-col p-2 sm:p-4 '>
-                    <Editor />
+                    <Editor onError={setLayoutError} />
                 </section>
 
                 {/* Enhanced Chat Section */}
@@ -2031,10 +2047,6 @@ const EnhancedEditorLayout = () => {
                     </aside>
                 )}
             </div>
-
-            {/* Modals */}
-            {/* <ShareModal isOpen={showShareModal} onClose={() => setShowShareModal(false)} /> */}
-            {/* <VersionHistoryModal isOpen={showVersionHistory} onClose={() => setShowVersionHistory(false)} /> */}
         </div>
     );
 };

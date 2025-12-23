@@ -10,6 +10,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useOfflineStatus } from '../hooks/useOfflineStatus';
 
 import { getYjsForDoc, whenIndexeddbSynced } from './yjsSetup';
+import ErrorMessage from '../components/ErrorMessage';
 
 const SocketContext = createContext();
 
@@ -36,11 +37,12 @@ export const SocketProvider = ({ children }) => {
         message: 'Unable to connect',
     });
     const { editorId } = useParams();
+    const [fatalSocketError, setFatalSocketError] = useState(null);
 
     // ---- Yjs setup (one doc per tab) ----
     const yjsRef = useRef(null);
     if (!yjsRef.current) {
-        yjsRef.current = getYjsForDoc(editorId); // TODO: make dynamic
+        yjsRef.current = getYjsForDoc(editorId);
     }
 
     const { ydoc, awareness, indexeddbProvider } = yjsRef.current;
@@ -119,6 +121,34 @@ export const SocketProvider = ({ children }) => {
             );
         };
 
+        socket.on('error', (error) => {
+            console.error('Socket error:', error);
+
+            if (error === 'ACCESS_DENIED') {
+                setFatalSocketError({
+                    code: 'NO_ACCESS',
+                    status: 403,
+                    message: 'You do not have permission to access this document.',
+                });
+                socket.disconnect();
+                return;
+            }
+
+            if (error === 'ROOM_NOT_FOUND') {
+                setFatalSocketError({
+                    code: 'DOC_NOT_FOUND',
+                    status: 404,
+                    message: 'The document you are looking for does not exist.',
+                });
+                socket.disconnect();
+                return;
+            }
+
+            toast.error('Socket error', {
+                description: String(error),
+            });
+        });
+
         // -------- SOCKET EVENTS --------
         socket.on('connect', () => {
             socketReadyRef.current = true;
@@ -157,11 +187,20 @@ export const SocketProvider = ({ children }) => {
         socket.on('active-users', setActiveUsers);
 
         socket.on('connect_error', async (err) => {
-            if (err.message.includes('Auth')) {
+            console.error('Connect error:', err);
+
+            if (err.message?.includes('Auth')) {
                 socket.disconnect();
                 await logout().unwrap();
                 navigate('/login');
+                return;
             }
+
+            setFatalSocketError({
+                code: 'SOCKET_FAILED',
+                status: 503,
+                message: 'Unable to establish a real-time connection. Please refresh the page.',
+            });
         });
 
         // -------- YJS EVENTS --------
@@ -228,6 +267,7 @@ export const SocketProvider = ({ children }) => {
                 awareness,
                 assignedColor,
                 activeUsers,
+                fatalSocketError,
             }}
         >
             {children}

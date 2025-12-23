@@ -17,6 +17,7 @@ import NotFoundPage from './pages/Page404.jsx';
 import { useSelector } from 'react-redux';
 import VersionComponent from './components/VersionComponent.jsx';
 import { useEffect } from 'react';
+import ErrorMessage from './components/ErrorMessage.jsx';
 
 const ErrorComponent = () => (
     <div className='relative min-h-[calc(100vh-3rem)] flex items-center justify-center bg-transparent overflow-hidden px-4'>
@@ -145,6 +146,7 @@ export default function App() {
                                 </PrivateRoute>
                             }
                         />
+                        <Route path='/error' element={<ErrorMessage />} />
                         <Route path='/user-profile' element={<PrivateRoute>{'User Profile'}</PrivateRoute>} />
                         <Route path='/k' element={<MainHomePage />} />
                         <Route path='*' element={<NotFoundPage />} />

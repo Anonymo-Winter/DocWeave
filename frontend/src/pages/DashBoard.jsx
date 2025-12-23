@@ -34,98 +34,98 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 import { useLogoutMutation } from '../api/userApi';
-import { useCreateDocumentMutation } from '../api/docApi';
+import { useCreateDocumentMutation, useGetUserDocumentsQuery } from '../api/docApi';
 
 import ProfileEditModal from '../components/EditProfile';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggleTool';
 import { TbFileTypeDoc } from 'react-icons/tb';
 import { getInitials } from '../util/getInitials.js';
 import { cn } from '@/lib/utils';
 
 // Mock documents data
-const mockDocuments = [
-    {
-        id: 1,
-        title: 'Project Proposal Q4',
-        lastModified: '2 hours ago',
-        collaborators: 3,
-        starred: true,
-        thumbnail: '📊',
-        ownership: 'owned',
-        permission: 'edit',
-    },
-    {
-        id: 2,
-        title: 'Marketing Strategy',
-        lastModified: '1 day ago',
-        collaborators: 5,
-        starred: false,
-        thumbnail: '📈',
-        ownership: 'shared',
-        permission: 'edit',
-    },
-    {
-        id: 3,
-        title: 'Team Meeting Notes',
-        lastModified: '3 days ago',
-        collaborators: 2,
-        starred: true,
-        thumbnail: '📝',
-        ownership: 'owned',
-        permission: 'edit',
-    },
-    {
-        id: 4,
-        title: 'Budget Analysis',
-        lastModified: '1 week ago',
-        collaborators: 4,
-        starred: false,
-        thumbnail: '💰',
-        ownership: 'shared',
-        permission: 'view',
-    },
-    {
-        id: 5,
-        title: 'User Research Report',
-        lastModified: '2 weeks ago',
-        collaborators: 6,
-        starred: false,
-        thumbnail: '🔍',
-        ownership: 'shared',
-        permission: 'edit',
-    },
-    {
-        id: 6,
-        title: 'Product Roadmap',
-        lastModified: '1 month ago',
-        collaborators: 8,
-        starred: true,
-        thumbnail: '🗺️',
-        ownership: 'owned',
-        permission: 'edit',
-    },
-    {
-        id: 7,
-        title: 'Company Handbook',
-        lastModified: '2 months ago',
-        collaborators: 12,
-        starred: false,
-        thumbnail: '📚',
-        ownership: 'shared',
-        permission: 'view',
-    },
-    {
-        id: 8,
-        title: 'Design Guidelines',
-        lastModified: '3 months ago',
-        collaborators: 7,
-        starred: false,
-        thumbnail: '🎨',
-        ownership: 'shared',
-        permission: 'view',
-    },
-];
+// const mockDocuments = [
+//     {
+//         id: 1,
+//         title: 'Project Proposal Q4',
+//         lastModified: '2 hours ago',
+//         collaborators: 3,
+//         starred: true,
+//         thumbnail: '📊',
+//         ownership: 'owned',
+//         permission: 'edit',
+//     },
+//     {
+//         id: 2,
+//         title: 'Marketing Strategy',
+//         lastModified: '1 day ago',
+//         collaborators: 5,
+//         starred: false,
+//         thumbnail: '📈',
+//         ownership: 'shared',
+//         permission: 'edit',
+//     },
+//     {
+//         id: 3,
+//         title: 'Team Meeting Notes',
+//         lastModified: '3 days ago',
+//         collaborators: 2,
+//         starred: true,
+//         thumbnail: '📝',
+//         ownership: 'owned',
+//         permission: 'edit',
+//     },
+//     {
+//         id: 4,
+//         title: 'Budget Analysis',
+//         lastModified: '1 week ago',
+//         collaborators: 4,
+//         starred: false,
+//         thumbnail: '💰',
+//         ownership: 'shared',
+//         permission: 'view',
+//     },
+//     {
+//         id: 5,
+//         title: 'User Research Report',
+//         lastModified: '2 weeks ago',
+//         collaborators: 6,
+//         starred: false,
+//         thumbnail: '🔍',
+//         ownership: 'shared',
+//         permission: 'edit',
+//     },
+//     {
+//         id: 6,
+//         title: 'Product Roadmap',
+//         lastModified: '1 month ago',
+//         collaborators: 8,
+//         starred: true,
+//         thumbnail: '🗺️',
+//         ownership: 'owned',
+//         permission: 'edit',
+//     },
+//     {
+//         id: 7,
+//         title: 'Company Handbook',
+//         lastModified: '2 months ago',
+//         collaborators: 12,
+//         starred: false,
+//         thumbnail: '📚',
+//         ownership: 'shared',
+//         permission: 'view',
+//     },
+//     {
+//         id: 8,
+//         title: 'Design Guidelines',
+//         lastModified: '3 months ago',
+//         collaborators: 7,
+//         starred: false,
+//         thumbnail: '🎨',
+//         ownership: 'shared',
+//         permission: 'view',
+//     },
+// ];
 
 // Filter options
 const filterOptions = [
@@ -329,6 +329,7 @@ const FilterDropdown = ({ selectedFilter, onFilterChange }) => {
         </div>
     );
 };
+
 const DocumentCard = ({ document, viewMode }) => {
     const [isStarred, setIsStarred] = useState(document.starred);
 
@@ -428,12 +429,17 @@ const Dashboard = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [viewMode, setViewMode] = useState('grid');
     const [selectedFilter, setSelectedFilter] = useState('all');
-    const [filteredDocuments, setFilteredDocuments] = useState(mockDocuments);
+    const [filteredDocuments, setFilteredDocuments] = useState([]);
+    const user = useSelector((state) => state.user.user);
     const [createDocument, { isLoading: isDocumentLoading }] = useCreateDocumentMutation();
+    const { data, isLoading: isLoadingDocuments } = useGetUserDocumentsQuery(user?._id);
+    const userDocuments = data?.userDocuments || [];
+    console.log(userDocuments);
     const navigate = useNavigate();
 
     useEffect(() => {
-        let filtered = mockDocuments.filter((doc) => doc.title.toLowerCase().includes(searchQuery.toLowerCase()));
+        if (!userDocuments.length) return;
+        let filtered = userDocuments.filter((doc) => doc.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
         // Apply filter
         switch (selectedFilter) {
@@ -458,14 +464,14 @@ const Dashboard = () => {
     }, [searchQuery, selectedFilter]);
 
     const getFilteredCount = () => {
+        if (isLoadingDocuments) return 'Loading....';
         const count = filteredDocuments.length;
-        const total = mockDocuments.length;
+        const total = userDocuments.length;
 
         if (selectedFilter === 'all') {
             return `${count} ${count === 1 ? 'document' : 'documents'}`;
         }
 
-        const filterLabel = filterOptions.find((option) => option.value === selectedFilter)?.label || '';
         return `${count} of ${total} documents`;
     };
 
@@ -615,9 +621,24 @@ const Dashboard = () => {
                                         : 'space-y-3'
                                 }
                             >
-                                {filteredDocuments.map((document) => (
-                                    <DocumentCard key={document.id} document={document} viewMode={viewMode} />
-                                ))}
+                                {isLoadingDocuments
+                                    ? 'Loading...'
+                                    : filteredDocuments.map((document) => (
+                                          <DocumentCard key={document.id} document={document} viewMode={viewMode} />
+                                      ))}
+                                {isLoadingDocuments ? (
+                                    <div className='py-12 text-center text-gray-500'>Loading documents…</div>
+                                ) : filteredDocuments.length === 0 ? (
+                                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                                        <h3>No Records Found</h3>
+                                    </motion.div>
+                                ) : (
+                                    <motion.div>
+                                        {filteredDocuments.map((document) => (
+                                            <DocumentCard key={document.id} document={document} />
+                                        ))}
+                                    </motion.div>
+                                )}
                             </motion.div>
                         )}
                     </AnimatePresence>

@@ -115,6 +115,11 @@ export const docApi = createApi({
                 body: { documentId, name },
             }),
         }),
+        getUserDocuments: builder.query({
+            query: (userId) => {
+                return `/doc/user-documents/${userId}`;
+            },
+        }),
     }),
 });
 
@@ -130,4 +135,5 @@ export const {
     useGetDocumentQuery,
     useUpdateDocumentMutation,
     useChangeDocNameMutation,
+    useGetUserDocumentsQuery,
 } = docApi;

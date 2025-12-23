@@ -89,6 +89,8 @@ import ErrorPage from './ErrorMessage.jsx';
 
 // import ImageUploadButton from './ImageUploadButton.jsx';
 import { toast } from 'sonner';
+import { getCriticalEditorError } from '../context/yjsSetup.js';
+import ErrorMessage from './ErrorMessage.jsx';
 
 const MainToolbarContent = ({
     onHighlighterClick,
@@ -192,7 +194,7 @@ const MobileToolbarContent = ({ type, onBack }) => (
     </>
 );
 
-export function SimpleEditor() {
+export function SimpleEditor({ onError }) {
     const user = useSelector((state) => state.user.user);
     const { ydoc, awareness, assignedColor } = useSocket();
     const [editor, setEditor] = React.useState(null);
@@ -205,6 +207,7 @@ export function SimpleEditor() {
     const [isInitialized, setIsInitialized] = React.useState(false);
     const [isReadOnly, setIsReadOnly] = React.useState(false);
     const [ydocReadyState, setYdocReadyState] = React.useState(false);
+    const [criticalYjsError, setCriticalYjsError] = React.useState(null);
 
     const bodyRect = useCursorVisibility({
         editor,
@@ -348,6 +351,11 @@ export function SimpleEditor() {
         }
     }, [isMobile, mobileView]);
 
+    // 1️⃣ Combine fatal errors
+    const criticalApiError = !isVersionLoading ? getCriticalEditorError(error) : null;
+
+    const fatalError = criticalApiError || criticalYjsError;
+
     // React.useEffect(() => {
     //     if (!editor || !ydoc) return;
 
@@ -382,6 +390,7 @@ export function SimpleEditor() {
 
     // In SimpleEditor component
     React.useEffect(() => {
+        if (fatalError) return;
         if (!ydoc || !data?.version?.update || isInitialized) return;
 
         const initialize = async () => {
@@ -408,75 +417,26 @@ export function SimpleEditor() {
                 setIsInitialized(true);
             } catch (err) {
                 console.error('❌ Failed to apply version:', err);
-                setIsInitialized(true); // Still continue even if version load fails
+                setCriticalYjsError({
+                    code: 'YJS_CORRUPT',
+                    status: 500,
+                    message: 'Failed to load document content. The data may be corrupted.',
+                });
+                // setIsInitialized(true); // Still continue even if version load fails
+                return;
             }
         };
 
         initialize();
-    }, [ydoc, data?.version?.update, isInitialized]);
+    }, [fatalError, ydoc, data?.version?.update, isInitialized]);
 
-    const handleSave = async () => {
-        if (!editor || !ydoc || !awareness) {
-            console.warn('❌ Cannot save version: editor or Ydoc missing');
-            return;
-        }
+    React.useEffect(() => {
+        if (fatalError) return;
+        if (!extensions || !isInitialized || !ydocReadyState || editor) return;
 
-        try {
-            const update = Y.encodeStateAsUpdate(ydoc);
-            const fragment = ydoc.getXmlFragment('default');
-            console.log('📝 Saving fragment:', fragment.toJSON());
-            console.log('💾 Saving update with length:', update.byteLength);
-
-            if (!update || update.byteLength < 20) {
-                console.warn('⚠️ Update too small. Likely not ready. Skipping save.');
-                return;
-            }
-
-            const updateBase64 = Buffer.from(update).toString('base64');
-
-            try {
-                const decoded = Buffer.from(updateBase64, 'base64');
-                Y.decodeUpdate(decoded);
-            } catch (decodeErr) {
-                console.error('❌ Cannot save: Invalid Yjs update:', decodeErr.message);
-                return;
-            }
-
-            const collaborators = Array.from(awareness.getStates()).map(([clientId, state]) => ({
-                name: state?.user?.name || 'Anonymous',
-                clientId,
-            }));
-
-            const res = await saveVersion({
-                documentId: editorId,
-                update: updateBase64,
-                name: `Version ${new Date().toLocaleString()}`,
-                author: { _id: user._id, name: user.name },
-                wordCount: editor.storage.characterCount.words(),
-                collaborators,
-            });
-
-            console.log('✅ Version saved:', res);
-        } catch (err) {
-            console.error('❌ Failed to save version:', err);
-        }
-    };
-
-    const forceSync = () => {
-        if (!editor || !ydoc) return;
-
-        console.log('🔄 Forcing editor re-sync...');
-
-        // Get the current Ydoc state
-        const fragment = ydoc.getXmlFragment('default');
-        console.log('📄 Current Ydoc fragment:', fragment.toString());
-
-        // Try to manually trigger editor update
-        editor.commands.focus();
-        editor.view.dispatch(editor.view.state.tr);
-
-        console.log('🔄 Re-sync completed');
-    };
+        const newEditor = new Editor({ extensions, autofocus: true });
+        setEditor(newEditor);
+    }, [fatalError, extensions, isInitialized, ydocReadyState]);
 
     // React.useEffect(() => {
     //     const interval = setInterval(async () => {
@@ -503,8 +463,23 @@ export function SimpleEditor() {
     //     return () => clearInterval(interval);
     // }, [editor, ydoc]);
 
-    if (error) {
-        return <ErrorPage error={error} />;
+    // const criticalError = !isVersionLoading ? getCriticalEditorError(error) : null;
+
+    // if (criticalError) {
+    //     return <ErrorMessage error={criticalError} showBack />;
+    // }
+
+    // if (criticalYjsError) {
+    //     return <ErrorMessage error={criticalYjsError} showBack />;
+    // }
+
+    // 2️⃣ BLOCK EVERYTHING
+    if (fatalError) {
+        onError?.({
+            ...fatalError,
+            fatal: true,
+        });
+        return null;
     }
 
     if (!editor || isVersionLoading || !isInitialized) {
