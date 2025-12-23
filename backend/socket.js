@@ -4,6 +4,7 @@ import * as Y from 'yjs';
 import jwt from 'jsonwebtoken';
 import Document from './models/document.model.js';
 import mongoose from 'mongoose';
+import { resolveUserRole } from './controllers/doc.controller.js';
 
 const tailwindBaseHexColors = [
     '#ef4444',
@@ -132,9 +133,16 @@ export function setupSocketIo(server) {
         // JOIN ROOM
         // =========================
         socket.on('join-room', async ({ roomId, clientID, user: userData }, callback = () => {}) => {
+            const userId = authedUser?.id;
             try {
                 if (!roomId || typeof clientID !== 'number' || !userData?.id) {
                     callback({ error: 'Invalid join-room payload' });
+                    return;
+                }
+
+                const role = await resolveUserRole({ userId, docId: roomId });
+                if (!role) {
+                    socket.emit('error', 'ACCESS_DENIED');
                     return;
                 }
 
@@ -148,6 +156,8 @@ export function setupSocketIo(server) {
                 currentUserData = userData;
 
                 socket.join(roomId);
+                socket.data.docId = roomId;
+                socket.data.role = role;
 
                 // Assign deterministic color (no DB persistence in this version)
                 // Fetch document metadata
@@ -223,6 +233,9 @@ export function setupSocketIo(server) {
         socket.on('update', (update) => {
             if (!currentRoomId) return;
 
+            const role = socket.data.role;
+            if (role !== 'EDITOR' && role !== 'OWNER') return;
+
             try {
                 const { doc } = getRoomState(currentRoomId);
                 Y.applyUpdate(doc, new Uint8Array(update));
@@ -263,6 +276,7 @@ export function setupSocketIo(server) {
         // =========================
         socket.on('awareness-update', (update) => {
             if (!currentRoomId) return;
+            if (socket.data.role == 'VIEWER') return;
             // DO NOT apply/encode/store awareness on server.
             socket.to(currentRoomId).emit('awareness-update', update);
         });
