@@ -81,10 +81,10 @@ export const userApi = createApi({
             invalidatesTags: ['User'],
         }),
         searchForEmail: builder.mutation({
-            query: ({ emailTerm }) => ({
+            query: ({ emailTerm, editorId }) => ({
                 url: '/auth/search',
                 method: 'POST',
-                body: { emailTerm },
+                body: { emailTerm, editorId },
             }),
         }),
     }),

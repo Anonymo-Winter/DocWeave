@@ -168,50 +168,6 @@ const emojiCategories = {
 
 import { Mail, Globe, Users, UserPlus } from 'lucide-react';
 
-// Mock data for collaborators
-const mockCollaborator = [
-    {
-        id: 1,
-        name: 'John Doe',
-        email: 'john.doe@example.com',
-        avatar: 'JD',
-        color: '#4F46E5',
-        role: 'editor',
-        isOnline: true,
-        profileImage: null,
-    },
-    {
-        id: 2,
-        name: 'Sarah Wilson',
-        email: 'sarah.wilson@company.com',
-        avatar: 'SW',
-        color: '#DC2626',
-        role: 'viewer',
-        isOnline: false,
-        profileImage: null,
-    },
-    {
-        id: 3,
-        name: 'Mike Johnson',
-        email: 'mike.j@startup.io',
-        avatar: 'MJ',
-        color: '#059669',
-        role: 'commenter',
-        isOnline: true,
-        profileImage: null,
-    },
-    {
-        id: 8,
-        name: 'Lisa Chen',
-        email: 'lisa.chen@design.studio',
-        avatar: 'LC',
-        color: '#7C2D12',
-        role: 'editor',
-        isOnline: true,
-        profileImage: null,
-    },
-];
-
 const MultiSelectInput = ({ selectedUsers, onUserSelect, onUserRemove, placeholder }) => {
     const [inputValue, setInputValue] = useState('');
     const [isOpen, setIsOpen] = useState(false);
@@ -221,23 +177,23 @@ const MultiSelectInput = ({ selectedUsers, onUserSelect, onUserRemove, placehold
     const containerRef = useRef(null);
     const [searchForEmail, { isLoading }] = useSearchForEmailMutation();
     const [hasInteracted, setHasInteracted] = useState(false);
-
+    const { editorId } = useParams();
     // Use a separate state for the search term to avoid rate-limiting issues
     const [searchTerm, setSearchTerm] = useState('');
 
     // Debounce the search term
-    useEffect(() => {
-        if (searchTerm.length > 0) {
-            const delayDebounceFn = setTimeout(() => {
-                handleSearchTerm(searchTerm);
-            }, 300); // 300ms delay
+    // useEffect(() => {
+    //     if (searchTerm.length > 2) {
+    //         const delayDebounceFn = setTimeout(() => {
+    //             handleSearchTerm(searchTerm);
+    //         }, 300); // 300ms delay
 
-            return () => clearTimeout(delayDebounceFn);
-        } else {
-            // Clear fetched emails when the search term is empty
-            setFetchedEmails([]);
-        }
-    }, [searchTerm]);
+    //         return () => clearTimeout(delayDebounceFn);
+    //     } else {
+    //         // Clear fetched emails when the search term is empty
+    //         setFetchedEmails([]);
+    //     }
+    // }, [searchTerm]);
 
     useEffect(() => {
         // Filter the fetched emails. This will run whenever fetchedEmails or selectedUsers changes.
@@ -256,7 +212,7 @@ const MultiSelectInput = ({ selectedUsers, onUserSelect, onUserRemove, placehold
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
     useEffect(() => {
-        if (searchTerm.length > 0) {
+        if (searchTerm.length > 2) {
             const delayDebounceFn = setTimeout(() => {
                 handleSearchTerm(searchTerm);
                 setIsOpen(true);
@@ -274,8 +230,8 @@ const MultiSelectInput = ({ selectedUsers, onUserSelect, onUserRemove, placehold
             return;
         }
         try {
-            const res = await searchForEmail({ emailTerm: value });
-            const matches = res?.data?.matchingEmails ?? [];
+            const res = await searchForEmail({ emailTerm: value, editorId: editorId }).unwrap();
+            const matches = res?.matchingEmails ?? [];
             setFetchedEmails(matches);
             setIsOpen(true);
         } catch (err) {
@@ -347,7 +303,7 @@ const MultiSelectInput = ({ selectedUsers, onUserSelect, onUserRemove, placehold
                             >
                                 <div
                                     className='w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold'
-                                    style={{ backgroundColor: user.color }}
+                                    style={{ backgroundColor: user.color || 'gray' }}
                                 >
                                     {getInitials(user.name)}
                                 </div>
@@ -376,7 +332,7 @@ const MultiSelectInput = ({ selectedUsers, onUserSelect, onUserRemove, placehold
     );
 };
 
-const ShareModal = ({ data, isLoading, refetch }) => {
+const ShareModal = ({ data, isLoading, refetch, open, onOpenChange }) => {
     const [shareLink] = useState(window.location.href);
     const [copied, setCopied] = useState(false);
     const [selectedUsers, setSelectedUsers] = useState([]);
@@ -385,15 +341,10 @@ const ShareModal = ({ data, isLoading, refetch }) => {
     const [generalAccessRole, setGeneralAccessRole] = useState('viewer');
     const [isSending, setIsSending] = useState(false);
     const isMobile = useMobile();
-    const [isOpen, setIsOpen] = useState(false);
     const { editorId: documentId } = useParams();
     const [collaborators, setCollaborators] = useState([]);
 
     const [updateDocument] = useUpdateDocumentMutation();
-
-    useEffect(() => {
-        console.log(data);
-    }, [data]);
 
     useEffect(() => {
         // reset all
@@ -416,7 +367,7 @@ const ShareModal = ({ data, isLoading, refetch }) => {
             setGeneralAccess(access);
             setGeneralAccessRole(accessRole);
         }
-    }, [data, isLoading, isOpen]);
+    }, [data, isLoading, open]);
 
     const [addPeople] = useAddPeopleMutation();
 
@@ -454,7 +405,7 @@ const ShareModal = ({ data, isLoading, refetch }) => {
                 if (res?.data?.success) {
                     toast.success('Invitations sent successfully');
                     setSelectedUsers([]);
-                    setIsOpen();
+                    onOpenChange(false);
                 } else {
                     toast.error('Failed to send invitations');
                 }
@@ -521,9 +472,9 @@ const ShareModal = ({ data, isLoading, refetch }) => {
 
     return (
         <>
-            <Dialog open={isOpen} onOpenChange={setIsOpen}>
-                <DialogTrigger asChild>
-                    <button
+            <Dialog open={open} onOpenChange={onOpenChange}>
+                {/* <DialogTrigger asChild>
+                <button
                         type='button'
                         className='h-9 px-3
                inline-flex items-center gap-2
@@ -537,7 +488,7 @@ const ShareModal = ({ data, isLoading, refetch }) => {
                         <Share2 size={16} />
                         <span className='hidden xs:inline'>Share</span>
                     </button>
-                </DialogTrigger>
+                </DialogTrigger> */}
 
                 <DialogContent className='max-w-[95vw]  sm:max-w-lg w-full mx-auto p-4 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg'>
                     {isLoading ? (
@@ -1346,15 +1297,7 @@ const EnhancedChat = ({ setIsChatVisible, currentUserRole, activeUsers, messages
     );
 };
 
-const EnhancedNavbar = ({
-    isChatVisible,
-    setIsChatVisible,
-    currentUserRole,
-    onRoleChange,
-    onShareClick,
-    onVersionHistoryClick,
-    document,
-}) => {
+const EnhancedNavbar = ({ isChatVisible, setIsChatVisible, document }) => {
     const [showCollaborators, setShowCollaborators] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const { ydoc, awareness, assignedColor, activeUsers, isMobile, fatalSocketError } = useSocket();
@@ -1363,6 +1306,7 @@ const EnhancedNavbar = ({
     const { editorId } = useParams();
     const [saveVersionDialogOpen, setSaveVersionDialogOpen] = useState(false);
     const [documentName, setDocumentName] = useState(document?.title);
+    const [showShareModal, setShowShareModal] = useState(false);
 
     // const [copied, setCopied] = useState(false);
 
@@ -1388,9 +1332,6 @@ const EnhancedNavbar = ({
         }
         try {
             const update = Y.encodeStateAsUpdate(ydoc);
-            const fragment = ydoc.getXmlFragment('default');
-            // console.log('📝 Saving fragment:', fragment.toJSON());
-            // console.log('💾 Saving update with length:', update.byteLength);
             if (!update || update.byteLength < 20) {
                 console.warn('⚠️ Update too small. Likely not ready. Skipping save.');
                 return;
@@ -1451,35 +1392,43 @@ const EnhancedNavbar = ({
         }
     }, [document]);
 
-    const useDebouncedDocumentRename = (renameDocument, toast, editorId) => {
-        const debouncedRename = useCallback(
-            debounce(async (name) => {
-                if (name == documentName) return;
-                if (!name) {
-                    toast.error('Document name cannot be empty');
-                    setDocumentName('Untitled Document');
-                    return;
-                }
-                try {
-                    await renameDocument({
-                        documentId: editorId,
-                        name,
-                    }).unwrap();
-                } catch (error) {
-                    const message = error?.data?.message || error?.message || 'Something went wrong';
+    const debouncedRename = useCallback(
+        debounce(async (name) => {
+            if (name === documentName) return;
 
-                    toast.error('Failed to change document name', {
-                        description: message,
-                    });
-                }
-            }, 700),
-            [],
-        );
+            if (!name) {
+                toast.error('Document name cannot be empty');
+                setDocumentName('Untitled Document');
+                return;
+            }
 
-        return debouncedRename;
+            try {
+                await renameDocument({
+                    documentId: editorId,
+                    name,
+                }).unwrap();
+            } catch (error) {
+                const message = error?.data?.message || error?.message || 'Something went wrong';
+
+                toast.error('Failed to change document name', {
+                    description: message,
+                });
+            }
+        }, 700),
+        [documentName, renameDocument, editorId, toast],
+    );
+
+    const navbarActions = {
+        renameDocument: debouncedRename,
+        openVersionHistory: () => {
+            setMobileMenuOpen(false);
+            setVersionopen(true);
+        },
+        openSaveDialog: () => {
+            setMobileMenuOpen(false);
+            setSaveVersionDialogOpen(true);
+        },
     };
-
-    const debouncedRename = useDebouncedDocumentRename(renameDocument, toast, editorId);
 
     if (fatalSocketError) {
         return <ErrorMessage error={fatalSocketError} />;
@@ -1491,7 +1440,9 @@ const EnhancedNavbar = ({
                 {/* Left: Logo & Base Controls */}
                 <div className='flex items-center'>
                     <button
+                        type='button'
                         aria-label='Open menu'
+                        aria-expanded={mobileMenuOpen}
                         className='md:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800'
                         onClick={() => setMobileMenuOpen((open) => !open)}
                     >
@@ -1511,7 +1462,7 @@ const EnhancedNavbar = ({
                                 debouncedRename(e.target.value);
                             }}
                             title={documentName}
-                            className='bg-transparent text-ellipsis text-gray-900 dark:text-white font-medium focus:outline-none focus:bg-gray-50 dark:focus:bg-gray-800 px-2 py-1 rounded'
+                            className='ml-2 bg-transparent text-ellipsis text-gray-900 dark:text-white font-medium focus:outline-none focus:bg-gray-50 dark:focus:bg-gray-800 px-2 py-1 rounded'
                         />
                     </div>
                 </div>
@@ -1713,7 +1664,17 @@ const EnhancedNavbar = ({
                                     </button>
                                 </DialogTrigger>
 
-                                <DialogContent className='dark:bg-gray-800 bg-white rounded-lg max-w-md w-full mx-4 px-5 py-4'>
+                                {/* <DialogContent className='dark:bg-red-800 min-h-screen min-w-screen bg-white rounded-lg px-5 py-4'> */}
+                                <DialogContent
+                                    className={`
+                                            dark:bg-gray-800 bg-white
+                                            ${
+                                                isMobile
+                                                    ? 'min-w-screen w-full min-h-screen h-full rounded-none p-0'
+                                                    : 'rounded-lg max-w-md w-full px-5 py-4'
+                                            }
+                                        `}
+                                >
                                     <DialogHeader>
                                         <DialogTitle className='font-medium dark:text-white text-gray-900'>
                                             Save current version
@@ -1855,7 +1816,12 @@ const EnhancedNavbar = ({
                         </div>
 
                         {/* Share */}
-                        <ShareModal data={document} />
+                        <ShareModal
+                            data={document}
+                            isLoading={!document}
+                            open={showShareModal}
+                            onOpenChange={setShowShareModal}
+                        />
                     </div>
 
                     {/* Chat Toggle */}
@@ -1868,21 +1834,32 @@ const EnhancedNavbar = ({
                         <MessageSquareMore size={16} />
                     </ChatToggle>
 
+                    <button
+                        type='button'
+                        onClick={() => setShowShareModal(true)}
+                        className='h-9 w-9 inline-flex items-center justify-center
+             rounded-md
+             bg-blue-600 text-white
+             hover:bg-blue-700
+             focus:outline-none focus:ring-2 focus:ring-blue-500/50'
+                        aria-label='Share document'
+                    >
+                        <Share2 size={16} />
+                    </button>
+
                     {/* <ConnectionStatusIndicator connectionStatus={{ connected: true }} /> */}
                     <ConnectionStatus />
                     <DropDown />
                 </div>
             </div>
 
-            {/* Mobile Expansion */}
             {mobileMenuOpen && (
-                <div className='md:hidden bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-sm'>
+                <div className='md:hidden w-full bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 shadow-sm'>
                     <MobileMenu
-                        collaborators={mockCollaborators}
-                        currentUserRole={currentUserRole}
-                        onRoleChange={onRoleChange}
-                        onVersionHistoryClick={onVersionHistoryClick}
-                        onShareClick={onShareClick}
+                        documentName={documentName}
+                        setDocumentName={setDocumentName}
+                        collaborators={activeUsers}
+                        actions={navbarActions}
                     />
                 </div>
             )}
@@ -1892,66 +1869,6 @@ const EnhancedNavbar = ({
 
 function CollaboratorsDropdown({ list }) {
     return (
-        // <div className='absolute top-full mt-2 right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 w-64 z-20'>
-        //     <div className='flex items-center justify-center mb-2 gap-2'>
-        //         <h4 className='font-medium text-lg text-gray-900 dark:text-white'>Active Collaborators</h4>
-        //         <IoMdInformationCircleOutline title='Users currently active in this document' size={16} />
-        //     </div>
-        //     <div className=' max-h-48 overflow-auto'>
-        //         {list.map((c) => (
-        //             <div key={c.id} className='flex items-center gap-2'>
-        //                 <div
-        //                     key={c.id}
-        //                     style={{ backgroundColor: c.color, '--ring-color': c.color }}
-        //                     className='w-7 h-7 rounded-full cursor-pointer flex items-center justify-center text- font-semibold text-white border-2 border-white dark:border-gray-800 shadow
-        //                                 ring-2 ring-[var(--ring-color)]'
-        //                 >
-        //                     {getInitials(c.name)}
-        //                 </div>
-        //                 <div className='flex-1'>
-        //                     <p className='text-base font-medium text-gray-900 dark:text-white'>{c.name}</p>
-        //                     <p className='text-xs text-gray-500 dark:text-gray-400 capitalize'>{c.role}</p>
-        //                 </div>
-        //                 <MessageSquareMore size={16} />
-        //                 <Mail size={16} />
-        //             </div>
-        //         ))}
-        //         {list.map((c) => (
-        //             <div key={c.id} className='flex items-center gap-2'>
-        //                 <div
-        //                     key={c.id}
-        //                     style={{ backgroundColor: c.color }}
-        //                     className='w-7 h-7 rounded-full cursor-pointer flex items-center justify-center text- font-semibold text-white border-2 border-white dark:border-gray-800 shadow'
-        //                 >
-        //                     {getInitials(c.name)}
-        //                 </div>
-        //                 <div className='flex-1'>
-        //                     <p className='text-base font-medium text-gray-900 dark:text-white'>{c.name}</p>
-        //                     <p className='text-xs text-gray-500 dark:text-gray-400 capitalize'>{c.role}</p>
-        //                 </div>
-        //                 <MessageSquareMore size={16} />
-        //                 <Mail size={16} />
-        //             </div>
-        //         ))}
-        //         {list.map((c) => (
-        //             <div key={c.id} className='flex items-center gap-2'>
-        //                 <div
-        //                     key={c.id}
-        //                     style={{ backgroundColor: c.color }}
-        //                     className='w-7 h-7 rounded-full cursor-pointer flex items-center justify-center text- font-semibold text-white border-2 border-white dark:border-gray-800 shadow'
-        //                 >
-        //                     {getInitials(c.name)}
-        //                 </div>
-        //                 <div className='flex-1'>
-        //                     <p className='text-base font-medium text-gray-900 dark:text-white'>{c.name}</p>
-        //                     <p className='text-xs text-gray-500 dark:text-gray-400 capitalize'>{c.role}</p>
-        //                 </div>
-        //                 <MessageSquareMore size={16} />
-        //                 <Mail size={16} />
-        //             </div>
-        //         ))}
-        //     </div>
-        // </div>
         <div
             className='absolute top-full right-0 mt-2 w-72
                 rounded-xl border
@@ -2090,51 +2007,116 @@ function ChatToggle({ isActive, onClick, children }) {
     );
 }
 
-function MobileMenu({ collaborators, currentUserRole, onRoleChange, onVersionHistoryClick, onShareClick }) {
+function MobileMenu({ documentName, setDocumentName, collaborators, actions }) {
     return (
-        <>
-            <div className='px-4 py-3 flex flex-col gap-3'>
+        <div className='px-4 py-4 space-y-5'>
+            {/* Document card */}
+            <div className='rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3'>
+                <label className='text-[11px] uppercase tracking-wide text-gray-500 dark:text-gray-400 block mb-1'>
+                    Document
+                </label>
+
                 <div className='flex items-center gap-2'>
-                    <TbFileTypeDoc size={16} className='text-gray-400' />
+                    <TbFileTypeDoc size={18} className='text-blue-500 shrink-0' />
                     <input
                         type='text'
-                        defaultValue='Untitled Document'
-                        className='flex-1 bg-transparent text-gray-900 dark:text-white font-medium focus:outline-none focus:bg-gray-50 dark:focus:bg-gray-800 px-2 py-1 rounded'
+                        value={documentName}
+                        aria-label='Document name'
+                        onChange={(e) => setDocumentName(e.target.value)}
+                        onBlur={(e) => {
+                            const value = e.target.value.trim();
+                            if (value && value !== documentName) {
+                                actions.renameDocument(value);
+                            }
+                        }}
+                        className='
+                    flex-1 bg-transparent font-semibold
+                    text-gray-900 dark:text-white
+                    focus:outline-none
+                    px-1 py-2
+                '
                     />
                 </div>
+            </div>
 
-                <div className='flex items-center gap-2'>
-                    {collaborators.slice(0, 3).map((c, i) => (
-                        <Avatar key={c.id} collab={c} index={i} />
-                    ))}
-                    <UserRoleSelector currentRole={currentUserRole} onRoleChange={onRoleChange} />
+            {/* Collaborators card */}
+            <div className='rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-3'>
+                <div className='flex items-center justify-between mb-3'>
+                    <span className='text-sm font-medium text-gray-900 dark:text-white'>Collaborators</span>
+                    <span className='text-xs text-gray-500'>{collaborators.length}</span>
                 </div>
 
-                <div className='flex items-center gap-2'>
-                    <button
-                        onClick={onVersionHistoryClick}
-                        className='flex-1 flex items-center justify-center px-3 py-2 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition'
-                    >
-                        <History size={16} />
-                        <span className='ml-2'>History</span>
-                    </button>
-                    <Dialog>
-                        <DialogTrigger asChild>
-                            <button
-                                onClick={onShareClick}
-                                className='flex-1 flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition'
-                            >
-                                <Share2 size={16} />
-                                <span className='ml-2'>Share</span>
-                            </button>
-                        </DialogTrigger>
-                        <DialogContent className='max-w-lg w-full mx-auto dark:bg-gray-900 border border-gray-500 dark:border-gray-700'>
-                            <ShareModal />
-                        </DialogContent>
-                    </Dialog>
+                <div className='flex items-center -space-x-2'>
+                    {collaborators.slice(0, 4).map((c) => (
+                        <div
+                            key={c.id}
+                            style={{ backgroundColor: c.color }}
+                            className='
+                        w-9 h-9 rounded-full
+                        flex items-center justify-center
+                        text-sm font-semibold text-white
+                        ring-2 ring-white dark:ring-gray-800
+                        shadow
+                    '
+                        >
+                            <span className='sr-only'>{c.name}</span>
+                            {getInitials(c.name)}
+                        </div>
+                    ))}
+
+                    {collaborators.length > 4 && (
+                        <div
+                            className='
+                        w-9 h-9 rounded-full
+                        bg-gray-200 dark:bg-gray-700
+                        flex items-center justify-center
+                        text-xs font-semibold
+                        text-gray-700 dark:text-gray-200
+                        ring-2 ring-white dark:ring-gray-800
+                        shadow
+                    '
+                        >
+                            +{collaborators.length - 4}
+                        </div>
+                    )}
                 </div>
             </div>
-        </>
+
+            {/* Primary actions */}
+            <div className='grid grid-cols-2 gap-3'>
+                <button
+                    onClick={actions.openSaveDialog}
+                    className='
+                h-11 rounded-xl
+                flex items-center justify-center gap-2
+                bg-blue-600 text-white
+                font-medium
+                hover:bg-blue-700
+                active:bg-blue-800
+            '
+                >
+                    <MdSave size={18} />
+                    Save
+                </button>
+
+                {/* Secondary actions */}
+                <button
+                    onClick={actions.openVersionHistory}
+                    className='
+            w-full h-11 rounded-xl
+            flex items-center justify-center gap-2
+            bg-gray-100 text-gray-700
+            font-medium
+            hover:bg-gray-200
+            dark:bg-gray-700 dark:text-gray-200
+            dark:hover:bg-gray-600
+        '
+                >
+                    <History size={18} />
+                    Version history
+                </button>
+            </div>
+        </div>
     );
 }
 
@@ -2158,7 +2140,6 @@ const EnhancedEditorLayout = () => {
     const [isChatVisible, setIsChatVisible] = useState(false);
     const isChatVisibleRef = useRef(isChatVisible);
     const [currentUserRole, setCurrentUserRole] = useState('editor');
-    const [showShareModal, setShowShareModal] = useState(false);
     const [showVersionHistory, setShowVersionHistory] = useState(false);
     const { socket, isConnected, assignedColor, activeUsers, fatalSocketError } = useSocket();
     const [layoutError, setLayoutError] = useState(null);
@@ -2222,7 +2203,6 @@ const EnhancedEditorLayout = () => {
                 setIsChatVisible={setIsChatVisible}
                 currentUserRole={currentUserRole}
                 onRoleChange={setCurrentUserRole}
-                onShareClick={() => setShowShareModal(true)}
                 onVersionHistoryClick={() => setShowVersionHistory(true)}
                 document={data?.document}
             />
