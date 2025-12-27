@@ -26,8 +26,8 @@ const documentSchema = new mongoose.Schema(
                 },
                 role: {
                     type: String,
-                    enum: ['EDITOR', 'VIEWER'],
-                    default: 'VIEWER',
+                    enum: ['editor', 'viewer'],
+                    default: 'viewer',
                 },
             },
         ],

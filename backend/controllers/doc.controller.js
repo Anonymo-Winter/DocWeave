@@ -156,7 +156,7 @@ export const createDocument = async (req, res) => {
             collaborators: [
                 {
                     userId,
-                    role: 'EDITOR',
+                    role: 'editor',
                 },
             ],
         });
@@ -510,6 +510,10 @@ export const getUserDocuments = async (req, res) => {
         const userDocuments = [];
         for (const doc of user.recentDocs) {
             const document = doc.document;
+            if (!document) {
+                await User.updateOne({ _id: userId }, { $pull: { recentDocs: { document: doc.document } } });
+                continue;
+            }
             const template = {
                 id: document._id,
                 title: document.title,
@@ -517,7 +521,12 @@ export const getUserDocuments = async (req, res) => {
                 collaborators: document.collaborators.length,
                 starred: doc.starred || false,
                 thumbnail: '⚡',
-                ownership: document.ownerId.toString() === userId ? 'owned' : 'shared',
+                ownership:
+                    document.ownerId.toString() === userId
+                        ? 'owned'
+                        : document.collaborators.some((c) => c.userId.toString() === userId)
+                        ? 'collaborator'
+                        : 'view',
                 permission: await resolveUserRole({ userId, docId: document._id }),
             };
             userDocuments.push(template);
