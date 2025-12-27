@@ -43,90 +43,6 @@ import { TbFileTypeDoc } from 'react-icons/tb';
 import { getInitials } from '../util/getInitials.js';
 import { cn } from '@/lib/utils';
 
-// Mock documents data
-// const mockDocuments = [
-//     {
-//         id: 1,
-//         title: 'Project Proposal Q4',
-//         lastModified: '2 hours ago',
-//         collaborators: 3,
-//         starred: true,
-//         thumbnail: '📊',
-//         ownership: 'owned',
-//         permission: 'edit',
-//     },
-//     {
-//         id: 2,
-//         title: 'Marketing Strategy',
-//         lastModified: '1 day ago',
-//         collaborators: 5,
-//         starred: false,
-//         thumbnail: '📈',
-//         ownership: 'shared',
-//         permission: 'edit',
-//     },
-//     {
-//         id: 3,
-//         title: 'Team Meeting Notes',
-//         lastModified: '3 days ago',
-//         collaborators: 2,
-//         starred: true,
-//         thumbnail: '📝',
-//         ownership: 'owned',
-//         permission: 'edit',
-//     },
-//     {
-//         id: 4,
-//         title: 'Budget Analysis',
-//         lastModified: '1 week ago',
-//         collaborators: 4,
-//         starred: false,
-//         thumbnail: '💰',
-//         ownership: 'shared',
-//         permission: 'view',
-//     },
-//     {
-//         id: 5,
-//         title: 'User Research Report',
-//         lastModified: '2 weeks ago',
-//         collaborators: 6,
-//         starred: false,
-//         thumbnail: '🔍',
-//         ownership: 'shared',
-//         permission: 'edit',
-//     },
-//     {
-//         id: 6,
-//         title: 'Product Roadmap',
-//         lastModified: '1 month ago',
-//         collaborators: 8,
-//         starred: true,
-//         thumbnail: '🗺️',
-//         ownership: 'owned',
-//         permission: 'edit',
-//     },
-//     {
-//         id: 7,
-//         title: 'Company Handbook',
-//         lastModified: '2 months ago',
-//         collaborators: 12,
-//         starred: false,
-//         thumbnail: '📚',
-//         ownership: 'shared',
-//         permission: 'view',
-//     },
-//     {
-//         id: 8,
-//         title: 'Design Guidelines',
-//         lastModified: '3 months ago',
-//         collaborators: 7,
-//         starred: false,
-//         thumbnail: '🎨',
-//         ownership: 'shared',
-//         permission: 'view',
-//     },
-// ];
-
 // Filter options
 const filterOptions = [
     { value: 'all', label: 'All Documents', description: 'Show all documents' },
@@ -332,12 +248,14 @@ const FilterDropdown = ({ selectedFilter, onFilterChange }) => {
 
 const DocumentCard = ({ document, viewMode }) => {
     const [isStarred, setIsStarred] = useState(document.starred);
-
+    const navigate = useNavigate();
+    console.log(document);
     if (viewMode === 'list') {
         return (
             <motion.div
                 whileHover={{ backgroundColor: 'rgba(59, 130, 246, 0.05)' }}
                 className='flex items-center gap-4 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 cursor-pointer group'
+                onClick={() => navigate(`/editor/${document.id}`)}
             >
                 <div className='text-2xl'>
                     <img
@@ -351,7 +269,7 @@ const DocumentCard = ({ document, viewMode }) => {
                     <div className='flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mt-1'>
                         <span className='flex items-center gap-1 text-nowrap'>
                             <Clock className='w-3 h-3' />
-                            {document.lastModified}
+                            {document.lastModified ? new Date(document.lastModified).toLocaleString() : '—'}
                         </span>
                         <span className='flex items-center gap-1'>
                             <Users className='w-3 h-3' />
@@ -380,6 +298,7 @@ const DocumentCard = ({ document, viewMode }) => {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             className='bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden cursor-pointer hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-600 transition-all group'
+            onClick={() => navigate(`/editor/${document.id}`)}
         >
             <div className='aspect-[4/3] bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center text-4xl'>
                 {document.thumbnail}
@@ -432,13 +351,23 @@ const Dashboard = () => {
     const [filteredDocuments, setFilteredDocuments] = useState([]);
     const user = useSelector((state) => state.user.user);
     const [createDocument, { isLoading: isDocumentLoading }] = useCreateDocumentMutation();
-    const { data, isLoading: isLoadingDocuments } = useGetUserDocumentsQuery(user?._id);
-    const userDocuments = data?.userDocuments || [];
+    const { data, isLoading: isLoadingDocuments } = useGetUserDocumentsQuery(user?._id, {
+        skip: !user?._id,
+    });
+    const [userDocuments, setUserDocuments] = useState([]);
     console.log(userDocuments);
     const navigate = useNavigate();
 
     useEffect(() => {
-        if (!userDocuments.length) return;
+        if (data?.userDocuments) setUserDocuments(data.userDocuments);
+    }, [data]);
+
+    useEffect(() => {
+        if (!userDocuments.length) {
+            setFilteredDocuments([]);
+            return;
+        }
+
         let filtered = userDocuments.filter((doc) => doc.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
         // Apply filter
@@ -461,7 +390,7 @@ const Dashboard = () => {
         }
 
         setFilteredDocuments(filtered);
-    }, [searchQuery, selectedFilter]);
+    }, [searchQuery, selectedFilter, userDocuments]);
 
     const getFilteredCount = () => {
         if (isLoadingDocuments) return 'Loading....';
@@ -626,19 +555,6 @@ const Dashboard = () => {
                                     : filteredDocuments.map((document) => (
                                           <DocumentCard key={document.id} document={document} viewMode={viewMode} />
                                       ))}
-                                {isLoadingDocuments ? (
-                                    <div className='py-12 text-center text-gray-500'>Loading documents…</div>
-                                ) : filteredDocuments.length === 0 ? (
-                                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                                        <h3>No Records Found</h3>
-                                    </motion.div>
-                                ) : (
-                                    <motion.div>
-                                        {filteredDocuments.map((document) => (
-                                            <DocumentCard key={document.id} document={document} />
-                                        ))}
-                                    </motion.div>
-                                )}
                             </motion.div>
                         )}
                     </AnimatePresence>

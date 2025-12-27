@@ -2009,7 +2009,7 @@ const EnhancedEditorLayout = () => {
     });
 
     if (fatalSocketError) {
-        return <ErrorMessage error={fatalSocketError} />;
+        return <ErrorMessage error={fatalSocketError} onRetry={() => window.location.reload()} />;
     }
     if (layoutError) {
         return <ErrorMessage error={layoutError} />;
