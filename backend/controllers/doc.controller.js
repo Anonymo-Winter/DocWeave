@@ -388,6 +388,7 @@ export const generatePDF = async (req, res) => {
         res.status(500).json({ error: 'Failed to generate PDF' });
     }
 };
+
 export const updateDocument = async (req, res) => {
     const { visibility, userswithupdatedrole } = req.body;
     const { editorId } = req.params;
@@ -458,5 +459,81 @@ export const changeDocName = async (req, res) => {
     } catch (error) {
         console.error('Error renaming document:', error);
         res.status(500).json({ error: 'Failed to rename document' });
+    }
+};
+
+export const resolveUserRole = async ({ userId, docId, accessTokenType = 'link' }) => {
+    const doc = await Document.findById(docId).lean();
+    if (!doc) return null;
+
+    if (doc.ownerId.toString() === userId?.toString()) {
+        return 'OWNER';
+    }
+
+    const collaborator = doc.collaborators.find((c) => c.userId.toString() === userId?.toString());
+    if (collaborator) {
+        return collaborator.role === 'editor' ? 'EDITOR' : 'VIEWER';
+    }
+
+    switch (doc.visibility) {
+        case 'anyone-with-link:r':
+            return 'VIEWER';
+        case 'anyone-with-link:w':
+            return 'EDITOR';
+        case 'anyone-in-org:r':
+            return userId ? 'VIEWER' : null;
+        case 'anyone-in-org:w':
+            return userId ? 'EDITOR' : null;
+        default:
+            return null;
+    }
+};
+
+export const getUserDocuments = async (req, res) => {
+    const { userId } = req.params;
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId))
+        return res.status(400).json({ message: 'Invalid or missing user ID' });
+    try {
+        const user = await User.findById(userId).populate('recentDocs.document').exec();
+        if (!user) return res.status(404).json({ message: 'User not found' });
+        // template :
+        // {
+        //     id: 1,
+        //     title: 'Project Proposal Q4',
+        //     lastModified: '2 hours ago',
+        //     collaborators: 3,
+        //     starred: true,
+        //     thumbnail: '📊',
+        //     ownership: 'owned',
+        //     permission: 'edit',
+        // },
+        const userDocuments = [];
+        for (const doc of user.recentDocs) {
+            const document = doc.document;
+            if (!document) {
+                await User.updateOne({ _id: userId }, { $pull: { recentDocs: { document: doc.document } } });
+                continue;
+            }
+            const template = {
+                id: document._id,
+                title: document.title,
+                lastModified: doc.accessed,
+                collaborators: document.collaborators.length,
+                starred: doc.starred || false,
+                thumbnail: '⚡',
+                ownership:
+                    document.ownerId.toString() === userId
+                        ? 'owned'
+                        : document.collaborators.some((c) => c.userId.toString() === userId)
+                        ? 'collaborator'
+                        : 'view',
+                permission: await resolveUserRole({ userId, docId: document._id }),
+            };
+            userDocuments.push(template);
+        }
+        return res.status(200).json({ success: true, userDocuments });
+    } catch (error) {
+        console.error('Error renaming document:', error);
+        res.status(500).json({ error: 'Failed to fetch documents.' });
     }
 };
