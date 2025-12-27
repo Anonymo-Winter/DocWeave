@@ -119,7 +119,7 @@ export const DropDown = () => {
                 </button>
             </DropdownMenuTrigger>
 
-            <DropdownMenuContent className='w-56' align='end'>
+            <DropdownMenuContent className='w-56 dark:bg-gray-800' align='end'>
                 <DropdownMenuLabel className='font-normal'>
                     <p className='font-semibold'>{user?.name}</p>
                     <span className='text-sm text-muted-foreground'>{user?.email}</span>
@@ -353,6 +353,8 @@ const Dashboard = () => {
     const [createDocument, { isLoading: isDocumentLoading }] = useCreateDocumentMutation();
     const { data, isLoading: isLoadingDocuments } = useGetUserDocumentsQuery(user?._id, {
         skip: !user?._id,
+        refetchOnFocus: true,
+        pollingInterval: 5000,
     });
     const [userDocuments, setUserDocuments] = useState([]);
     console.log(userDocuments);

@@ -120,11 +120,11 @@ const ProfileEditModal = ({ user }) => {
         >
             <DialogTrigger asChild>
                 <button
-                    className='flex items-center gap-2 w-full px-4 py-2 rounded-md text-left cursor-pointer hover:bg-accent hover:text-accent-foreground'
+                    className='flex items-start gap-2 w-full  px-2 py-2 rounded-md cursor-pointer hover:bg-accent hover:text-accent-foreground'
                     onClick={(e) => e.stopPropagation()}
                 >
-                    <EditIcon className='mr-1 size-5' />
-                    <span>Edit Profile</span>
+                    <EditIcon className='size-5' />
+                    <span className='text-sm font-medium'>Edit Profile</span>
                 </button>
             </DialogTrigger>
 

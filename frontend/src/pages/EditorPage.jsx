@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import { TbFileTypeDoc, TbLoader2 } from 'react-icons/tb';
 import ConnectionStatus from '../components/ConnectionStatus';
-import { IoMdInformationCircle } from 'react-icons/io';
+import { IoMdInformationCircle, IoMdInformationCircleOutline } from 'react-icons/io';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -376,7 +376,7 @@ const MultiSelectInput = ({ selectedUsers, onUserSelect, onUserRemove, placehold
     );
 };
 
-const ShareModal = () => {
+const ShareModal = ({ data, isLoading, refetch }) => {
     const [shareLink] = useState(window.location.href);
     const [copied, setCopied] = useState(false);
     const [selectedUsers, setSelectedUsers] = useState([]);
@@ -389,14 +389,11 @@ const ShareModal = () => {
     const { editorId: documentId } = useParams();
     const [collaborators, setCollaborators] = useState([]);
 
-    const { data, isLoading, refetch } = useGetDocumentQuery(documentId, {
-        refetchOnMountOrArgChange: true,
-        refetchOnReconnect: true,
-        refetchOnFocus: true,
-        // skip: !isOpen,
-    });
-
     const [updateDocument] = useUpdateDocumentMutation();
+
+    useEffect(() => {
+        console.log(data);
+    }, [data]);
 
     useEffect(() => {
         // reset all
@@ -404,16 +401,17 @@ const ShareModal = () => {
         setGeneralAccess('restricted');
         setGeneralAccessRole('viewer');
 
-        if (data?.document) {
-            const formatted = data?.document?.collaborators.map((c) => ({
+        if (data) {
+            const formatted = data?.collaborators.map((c) => ({
                 id: c.userId?._id,
                 name: c.userId?.name || '?',
                 email: c.userId?.email || 'Invalid Email',
                 originalRole: c.role,
-                selectedRole: c.role, // start with same role
+                selectedRole: c.role,
+                color: data?.userColors[c.userId?._id],
             }));
-            const access = data?.document?.visibility.split(':')[0];
-            const accessRole = data?.document?.visibility.split(':')[1] == 'r' ? 'viewer' : 'editor';
+            const access = data?.visibility.split(':')[0];
+            const accessRole = data?.visibility.split(':')[1] == 'r' ? 'viewer' : 'editor';
             setCollaborators(formatted);
             setGeneralAccess(access);
             setGeneralAccessRole(accessRole);
@@ -501,7 +499,7 @@ const ShareModal = () => {
                 ? `${generalAccess}:${generalAccessRole == 'editor' ? 'w' : 'r'}`
                 : 'restricted';
         try {
-            if (changedUserAccess.length > 0 || changedDocAccess != data?.document?.visibility) {
+            if (changedUserAccess.length > 0 || changedDocAccess != data?.visibility) {
                 const res = await updateDocument({
                     editorId: documentId,
                     visibility: changedDocAccess,
@@ -514,7 +512,6 @@ const ShareModal = () => {
             }
         } catch (error) {
             console.log('Error occured while updating access : ', error);
-        } finally {
         }
     };
 
@@ -526,11 +523,22 @@ const ShareModal = () => {
         <>
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
                 <DialogTrigger asChild>
-                    <button className='flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base'>
-                        <Share2 size={16} className='sm:w-4 sm:h-4' />
+                    <button
+                        type='button'
+                        className='h-9 px-3
+               inline-flex items-center gap-2
+               rounded-md
+               bg-blue-600 text-white
+               hover:bg-blue-700
+               transition-colors
+               text-sm
+               focus:outline-none focus:ring-2 focus:ring-blue-500/50'
+                    >
+                        <Share2 size={16} />
                         <span className='hidden xs:inline'>Share</span>
                     </button>
                 </DialogTrigger>
+
                 <DialogContent className='max-w-[95vw]  sm:max-w-lg w-full mx-auto p-4 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg'>
                     {isLoading ? (
                         <DialogHeader className='mb-2 min-h-16 sm:min-h-20 flex justify-center items-center text-sm sm:text-base md:text-l'>
@@ -542,7 +550,7 @@ const ShareModal = () => {
                             <DialogHeader className='mb-1'>
                                 <DialogTitle className='font-semibold text-left text-gray-900 dark:text-white'>
                                     <span className='text-base text-left sm:text-xl md:text-xl'>
-                                        Share {`'${data?.document.title || 'this document'}'`}
+                                        Share {`'${data?.title || 'this document'}'`}
                                     </span>
                                 </DialogTitle>
                             </DialogHeader>
@@ -623,7 +631,7 @@ const ShareModal = () => {
                                         <div className='mb-4'>
                                             <h4 className='text-sm text-gray-900 dark:text-white flex items-center gap-2 mb-2'>
                                                 <Users size={16} className='flex-shrink-0' />
-                                                People with access ({mockCollaborator.length})
+                                                People with access ({collaborators?.length})
                                             </h4>
                                             <div className='space-y-2 max-h-40 md:max-h-52 overflow-y-auto custom-scrollbar'>
                                                 {collaborators.map((collab) => (
@@ -631,14 +639,13 @@ const ShareModal = () => {
                                                         key={collab.id}
                                                         className='flex items-center justify-between p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 group'
                                                     >
-                                                        {console.log(collab)}
                                                         {isMobile ? (
                                                             <Popover className='block md:hidden'>
                                                                 <PopoverTrigger>
                                                                     <div className='flex items-center gap-3 flex-1 min-w-0'>
                                                                         <div className='relative'>
                                                                             <div
-                                                                                className='w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-semibold shadow-sm'
+                                                                                className='w-10 h-10 rounded-full flex items-center font-semibold justify-center text-white text-base'
                                                                                 style={{
                                                                                     backgroundColor: collab.color,
                                                                                 }}
@@ -719,10 +726,16 @@ const ShareModal = () => {
                                                                     <div className='flex items-center gap-3 flex-1 min-w-0'>
                                                                         <div className='relative'>
                                                                             <div
-                                                                                className='w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-semibold shadow-sm'
                                                                                 style={{
+                                                                                    '--ring-color': collab.color,
                                                                                     backgroundColor: collab.color,
                                                                                 }}
+                                                                                className='w-10 h-10 rounded-full
+                                                                                    flex items-center justify-center
+                                                                                    font-semibold text-white
+                                                                                    border-2 border-white dark:border-gray-800
+                                                                                    shadow
+                                                                                    ring-2 ring-[var(--ring-color)]'
                                                                             >
                                                                                 {collab.profileImage ? (
                                                                                     <img
@@ -851,7 +864,7 @@ const ShareModal = () => {
                                                                 </SelectItem>
                                                                 <SelectItem
                                                                     value='remove'
-                                                                    className='px-3 py-2 rounded-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900 transition-colors rounded-sm'
+                                                                    className='px-3 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900 transition-colors rounded-sm'
                                                                 >
                                                                     ❌ Remove Access
                                                                 </SelectItem>
@@ -1340,7 +1353,7 @@ const EnhancedNavbar = ({
     onRoleChange,
     onShareClick,
     onVersionHistoryClick,
-    Documenttitle,
+    document,
 }) => {
     const [showCollaborators, setShowCollaborators] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -1349,7 +1362,7 @@ const EnhancedNavbar = ({
     const user = useSelector((state) => state.user.user);
     const { editorId } = useParams();
     const [saveVersionDialogOpen, setSaveVersionDialogOpen] = useState(false);
-    const [documentName, setDocumentName] = useState(Documenttitle);
+    const [documentName, setDocumentName] = useState(document?.title);
 
     // const [copied, setCopied] = useState(false);
 
@@ -1433,10 +1446,10 @@ const EnhancedNavbar = ({
     };
 
     useEffect(() => {
-        if (Documenttitle) {
-            setDocumentName(Documenttitle);
+        if (document) {
+            setDocumentName(document?.title);
         }
-    }, [Documenttitle]);
+    }, [document]);
 
     const useDebouncedDocumentRename = (renameDocument, toast, editorId) => {
         const debouncedRename = useCallback(
@@ -1570,14 +1583,22 @@ const EnhancedNavbar = ({
                                     ) : (
                                         <HoverCard className='hidden md:block'>
                                             <HoverCardTrigger asChild>
-                                                <div
-                                                    key={i}
+                                                <button
+                                                    type='button'
                                                     style={{ backgroundColor: c.color }}
-                                                    className='w-7 h-7 rounded-full cursor-pointer flex items-center justify-center text-xs text-white border-2 border-white dark:border-gray-800 shadow'
+                                                    className='w-9 h-9 rounded-full
+               flex items-center justify-center
+               font-semibold text-white
+               border-2 border-white dark:border-gray-800
+               shadow
+               focus:outline-none
+               focus:ring-2 focus:ring-blue-500/50'
                                                 >
+                                                    <span className='sr-only'>{c.name}</span>
                                                     {getInitials(c.name)}
-                                                </div>
+                                                </button>
                                             </HoverCardTrigger>
+
                                             <HoverCardContent className='bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl p-4 w-72'>
                                                 <div className='flex items-center gap-3 mb-4'>
                                                     <div
@@ -1629,11 +1650,11 @@ const EnhancedNavbar = ({
                                 >
                                     {/* If there are more collaborators, show +N like Google Docs */}
                                     {activeUsers.length > 3 ? (
-                                        <div className='w-7 h-7 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-700 border-2 border-white dark:text-gray-200 dark:border-gray-800 shadow'>
+                                        <div className='w-9 h-9 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs text-gray-700 border-2 border-white dark:text-gray-200 dark:border-gray-800 shadow'>
                                             +{activeUsers.length - 3}
                                         </div>
                                     ) : (
-                                        <div className='w-7 h-7 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-100 border-2 border-white dark:border-gray-800 shadow'>
+                                        <div className='w-9 h-9 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-100 border-2 border-white dark:border-gray-800 shadow'>
                                             <Plus size={12} />
                                         </div>
                                     )}
@@ -1642,19 +1663,24 @@ const EnhancedNavbar = ({
                             {showCollaborators && <CollaboratorsDropdown list={activeUsers} />}
                         </div>
 
-                        {/* Role selector */}
-                        {/* <UserRoleSelector currentRole={currentUserRole} onRoleChange={onRoleChange} /> */}
-                        {/* History */}
-
                         <Dialog open={versionopen} onOpenChange={setVersionopen}>
-                            <DialogTrigger
-                                asChild
-                                className='flex items-center justify-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800'
-                            >
-                                <ActionButton tooltip='Version History'>
-                                    <History size={16} />
-                                </ActionButton>
+                            <DialogTrigger asChild>
+                                <button
+                                    type='button'
+                                    className='h-9 w-9 inline-flex items-center justify-center
+           rounded-md
+           text-slate-600
+           hover:bg-slate-100
+           border border-slate-300
+           dark:border-slate-700
+           dark:bg-slate-800 dark:text-slate-300
+           dark:hover:bg-slate-700'
+                                >
+                                    <History size={18} />
+                                    <span className='sr-only'>History</span>
+                                </button>
                             </DialogTrigger>
+
                             <DialogContent
                                 showCloseButton={false}
                                 className='z-50 min-w-screen min-h-screen max-w-none max-h-none rounded-none p-0 overflow-x-hidden overflow-y-auto bg-white dark:bg-gray-900'
@@ -1666,11 +1692,22 @@ const EnhancedNavbar = ({
                             </DialogContent>
                         </Dialog>
 
-                        <div className='flex items-center'>
+                        <div className='inline-flex items-stretch rounded-xl overflow-hidden border border-blue-600 shadow-sm bg-blue-800'>
                             {/* Save Version Dialog */}
                             <Dialog open={saveVersionDialogOpen} onOpenChange={setSaveVersionDialogOpen}>
                                 <DialogTrigger asChild>
-                                    <button className='flex items-center gap-2 px-3 py-2 rounded-l-3xl text-white bg-blue-600 hover:bg-blue-700 transition-colors'>
+                                    <button
+                                        className='
+                                            flex items-center gap-2
+                                            px-2 h-9
+                                            text-white font-medium
+                                            bg-blue-600 
+                                            hover:bg-blue-700
+                                            active:bg-blue-800
+                                            focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400
+                                            transition-all
+                                        '
+                                    >
                                         <MdSave size={16} />
                                         <span className='hidden sm:inline'>Save</span>
                                     </button>
@@ -1755,15 +1792,31 @@ const EnhancedNavbar = ({
                                     </DialogFooter>
                                 </DialogContent>
                             </Dialog>
-                            <Separator orientation='vertical' />
+                            <Separator orientation='vertical' className='bg-white' />
+                            {/* <div className='w-px bg-blue-500/40' /> */}
                             <Popover>
                                 <PopoverTrigger asChild>
-                                    <button className='p-3 rounded-r-3xl bg-green-500  h-full'>
+                                    <button
+                                        className='
+                    flex items-center justify-center
+                    w-7 h-9
+                    text-white
+                    bg-blue-600
+                    hover:bg-blue-700
+                    active:bg-blue-800
+                    focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400
+                    transition-all
+                '
+                                        aria-label='More save options'
+                                    >
                                         <FaAngleDown size={16} />
                                     </button>
                                 </PopoverTrigger>
-                                <PopoverContent className='w-fit'>
-                                    <div className='flex items-center gap-2'>
+                                <PopoverContent className='w-64 p-4 rounded-xl shadow-lg bg-gray-800'>
+                                    <div className='space-y-3'>
+                                        <p className='text-base font-semibold text-gray-900 dark:text-white'>
+                                            AutoSave Settings
+                                        </p>
                                         <label
                                             htmlFor='autosave'
                                             className='inline-flex items-center gap-2 cursor-pointer'
@@ -1793,13 +1846,16 @@ const EnhancedNavbar = ({
                                                 Enable AutoSave
                                             </span>
                                         </label>
+                                        <p className='text-xs text-gray-500 dark:text-gray-400'>
+                                            Automatically save changes every 30 seconds
+                                        </p>
                                     </div>
                                 </PopoverContent>
                             </Popover>
                         </div>
 
                         {/* Share */}
-                        <ShareModal />
+                        <ShareModal data={document} />
                     </div>
 
                     {/* Chat Toggle */}
@@ -1836,22 +1892,139 @@ const EnhancedNavbar = ({
 
 function CollaboratorsDropdown({ list }) {
     return (
-        <div className='absolute top-full mt-2 right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 w-64 z-20'>
-            <h4 className='font-medium text-gray-900 dark:text-white mb-2'>Active Collaborators</h4>
-            <div className='space-y-2 max-h-48 overflow-auto'>
+        // <div className='absolute top-full mt-2 right-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg p-3 w-64 z-20'>
+        //     <div className='flex items-center justify-center mb-2 gap-2'>
+        //         <h4 className='font-medium text-lg text-gray-900 dark:text-white'>Active Collaborators</h4>
+        //         <IoMdInformationCircleOutline title='Users currently active in this document' size={16} />
+        //     </div>
+        //     <div className=' max-h-48 overflow-auto'>
+        //         {list.map((c) => (
+        //             <div key={c.id} className='flex items-center gap-2'>
+        //                 <div
+        //                     key={c.id}
+        //                     style={{ backgroundColor: c.color, '--ring-color': c.color }}
+        //                     className='w-7 h-7 rounded-full cursor-pointer flex items-center justify-center text- font-semibold text-white border-2 border-white dark:border-gray-800 shadow
+        //                                 ring-2 ring-[var(--ring-color)]'
+        //                 >
+        //                     {getInitials(c.name)}
+        //                 </div>
+        //                 <div className='flex-1'>
+        //                     <p className='text-base font-medium text-gray-900 dark:text-white'>{c.name}</p>
+        //                     <p className='text-xs text-gray-500 dark:text-gray-400 capitalize'>{c.role}</p>
+        //                 </div>
+        //                 <MessageSquareMore size={16} />
+        //                 <Mail size={16} />
+        //             </div>
+        //         ))}
+        //         {list.map((c) => (
+        //             <div key={c.id} className='flex items-center gap-2'>
+        //                 <div
+        //                     key={c.id}
+        //                     style={{ backgroundColor: c.color }}
+        //                     className='w-7 h-7 rounded-full cursor-pointer flex items-center justify-center text- font-semibold text-white border-2 border-white dark:border-gray-800 shadow'
+        //                 >
+        //                     {getInitials(c.name)}
+        //                 </div>
+        //                 <div className='flex-1'>
+        //                     <p className='text-base font-medium text-gray-900 dark:text-white'>{c.name}</p>
+        //                     <p className='text-xs text-gray-500 dark:text-gray-400 capitalize'>{c.role}</p>
+        //                 </div>
+        //                 <MessageSquareMore size={16} />
+        //                 <Mail size={16} />
+        //             </div>
+        //         ))}
+        //         {list.map((c) => (
+        //             <div key={c.id} className='flex items-center gap-2'>
+        //                 <div
+        //                     key={c.id}
+        //                     style={{ backgroundColor: c.color }}
+        //                     className='w-7 h-7 rounded-full cursor-pointer flex items-center justify-center text- font-semibold text-white border-2 border-white dark:border-gray-800 shadow'
+        //                 >
+        //                     {getInitials(c.name)}
+        //                 </div>
+        //                 <div className='flex-1'>
+        //                     <p className='text-base font-medium text-gray-900 dark:text-white'>{c.name}</p>
+        //                     <p className='text-xs text-gray-500 dark:text-gray-400 capitalize'>{c.role}</p>
+        //                 </div>
+        //                 <MessageSquareMore size={16} />
+        //                 <Mail size={16} />
+        //             </div>
+        //         ))}
+        //     </div>
+        // </div>
+        <div
+            className='absolute top-full right-0 mt-2 w-72
+                rounded-xl border
+                bg-white dark:bg-gray-800
+                border-gray-200 dark:border-gray-700
+                shadow-xl z-20 overflow-hidden'
+        >
+            {/* Header */}
+            <div
+                className='flex items-center justify-between px-4 py-3 border-b
+                  border-gray-200 dark:border-gray-700'
+            >
+                <h4 className='font-semibold text-sm text-gray-900 dark:text-white'>Active collaborators</h4>
+                <IoMdInformationCircleOutline
+                    size={16}
+                    className='text-gray-400'
+                    title='Users currently active in this document'
+                />
+            </div>
+
+            {/* List */}
+            <div className='max-h-60 overflow-y-auto custom-scrollbar'>
                 {list.map((c) => (
-                    <div key={c.id} className='flex items-center gap-2'>
+                    <div
+                        key={c.id}
+                        className='flex items-center gap-3 px-4 py-2
+                   hover:bg-gray-50 dark:hover:bg-gray-700/50
+                   transition-colors'
+                    >
+                        {/* Avatar */}
                         <div
-                            style={{ backgroundColor: c.color }}
-                            className='w-6 h-6 rounded-full flex items-center justify-center text-xs text-white'
+                            style={{
+                                backgroundColor: c.color,
+                                '--ring-color': c.color,
+                            }}
+                            className='w-8 h-8 rounded-full
+                     flex items-center justify-center
+                     text-xs font-semibold text-white
+                     border-2 border-white dark:border-gray-800
+                     ring-2 ring-[var(--ring-color)]
+                     shadow shrink-0'
                         >
-                            {c.avatar}
+                            {getInitials(c.name)}
                         </div>
-                        <div className='flex-1'>
-                            <p className='text-sm font-medium text-gray-900 dark:text-white'>{c.name}</p>
+
+                        {/* Name & role */}
+                        <div className='flex-1 min-w-0'>
+                            <p className='text-sm font-medium text-gray-900 dark:text-white truncate'>{c.name}</p>
                             <p className='text-xs text-gray-500 dark:text-gray-400 capitalize'>{c.role}</p>
                         </div>
-                        <div className={`w-2 h-2 rounded-full ${c.isOnline ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+
+                        {/* Actions */}
+                        <div className='flex items-center gap-2 text-gray-400'>
+                            <button
+                                type='button'
+                                className='p-1 rounded hover:text-blue-600
+                       hover:bg-blue-50 dark:hover:bg-blue-900/30
+                       transition-colors'
+                                aria-label={`Message ${c.name}`}
+                            >
+                                <MessageSquareMore size={16} />
+                            </button>
+
+                            <button
+                                type='button'
+                                className='p-1 rounded hover:text-emerald-600
+                       hover:bg-emerald-50 dark:hover:bg-emerald-900/30
+                       transition-colors'
+                                aria-label={`Email ${c.name}`}
+                            >
+                                <Mail size={16} />
+                            </button>
+                        </div>
                     </div>
                 ))}
             </div>
@@ -1864,7 +2037,12 @@ function ActionButton({ onClick, tooltip, children }) {
         <button
             onClick={onClick}
             title={tooltip}
-            className='p-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition'
+            // className='p-2 h-8 w-8 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition'
+            class='h-9 px-3 inline-flex items-center justify-center gap-1.5
+         rounded-md text-sm font-medium
+         bg-slate-800 text-slate-200
+         hover:bg-slate-700
+         transition-colors'
         >
             {children}
         </button>
@@ -1874,16 +2052,38 @@ function ActionButton({ onClick, tooltip, children }) {
 function ChatToggle({ isActive, onClick, children }) {
     return (
         <button
+            type='button'
             onClick={onClick}
             aria-label='Toggle chat panel'
-            className={`relative p-2 rounded-lg border-2 transition-all duration-200 ${
-                isActive
-                    ? 'bg-blue-100 dark:bg-blue-900/20 border-blue-600 dark:border-blue-800 text-blue-600 dark:text-blue-400'
-                    : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-            }`}
+            className={`relative h-9 w-9
+    inline-flex items-center justify-center
+    rounded-md border
+    transition-colors duration-200
+    focus:outline-none focus:ring-2 focus:ring-blue-500/50
+    ${
+        isActive
+            ? `
+          bg-blue-600/10 border-blue-600 text-blue-600
+          dark:bg-blue-400/10 dark:border-blue-400 dark:text-blue-400
+        `
+            : `
+          bg-slate-100 border-slate-300 text-slate-600
+          hover:bg-slate-200
+          dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400
+          dark:hover:bg-slate-700
+        `
+    }`}
         >
             {children}
-            <span className='absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium'>
+
+            <span className='sr-only'>3 unread messages</span>
+            <span
+                className='absolute -top-1 -right-1
+               h-4 min-w-[16px] px-1
+               rounded-full bg-red-500
+               text-[10px] font-semibold text-white
+               flex items-center justify-center'
+            >
                 3
             </span>
         </button>
@@ -2005,7 +2205,7 @@ const EnhancedEditorLayout = () => {
         refetchOnMountOrArgChange: true,
         refetchOnReconnect: true,
         refetchOnFocus: true,
-        // skip: !isOpen,
+        pollingInterval: 7000,
     });
 
     if (fatalSocketError) {
@@ -2024,7 +2224,7 @@ const EnhancedEditorLayout = () => {
                 onRoleChange={setCurrentUserRole}
                 onShareClick={() => setShowShareModal(true)}
                 onVersionHistoryClick={() => setShowVersionHistory(true)}
-                Documenttitle={data?.document?.title}
+                document={data?.document}
             />
 
             <div className='flex flex-1 h-full w-full overflow-hidden'>
