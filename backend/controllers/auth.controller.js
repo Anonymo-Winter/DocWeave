@@ -3,6 +3,7 @@ import User from '../models/user.model.js';
 import Document from '../models/document.model.js';
 
 import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
 const createToken = (email, name, id) => {
     return jwt.sign({ email, name, id }, process.env.JWT_KEY, { expiresIn: '1d' });
 };
@@ -117,19 +118,68 @@ export const logout = async (req, res) => {
 };
 
 export const searchForEmail = async (req, res) => {
-    if (req.body === undefined) return res.status(400).json({ message: 'Please enter a valid search term' });
-    const { emailTerm = '' } = req.body;
     try {
-        if (emailTerm === undefined) return res.status(400).json({ message: 'Please enter a valid search term' });
-        if (emailTerm.length == 0) {
-            return res.status(400).json({ message: 'Please enter a valid search term' });
+        const emailTerm = req.body?.emailTerm?.trim();
+        const editorId = req.body?.editorId?.trim();
+
+        if (!emailTerm || !editorId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please enter a valid search term',
+            });
         }
-        const matchingEmails = await User.find({ email: { $regex: emailTerm, $options: 'i' } })
-            .select('email name')
-            .exec();
-        return res.status(200).json({ success: true, matchingEmails });
+
+        if (emailTerm.length < 2) {
+            return res.status(400).json({
+                success: false,
+                message: 'Search term must be at least 2 characters long',
+            });
+        }
+
+        if (!mongoose.Types.ObjectId.isValid(editorId)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid document ID',
+            });
+        }
+
+        // 1️⃣ Fetch document
+        const doc = await Document.findById(editorId).select('ownerId collaborators.userId').lean();
+
+        if (!doc) {
+            return res.status(404).json({
+                success: false,
+                message: 'Document not found',
+            });
+        }
+
+        // 2️⃣ Collect user IDs to exclude
+        const excludedUserIds = [doc.ownerId, ...doc.collaborators.map((c) => c.userId)];
+
+        // 3️⃣ Safe regex (prevents regex injection)
+        const safeTerm = emailTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+        // 4️⃣ Search users, excluding owner & collaborators
+        const users = await User.find(
+            {
+                _id: { $nin: excludedUserIds },
+                email: { $regex: safeTerm, $options: 'i' },
+            },
+            { email: 1, name: 1 },
+        )
+            .limit(10)
+            .lean();
+
+        return res.status(200).json({
+            success: true,
+            count: users.length,
+            matchingEmails: users,
+        });
     } catch (error) {
-        console.log('Failed to search for email: ', error.message);
-        return res.status(500).json({ message: 'Internal server error' });
+        console.error('Failed to search for email:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+        });
     }
 };
