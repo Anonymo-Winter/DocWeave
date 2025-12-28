@@ -34,7 +34,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 import { useLogoutMutation } from '../api/userApi';
-import { useCreateDocumentMutation, useGetUserDocumentsQuery } from '../api/docApi';
+import { useCreateDocumentMutation, useGetUserDocumentsQuery, useToggleStarMutation } from '../api/docApi';
 
 import ProfileEditModal from '../components/EditProfile';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -247,9 +247,11 @@ const FilterDropdown = ({ selectedFilter, onFilterChange }) => {
 };
 
 const DocumentCard = ({ document, viewMode }) => {
-    const [isStarred, setIsStarred] = useState(document.starred);
+    const [isStarred, setIsStarred] = useState(document?.starred || false);
     const navigate = useNavigate();
-    console.log(document);
+    const [toggleStar] = useToggleStarMutation();
+    if (!document) return null;
+
     if (viewMode === 'list') {
         return (
             <motion.div
@@ -278,9 +280,10 @@ const DocumentCard = ({ document, viewMode }) => {
                     </div>
                 </div>
                 <button
-                    onClick={(e) => {
+                    onClick={async (e) => {
                         e.stopPropagation();
                         setIsStarred(!isStarred);
+                        await toggleStar(document.id);
                     }}
                     className='p-1 transition-opacity'
                 >
@@ -315,9 +318,10 @@ const DocumentCard = ({ document, viewMode }) => {
                 <div className='flex items-start justify-between gap-2 mb-2'>
                     <h3 className='font-medium text-gray-900 dark:text-white line-clamp-2'>{document.title}</h3>
                     <button
-                        onClick={(e) => {
+                        onClick={async (e) => {
                             e.stopPropagation();
                             setIsStarred(!isStarred);
+                            await toggleStar(document.id);
                         }}
                         className='opacity-90 group-hover:opacity-100 transition-opacity'
                     >
@@ -378,7 +382,7 @@ const Dashboard = () => {
                 filtered = filtered.filter((doc) => doc.ownership === 'owned');
                 break;
             case 'shared':
-                filtered = filtered.filter((doc) => doc.ownership === 'shared');
+                filtered = filtered.filter((doc) => doc.ownership === 'collaborator');
                 break;
             case 'starred':
                 filtered = filtered.filter((doc) => doc.starred);

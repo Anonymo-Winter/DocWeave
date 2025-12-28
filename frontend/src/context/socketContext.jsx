@@ -236,11 +236,11 @@ export const SocketProvider = ({ children }) => {
                 },
             });
         });
-        awareness.on('update', ({ added, updated, removed }, origin) => {
-            if (origin === 'local') {
-                console.log('LOCAL awareness update', { added, updated, removed });
-            }
-        });
+        // awareness.on('update', ({ added, updated, removed }, origin) => {
+        //     if (origin === 'local') {
+        //         console.log('LOCAL awareness update', { added, updated, removed });
+        //     }
+        // });
         // -------- CLEANUP --------
         return () => {
             ydoc.off('update', handleYdocUpdate);

@@ -120,6 +120,12 @@ export const docApi = createApi({
                 return `/doc/user-documents/${userId}`;
             },
         }),
+        toggleStar: builder.mutation({
+            query: (documentId) => ({
+                url: `/doc/${documentId}/star`,
+                method: 'POST',
+            }),
+        }),
     }),
 });
 
@@ -136,4 +142,5 @@ export const {
     useUpdateDocumentMutation,
     useChangeDocNameMutation,
     useGetUserDocumentsQuery,
+    useToggleStarMutation,
 } = docApi;

@@ -135,7 +135,7 @@ export const VersionViewer = ({ selectedVersion, versionUpdateBase64, onEditorRe
     );
 };
 
-const VersionComponent = ({ setVersionopen }) => {
+const VersionComponent = ({ setVersionopen, canSave }) => {
     const [selectedVersion, setSelectedVersion] = useState(null);
     const [showRestoreModal, setShowRestoreModal] = useState(false);
     const [showRemoveModal, setShowRemoveModal] = useState(false);
@@ -837,162 +837,163 @@ const VersionComponent = ({ setVersionopen }) => {
                         </span>
                     )}
                     <div className='flex items-center gap-4'>
-                        {selectedVersion ? (
-                            <Dialog open={showRestoreModal} onOpenChange={setShowRestoreModal}>
-                                <DialogTrigger asChild>
-                                    <button
-                                        type='button'
-                                        className='flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
-                                    >
-                                        {restoreLoading ? (
-                                            <>
-                                                <Loader2 className='w-4 h-4 animate-spin' />
-                                                <span className='hidden md:block'>Restoring...</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <FaRedo className='w-4 h-4 rotate-40' />
-                                                <span className='hidden md:block'>Restore Version</span>
-                                            </>
-                                        )}
-                                    </button>
-                                </DialogTrigger>
-
-                                <DialogContent className='dark:bg-gray-800 bg-white rounded-lg max-w-md w-full mx-4 px-5 py-4'>
-                                    <DialogHeader>
-                                        <DialogTitle className='text-lg font-semibold'>Confirm Restore</DialogTitle>
-                                        <DialogDescription>
-                                            <p className='mt-2 text-sm text-gray-600 dark:text-gray-300'>
-                                                Restoring will replace the current version with the selected version.
-                                                You can always undo this action.
-                                            </p>
-                                        </DialogDescription>
-                                    </DialogHeader>
-
-                                    <DialogFooter className='flex justify-end gap-2'>
-                                        <DialogClose asChild>
-                                            <Button
-                                                type='button'
-                                                variant='secondary'
-                                                className='px-4 py-2 bg-gray-800 text-white hover:bg-gray-700 rounded-md'
-                                            >
-                                                Cancel
-                                            </Button>
-                                        </DialogClose>
-                                        <Button
+                        {canSave &&
+                            (selectedVersion ? (
+                                <Dialog open={showRestoreModal} onOpenChange={setShowRestoreModal}>
+                                    <DialogTrigger asChild>
+                                        <button
                                             type='button'
-                                            variant='primary'
-                                            onClick={async () => {
-                                                await restoreVersion(selectedVersion);
-                                                setShowRestoreModal(false);
-                                            }}
-                                            className='px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-md'
-                                            disabled={restoreLoading}
+                                            className='flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
                                         >
                                             {restoreLoading ? (
                                                 <>
-                                                    <Loader2 className='w-4 h-4 animate-spin mr-2' />
-                                                    Restoring...
+                                                    <Loader2 className='w-4 h-4 animate-spin' />
+                                                    <span className='hidden md:block'>Restoring...</span>
                                                 </>
                                             ) : (
-                                                'Restore'
+                                                <>
+                                                    <FaRedo className='w-4 h-4 rotate-40' />
+                                                    <span className='hidden md:block'>Restore Version</span>
+                                                </>
                                             )}
-                                        </Button>
-                                    </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
-                        ) : (
-                            <Dialog open={saveVersionDialogOpen} onOpenChange={setSaveVersionDialogOpen}>
-                                <DialogTrigger asChild>
-                                    <button
-                                        type='button'
-                                        className='flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
-                                    >
-                                        <Save className='w-4 h-4' />
-                                        <span className='md:block hidden'>Save version</span>
-                                    </button>
-                                </DialogTrigger>
+                                        </button>
+                                    </DialogTrigger>
 
-                                <DialogContent className='dark:bg-gray-800 bg-white rounded-lg max-w-md w-full mx-4 px-5 py-4'>
-                                    <DialogHeader>
-                                        <DialogTitle className='font-medium dark:text-white text-gray-900'>
-                                            Save current version
-                                        </DialogTitle>
-                                        <DialogDescription>
-                                            Save the current state of the document as a new version. You can give it a
-                                            name and description.
-                                        </DialogDescription>
-                                    </DialogHeader>
+                                    <DialogContent className='dark:bg-gray-800 bg-white rounded-lg max-w-md w-full mx-4 px-5 py-4'>
+                                        <DialogHeader>
+                                            <DialogTitle className='text-lg font-semibold'>Confirm Restore</DialogTitle>
+                                            <DialogDescription>
+                                                <p className='mt-2 text-sm text-gray-600 dark:text-gray-300'>
+                                                    Restoring will replace the current version with the selected
+                                                    version. You can always undo this action.
+                                                </p>
+                                            </DialogDescription>
+                                        </DialogHeader>
 
-                                    {/* Version Name Input */}
-                                    <div className=''>
-                                        <Label htmlFor='version-name' className='mb-4 block'>
-                                            Version Name (optional)
-                                        </Label>
-                                        <div className='relative'>
-                                            <AiOutlineHistory
-                                                className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 transition-colors z-10 ${
-                                                    isFocused
-                                                        ? 'text-blue-500 dark:text-blue-400'
-                                                        : 'text-gray-400 dark:text-gray-500'
-                                                }`}
-                                            />
-                                            <input
-                                                id='version-name'
-                                                type='text'
-                                                placeholder='Enter version name...'
-                                                value={versionName}
-                                                onChange={(e) => setVersionName(e.target.value)}
-                                                onFocus={() => setIsFocused(true)}
-                                                onBlur={() => setTimeout(() => setIsFocused(false), 0)}
-                                                className={`w-full py-3 pl-10 border-2 rounded-lg bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm font-light text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none transition-all duration-200 ${
-                                                    isFocused
-                                                        ? 'border-blue-500 dark:border-blue-400'
-                                                        : 'border-gray-300 dark:border-gray-600'
-                                                }`}
+                                        <DialogFooter className='flex justify-end gap-2'>
+                                            <DialogClose asChild>
+                                                <Button
+                                                    type='button'
+                                                    variant='secondary'
+                                                    className='px-4 py-2 bg-gray-800 text-white hover:bg-gray-700 rounded-md'
+                                                >
+                                                    Cancel
+                                                </Button>
+                                            </DialogClose>
+                                            <Button
+                                                type='button'
+                                                variant='primary'
+                                                onClick={async () => {
+                                                    await restoreVersion(selectedVersion);
+                                                    setShowRestoreModal(false);
+                                                }}
+                                                className='px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-md'
+                                                disabled={restoreLoading}
+                                            >
+                                                {restoreLoading ? (
+                                                    <>
+                                                        <Loader2 className='w-4 h-4 animate-spin mr-2' />
+                                                        Restoring...
+                                                    </>
+                                                ) : (
+                                                    'Restore'
+                                                )}
+                                            </Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
+                            ) : (
+                                <Dialog open={saveVersionDialogOpen} onOpenChange={setSaveVersionDialogOpen}>
+                                    <DialogTrigger asChild>
+                                        <button
+                                            type='button'
+                                            className='flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm hover:shadow-md transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
+                                        >
+                                            <Save className='w-4 h-4' />
+                                            <span className='md:block hidden'>Save version</span>
+                                        </button>
+                                    </DialogTrigger>
+
+                                    <DialogContent className='dark:bg-gray-800 bg-white rounded-lg max-w-md w-full mx-4 px-5 py-4'>
+                                        <DialogHeader>
+                                            <DialogTitle className='font-medium dark:text-white text-gray-900'>
+                                                Save current version
+                                            </DialogTitle>
+                                            <DialogDescription>
+                                                Save the current state of the document as a new version. You can give it
+                                                a name and description.
+                                            </DialogDescription>
+                                        </DialogHeader>
+
+                                        {/* Version Name Input */}
+                                        <div className=''>
+                                            <Label htmlFor='version-name' className='mb-4 block'>
+                                                Version Name (optional)
+                                            </Label>
+                                            <div className='relative'>
+                                                <AiOutlineHistory
+                                                    className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 transition-colors z-10 ${
+                                                        isFocused
+                                                            ? 'text-blue-500 dark:text-blue-400'
+                                                            : 'text-gray-400 dark:text-gray-500'
+                                                    }`}
+                                                />
+                                                <input
+                                                    id='version-name'
+                                                    type='text'
+                                                    placeholder='Enter version name...'
+                                                    value={versionName}
+                                                    onChange={(e) => setVersionName(e.target.value)}
+                                                    onFocus={() => setIsFocused(true)}
+                                                    onBlur={() => setTimeout(() => setIsFocused(false), 0)}
+                                                    className={`w-full py-3 pl-10 border-2 rounded-lg bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm font-light text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none transition-all duration-200 ${
+                                                        isFocused
+                                                            ? 'border-blue-500 dark:border-blue-400'
+                                                            : 'border-gray-300 dark:border-gray-600'
+                                                    }`}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Version Description Textarea */}
+                                        <div className=''>
+                                            <Label htmlFor='version-description' className='mb-4 block'>
+                                                Version Description (optional)
+                                            </Label>
+                                            <textarea
+                                                id='version-description'
+                                                rows={3}
+                                                placeholder='Add a short description...'
+                                                value={versionDescription}
+                                                onChange={(e) => setVersionDescription(e.target.value)}
+                                                // className={`w-full min-h-12 max-h-20 custom-scrollbar py-3 px-3 border-2 rounded-lg bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm font-light text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none
+                                                //     transition-all duration-200 focus:border-blue-500 dark:focus:border-blue-400 border-gray-300 dark:border-gray-600}`}
+                                                className='w-full min-h-12 max-h-20 custom-scrollbar p-3 border-2 rounded-lg bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm font-light text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none
+                                                                            transition-all duration-200 focus:border-blue-500'
                                             />
                                         </div>
-                                    </div>
 
-                                    {/* Version Description Textarea */}
-                                    <div className=''>
-                                        <Label htmlFor='version-description' className='mb-4 block'>
-                                            Version Description (optional)
-                                        </Label>
-                                        <textarea
-                                            id='version-description'
-                                            rows={3}
-                                            placeholder='Add a short description...'
-                                            value={versionDescription}
-                                            onChange={(e) => setVersionDescription(e.target.value)}
-                                            // className={`w-full min-h-12 max-h-20 custom-scrollbar py-3 px-3 border-2 rounded-lg bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm font-light text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none
-                                            //     transition-all duration-200 focus:border-blue-500 dark:focus:border-blue-400 border-gray-300 dark:border-gray-600}`}
-                                            className='w-full min-h-12 max-h-20 custom-scrollbar p-3 border-2 rounded-lg bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm font-light text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none
-                                                                            transition-all duration-200 focus:border-blue-500'
-                                        />
-                                    </div>
-
-                                    {/* Footer Actions */}
-                                    <DialogFooter>
-                                        <DialogClose asChild>
+                                        {/* Footer Actions */}
+                                        <DialogFooter>
+                                            <DialogClose asChild>
+                                                <button
+                                                    type='button'
+                                                    className='px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md'
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </DialogClose>
                                             <button
-                                                type='button'
-                                                className='px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md'
+                                                onClick={() => confirmSaveVersion()}
+                                                type='submit'
+                                                className='px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-md'
                                             >
-                                                Cancel
+                                                Save Version
                                             </button>
-                                        </DialogClose>
-                                        <button
-                                            onClick={() => confirmSaveVersion()}
-                                            type='submit'
-                                            className='px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-md'
-                                        >
-                                            Save Version
-                                        </button>
-                                    </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
-                        )}
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
+                            ))}
                         {isSidebarHidden && (
                             <button
                                 className='p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700'
@@ -1204,7 +1205,7 @@ const VersionComponent = ({ setVersionopen }) => {
                                             </div>
 
                                             {/* Action Buttons */}
-                                            {selectedVersion?._id === version._id && (
+                                            {canSave && selectedVersion?._id === version._id && (
                                                 <div className='px-4 pb-4 pt-3 border-t border-gray-100 dark:border-gray-600'>
                                                     <div className='grid grid-cols-2 gap-2'>
                                                         {!version.isCurrentVersion && (

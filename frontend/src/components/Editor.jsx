@@ -100,18 +100,22 @@ const MainToolbarContent = ({
     editorId,
     setIsReadOnly,
     isReadOnly,
+    canEdit,
 }) => {
+    if (!canEdit) return null;
     return (
         <>
-            <ToolbarGroup>
-                <Button onClick={() => editor.commands.undo()}>
-                    <Undo2 className='size-4' />
-                </Button>
+            {!isReadOnly && (
+                <ToolbarGroup>
+                    <Button onClick={() => editor.commands.undo()}>
+                        <Undo2 className='size-4' />
+                    </Button>
 
-                <Button onClick={() => editor.commands.redo()}>
-                    <Redo2 className='size-4' />
-                </Button>
-            </ToolbarGroup>
+                    <Button onClick={() => editor.commands.redo()}>
+                        <Redo2 className='size-4' />
+                    </Button>
+                </ToolbarGroup>
+            )}
             <ToolbarSeparator />
             <ToolbarGroup>
                 <HeadingDropdownMenu levels={[1, 2, 3, 4]} />
@@ -149,23 +153,25 @@ const MainToolbarContent = ({
             <ToolbarSeparator />
             <Spacer />
             <ToolbarGroup>
-                <Button
-                    onClick={() => {
-                        const newMode = !isReadOnly;
-                        setIsReadOnly(newMode);
-                        editor?.setEditable(!newMode);
-                    }}
-                >
-                    {isReadOnly ? (
-                        <>
-                            <Edit size={16} className='mr-1' /> Edit
-                        </>
-                    ) : (
-                        <>
-                            <Eye size={16} className='mr-1' /> Read
-                        </>
-                    )}
-                </Button>
+                {canEdit && (
+                    <Button
+                        onClick={() => {
+                            const newMode = !isReadOnly;
+                            setIsReadOnly(newMode);
+                            editor?.setEditable(!newMode);
+                        }}
+                    >
+                        {isReadOnly ? (
+                            <>
+                                <Edit size={16} className='mr-1' /> Edit
+                            </>
+                        ) : (
+                            <>
+                                <Eye size={16} className='mr-1' /> Read
+                            </>
+                        )}
+                    </Button>
+                )}
             </ToolbarGroup>
             {isMobile && <ToolbarSeparator />}
             <ToolbarGroup>
@@ -194,7 +200,7 @@ const MobileToolbarContent = ({ type, onBack }) => (
     </>
 );
 
-export function SimpleEditor({ onError }) {
+export function SimpleEditor({ onError, canEdit }) {
     const user = useSelector((state) => state.user.user);
     const { ydoc, awareness, assignedColor } = useSocket();
     const [editor, setEditor] = React.useState(null);
@@ -205,7 +211,7 @@ export function SimpleEditor({ onError }) {
     const { editorId } = useParams();
     const [saveVersion] = useSaveVersionMutation();
     const [isInitialized, setIsInitialized] = React.useState(false);
-    const [isReadOnly, setIsReadOnly] = React.useState(false);
+    const [isReadOnly, setIsReadOnly] = React.useState(!canEdit);
     const [ydocReadyState, setYdocReadyState] = React.useState(false);
     const [criticalYjsError, setCriticalYjsError] = React.useState(null);
 
@@ -323,6 +329,7 @@ export function SimpleEditor({ onError }) {
         const newEditor = new Editor({
             extensions,
             autofocus: true,
+            editable: canEdit,
         });
 
         setEditor(newEditor);
@@ -332,6 +339,13 @@ export function SimpleEditor({ onError }) {
         //     if (!editor) setEditor(newEditor);
         // };
     }, [extensions, isInitialized, ydocReadyState]);
+
+    React.useEffect(() => {
+        if (!editor) return;
+
+        editor.setEditable(canEdit);
+        setIsReadOnly(!canEdit);
+    }, [canEdit, editor]);
 
     React.useEffect(() => {
         if (!editor || !ydoc) return;
@@ -530,6 +544,7 @@ export function SimpleEditor({ onError }) {
                             isMobile={isMobile}
                             setIsReadOnly={setIsReadOnly}
                             isReadOnly={isReadOnly}
+                            canEdit={canEdit}
                         />
                     ) : (
                         <MobileToolbarContent
