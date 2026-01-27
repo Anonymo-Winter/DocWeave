@@ -49,32 +49,10 @@ const docsMap = new Map(); // roomId -> { doc: Y.Doc }
  */
 const roomUsers = new Map();
 
-let io = null;
-
-export const setIO = (_io) => {
-    io = _io;
-};
-
-export const getIO = () => io;
-
-export const updateSocketRoleInRoom = (io, roomId, userId, newRole) => {
-    const room = io.sockets.adapter.rooms.get(roomId);
-    if (!room) return;
-
-    for (const socketId of room) {
-        const s = io.sockets.sockets.get(socketId);
-        if (s?.user?.id === userId) {
-            s.data.role = newRole; // 🔑 THIS LINE IS CRITICAL
-            console.log('[ROLE UPDATED]', s.user.name, '=>', newRole);
-        }
-    }
-};
-
 export function setupSocketIo(server) {
     const io = new Server(server, {
         cors: { origin: '*', methods: ['GET', 'POST'], credentials: true },
     });
-    setIO(io);
 
     // --- Auth middleware ---
     io.use((socket, next) => {
@@ -181,11 +159,6 @@ export function setupSocketIo(server) {
                 socket.data.docId = roomId;
                 socket.data.role = role;
 
-                socket.emit('permission-changed', {
-                    userId: socket.user.id,
-                    role,
-                });
-
                 // Assign deterministic color (no DB persistence in this version)
                 // Fetch document metadata
                 if (!mongoose.Types.ObjectId.isValid(roomId)) {
@@ -254,28 +227,12 @@ export function setupSocketIo(server) {
             handleLeaveRoom(currentRoomId);
         });
 
-        socket.on('request-role', async () => {
-            if (!currentRoomId) return;
-
-            const role = await resolveUserRole({
-                userId: socket.user.id,
-                docId: currentRoomId,
-            });
-
-            socket.data.role = role; // 🔥 THIS LINE WAS MISSING
-
-            socket.emit('permission-changed', {
-                userId: socket.user.id,
-                role,
-            });
-        });
-
         // =========================
         // DOC UPDATES (CRDT)
         // =========================
         socket.on('update', (update) => {
             if (!currentRoomId) return;
-            console.log('update from', socket.user.name, 'role:', socket.data.role);
+
             const role = socket.data.role;
             if (role !== 'EDITOR' && role !== 'OWNER') return;
 
@@ -296,13 +253,6 @@ export function setupSocketIo(server) {
 
             try {
                 const { doc } = getRoomState(currentRoomId);
-
-                // 🔒 SAFETY: full sync if no vector
-                if (!stateVector || stateVector.length === 0) {
-                    socket.emit('sync', Y.encodeStateAsUpdate(doc));
-                    return;
-                }
-
                 const diff = Y.encodeStateAsUpdate(doc, new Uint8Array(stateVector));
                 socket.emit('sync-update', diff);
             } catch (e) {
@@ -327,7 +277,6 @@ export function setupSocketIo(server) {
         socket.on('awareness-update', (update) => {
             if (!currentRoomId) return;
             if (socket.data.role == 'VIEWER') return;
-            if (socket.data.role !== 'EDITOR' && socket.data.role !== 'OWNER') return;
             // DO NOT apply/encode/store awareness on server.
             socket.to(currentRoomId).emit('awareness-update', update);
         });
