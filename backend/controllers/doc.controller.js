@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import cloudinary from '../util/cloudinary.js';
 import puppeteer from 'puppeteer';
 import { sendInvite } from '../util/sendEmail.js';
+import { getIO, updateSocketRoleInRoom } from '../socket.js';
 
 export const saveVersion = async (req, res) => {
     try {
@@ -424,6 +425,37 @@ export const updateDocument = async (req, res) => {
         }
 
         await document.save();
+
+        const io = getIO();
+
+        if (Array.isArray(userswithupdatedrole)) {
+            for (const userUpdate of userswithupdatedrole) {
+                const resolvedRole =
+                    userUpdate.role === 'remove'
+                        ? null
+                        : await resolveUserRole({
+                              userId: userUpdate.id,
+                              docId: editorId,
+                          });
+
+                // 🔥 UPDATE SOCKET STATE (THIS WAS MISSING)
+                updateSocketRoleInRoom(io, editorId, userUpdate.id, resolvedRole);
+
+                // 🔔 INFORM CLIENTS
+                io.to(editorId).emit('permission-changed', {
+                    docId: editorId,
+                    userId: userUpdate.id,
+                    role: resolvedRole,
+                });
+            }
+        }
+
+        if (visibility) {
+            io.to(editorId).emit('visibility-changed', {
+                docId: editorId,
+                visibility,
+            });
+        }
 
         res.status(200).json({
             success: true,
