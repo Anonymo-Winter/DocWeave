@@ -322,12 +322,11 @@ export const getDocument = async (req, res) => {
             return res.status(404).json({ message: 'Document not found' });
         }
 
-        const role = await resolveUserRole({ userId: req.userId, docId: editorId });
+        // ✅ Send the populated doc to frontend
         return res.status(200).json({
             success: true,
             message: 'Document data fetched successfully',
             document: document,
-            permission: role,
         });
     } catch (error) {
         console.error('Error fetching document meta data:', error);
@@ -394,7 +393,7 @@ export const generatePDF = async (req, res) => {
 export const updateDocument = async (req, res) => {
     const { visibility, userswithupdatedrole } = req.body;
     const { editorId } = req.params;
-    console.log(req.body);
+
     try {
         if (!editorId || !mongoose.Types.ObjectId.isValid(editorId)) {
             return res.status(400).json({ message: 'Invalid or missing editor ID' });
@@ -413,13 +412,7 @@ export const updateDocument = async (req, res) => {
             userswithupdatedrole.forEach((userUpdate) => {
                 const collab = document.collaborators.find((c) => c.userId.toString() === userUpdate.id);
                 if (collab) {
-                    if (userUpdate.role == 'remove') {
-                        document.collaborators = document.collaborators.filter(
-                            (c) => c.userId.toString() !== userUpdate.id,
-                        );
-                    } else if (userUpdate.role == 'editor' || userUpdate.role == 'viewer') {
-                        collab.role = userUpdate.role;
-                    }
+                    collab.role = userUpdate.role;
                 }
             });
         }
@@ -528,151 +521,51 @@ export const resolveUserRole = async ({ userId, docId, accessTokenType = 'link' 
     }
 };
 
-// export const getUserDocuments = async (req, res) => {
-//     const { userId } = req.params;
-//     if (!userId || !mongoose.Types.ObjectId.isValid(userId))
-//         return res.status(400).json({ message: 'Invalid or missing user ID' });
-//     try {
-//         const user = await User.findById(userId).populate('recentDocs.document').exec();
-//         if (!user) return res.status(404).json({ message: 'User not found' });
-//         // template :
-//         // {
-//         //     id: 1,
-//         //     title: 'Project Proposal Q4',
-//         //     lastModified: '2 hours ago',
-//         //     collaborators: 3,
-//         //     starred: true,
-//         //     thumbnail: '📊',
-//         //     ownership: 'owned',
-//         //     permission: 'edit',
-//         // },
-//         const userDocuments = [];
-//         for (const doc of user.recentDocs) {
-//             const document = doc.document;
-//             if (!document) {
-//                 await User.updateOne({ _id: userId }, { $pull: { recentDocs: { document: doc.document } } });
-//                 continue;
-//             }
-//             const template = {
-//                 id: document._id,
-//                 title: document.title,
-//                 lastModified: doc.accessed,
-//                 collaborators: document.collaborators.length,
-//                 starred: doc.starred || false,
-//                 thumbnail: '⚡',
-//                 ownership:
-//                     document.ownerId.toString() === userId
-//                         ? 'owned'
-//                         : document.collaborators.some((c) => c.userId.toString() === userId)
-//                         ? 'collaborator'
-//                         : 'view',
-//                 permission: await resolveUserRole({ userId, docId: document._id }),
-//             };
-//             userDocuments.push(template);
-//         }
-//         return res.status(200).json({ success: true, userDocuments });
-//     } catch (error) {
-//         console.error('Error renaming document:', error);
-//         res.status(500).json({ error: 'Failed to fetch documents.' });
-//     }
-// };
-
 export const getUserDocuments = async (req, res) => {
     const { userId } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-        return res.status(400).json({ message: 'Invalid user ID' });
-    }
-
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId))
+        return res.status(400).json({ message: 'Invalid or missing user ID' });
     try {
-        const user = await User.findById(userId).select('recentDocs').lean();
-
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
+        const user = await User.findById(userId).populate('recentDocs.document').exec();
+        if (!user) return res.status(404).json({ message: 'User not found' });
+        // template :
+        // {
+        //     id: 1,
+        //     title: 'Project Proposal Q4',
+        //     lastModified: '2 hours ago',
+        //     collaborators: 3,
+        //     starred: true,
+        //     thumbnail: '📊',
+        //     ownership: 'owned',
+        //     permission: 'edit',
+        // },
+        const userDocuments = [];
+        for (const doc of user.recentDocs) {
+            const document = doc.document;
+            if (!document) {
+                await User.updateOne({ _id: userId }, { $pull: { recentDocs: { document: doc.document } } });
+                continue;
+            }
+            const template = {
+                id: document._id,
+                title: document.title,
+                lastModified: doc.accessed,
+                collaborators: document.collaborators.length,
+                starred: doc.starred || false,
+                thumbnail: '⚡',
+                ownership:
+                    document.ownerId.toString() === userId
+                        ? 'owned'
+                        : document.collaborators.some((c) => c.userId.toString() === userId)
+                        ? 'collaborator'
+                        : 'view',
+                permission: await resolveUserRole({ userId, docId: document._id }),
+            };
+            userDocuments.push(template);
         }
-
-        // 1️⃣ Fetch all accessible documents
-        const documents = await Document.find({
-            $or: [
-                { ownerId: userId },
-                { 'collaborators.userId': userId },
-                {
-                    visibility: {
-                        $in: ['anyone-with-link:r', 'anyone-with-link:w', 'anyone-in-org:r', 'anyone-in-org:w'],
-                    },
-                },
-            ],
-        })
-            .select('title ownerId collaborators visibility updatedAt')
-            .lean();
-
-        // 2️⃣ Build recentDocs lookup
-        const recentMap = new Map(user.recentDocs.map((r) => [r.document.toString(), r]));
-
-        // 3️⃣ Normalize for dashboard
-        const userDocuments = await Promise.all(
-            documents.map(async (doc) => {
-                const recent = recentMap.get(doc._id.toString());
-                const isOwner = doc.ownerId.toString() === userId;
-                const isCollaborator = doc.collaborators.some((c) => c.userId.toString() === userId);
-
-                return {
-                    id: doc._id,
-                    title: doc.title,
-                    lastModified: recent?.accessed || doc.updatedAt,
-                    collaborators: doc.collaborators.length,
-                    starred: recent?.starred || false,
-                    thumbnail: '⚡',
-                    ownership: isOwner ? 'owned' : isCollaborator ? 'collaborator' : 'view',
-                    permission: await resolveUserRole({ userId, docId: doc._id }),
-                };
-            }),
-        );
-
-        res.json({ success: true, userDocuments });
+        return res.status(200).json({ success: true, userDocuments });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Failed to fetch documents' });
-    }
-};
-
-export const toggleStarDocument = async (req, res) => {
-    const { documentId } = req.params;
-    const userId = req.userId;
-
-    if (!mongoose.Types.ObjectId.isValid(documentId)) {
-        return res.status(400).json({ message: 'Invalid document ID' });
-    }
-
-    try {
-        const user = await User.findById(userId);
-
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        const entry = user.recentDocs.find((r) => r.document.toString() === documentId);
-
-        // If document not in recentDocs → add it
-        if (!entry) {
-            user.recentDocs.unshift({
-                document: documentId,
-                starred: true,
-                accessed: new Date(),
-            });
-        } else {
-            entry.starred = !entry.starred;
-            entry.accessed = new Date();
-        }
-
-        await user.save();
-
-        return res.json({
-            success: true,
-            starred: entry ? entry.starred : true,
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Failed to toggle star' });
+        console.error('Error renaming document:', error);
+        res.status(500).json({ error: 'Failed to fetch documents.' });
     }
 };
