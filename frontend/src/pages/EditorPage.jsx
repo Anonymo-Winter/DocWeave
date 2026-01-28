@@ -13,7 +13,7 @@ const EnhancedEditorLayout = () => {
     const [isChatVisible, setIsChatVisible] = useState(false);
     const isChatVisibleRef = useRef(isChatVisible);
     const [currentUserRole, setCurrentUserRole] = useState('editor');
-    const { socket, activeUsers, fatalSocketError, setRole } = useSocket();
+    const { socket, activeUsers, fatalSocketError } = useSocket();
     const [layoutError, setLayoutError] = useState(null);
     const { editorId } = useParams();
 
@@ -61,11 +61,6 @@ const EnhancedEditorLayout = () => {
         pollingInterval: 7000,
     });
     const permission = data?.permission;
-
-    useEffect(() => {
-        if (permission) setRole(permission);
-    }, [permission]);
-
     const canEdit = permission === 'OWNER' || permission === 'EDITOR';
     const canSave = canEdit;
     const canRename = canEdit;

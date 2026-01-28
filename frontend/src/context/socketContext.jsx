@@ -38,8 +38,6 @@ export const SocketProvider = ({ children }) => {
     });
     const { editorId } = useParams();
     const [fatalSocketError, setFatalSocketError] = useState(null);
-    const [role, setRole] = useState('LOADING'); // 'EDITOR' | 'VIEWER' | 'OWNER'
-    const roleRef = useRef('LOADING');
 
     // ---- Yjs setup (one doc per tab) ----
     const yjsRef = useRef(null);
@@ -68,32 +66,6 @@ export const SocketProvider = ({ children }) => {
     }, [indexeddbProvider]);
 
     useEffect(() => {
-        roleRef.current = role;
-    }, [role]);
-
-    useEffect(() => {
-        if (role === 'VIEWER') {
-            console.warn('Switched to VIEWER — disabling editing');
-
-            // Clear cursor / presence
-            awareness.setLocalState(null);
-        }
-
-        if (role === 'EDITOR' || role === 'OWNER') {
-            console.warn('Switched to EDITOR — re-enabling presence');
-
-            socketRef.current?.emit('request-sync');
-        }
-    }, [role]);
-
-    useEffect(() => {
-        if (role === 'EDITOR' || role === 'OWNER') {
-            console.warn('Switched to EDITOR — requesting fresh sync');
-            socketRef.current?.emit('sync');
-        }
-    }, [role]);
-
-    useEffect(() => {
         const handleBeforeUnload = () => {
             try {
                 awareness.setLocalState(null);
@@ -119,11 +91,6 @@ export const SocketProvider = ({ children }) => {
         });
 
         socketRef.current = socket;
-
-        // socket.on('permission-changed', ({ userId, role }) => {
-        //     if (userId !== user._id) return;
-        //     setRole(role);
-        // });
 
         // -------- JOIN ROOM FUNCTION --------
         joinRoomRef.current = () => {
@@ -153,43 +120,6 @@ export const SocketProvider = ({ children }) => {
                 },
             );
         };
-
-        // socket.on('permission-changed', ({ userId, role: newRole }) => {
-        //     if (userId !== user._id) return;
-        // });
-
-        socket.on('permission-changed', ({ userId, role: newRole }) => {
-            if (userId !== user._id) return;
-
-            setRole(newRole);
-
-            if (newRole === 'VIEWER') {
-                toast.info('You are now in view-only mode');
-                awareness.setLocalState(null); // disable local awareness
-            }
-
-            if (newRole === 'EDITOR' || newRole === 'OWNER') {
-                toast.success('You now have edit access');
-
-                // 🔥 Re-enable local awareness
-                awareness.setLocalState({
-                    user: {
-                        id: user._id,
-                        name: user.name,
-                        color: assignedColor,
-                        role: 'editor',
-                    },
-                });
-
-                // 🔄 Request full document sync
-                socketRef.current?.emit('request-sync');
-            }
-        });
-
-        socket.on('visibility-changed', async () => {
-            // Re-fetch role from server truth
-            socket.emit('request-role');
-        });
 
         socket.on('error', (error) => {
             console.error('Socket error:', error);
@@ -223,13 +153,7 @@ export const SocketProvider = ({ children }) => {
         socket.on('connect', () => {
             socketReadyRef.current = true;
             setIsConnected(true);
-
             tryJoinRoom();
-
-            // defer role request slightly
-            setTimeout(() => {
-                socket.emit('request-role');
-            }, 0);
         });
 
         socket.on('disconnect', () => {
@@ -282,15 +206,6 @@ export const SocketProvider = ({ children }) => {
         // -------- YJS EVENTS --------
         const handleYdocUpdate = (update, origin) => {
             if (origin === 'remote' || origin === 'sync') return;
-            console.log('user role is : ', roleRef.current);
-
-            if (roleRef.current === 'LOADING') return;
-
-            // 🚨 BLOCK LOCAL EDITS IF NOT EDITOR
-            if (roleRef.current !== 'EDITOR' && roleRef.current !== 'OWNER') {
-                console.warn('Blocked local update — VIEWER mode');
-                return;
-            }
 
             if (socket.connected) {
                 socket.emit('update', new Uint8Array(update));
@@ -317,7 +232,7 @@ export const SocketProvider = ({ children }) => {
                     id: user._id,
                     name: user.name,
                     color,
-                    role: roleRef.current === 'EDITOR' || roleRef.current === 'OWNER' ? 'editor' : 'viewer',
+                    role: 'editor',
                 },
             });
         });
@@ -352,7 +267,6 @@ export const SocketProvider = ({ children }) => {
                 awareness,
                 assignedColor,
                 activeUsers,
-                setRole,
                 fatalSocketError,
             }}
         >
