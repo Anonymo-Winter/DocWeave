@@ -105,11 +105,37 @@ export const SocketProvider = ({ children }) => {
                         id: user._id,
                         name: user.name,
                         email: user.email,
-                        role: 'editor',
+                        // role: 'editor',
                     },
                 },
-                ({ color }) => {
+                ({ color, role, error }) => {
+                    if (error) {
+                        if (error === "ACCESS_DENIED") {
+                            setFatalSocketError({ code: "NO_ACCESS", status: 403, message: "You do not have permission..." });
+                            socket.disconnect();
+                            return;
+                        }
+                        if (error === "ROOM_NOT_FOUND") {
+                            setFatalSocketError({ code: "DOC_NOT_FOUND", status: 404, message: "The document does not exist." });
+                            socket.disconnect();
+                            return;
+                        }
+                        toast.error("Join failed", { description: String(error) });
+                        return;
+                    }
+                    
                     setAssignedColor(color);
+                    const current = awareness.getLocalState();
+                    awareness.setLocalState({
+                        ...(current ?? {}),
+                        user: {
+                            ...(current?.user ?? {}),
+                            id: user._id,
+                            name: user.name,
+                            color,
+                            role: role === "OWNER" ? "owner" : role === "EDITOR" ? "editor" : "viewer",
+                        },
+                    });
                     setConnectionStatus({
                         state: 'connected',
                         message: 'Connected to collaboration server',
@@ -203,6 +229,35 @@ export const SocketProvider = ({ children }) => {
             });
         });
 
+        socket.on('access-updated', ({ docId, role, message }) => {
+            console.log(role, message)
+            if (!role) {
+                setFatalSocketError({
+                    code: "NO_ACCESS",
+                    status: 403,
+                    message: "Your access was removed.",
+                });
+                socket.disconnect();
+                return;
+            }
+            // role is "OWNER" | "EDITOR" | "VIEWER"
+            // 1) update awareness role (presence)
+            const current = awareness.getLocalState();
+            awareness.setLocalState({
+                ...(current ?? {}),
+                user: {
+                ...(current?.user ?? {}),
+                role: role === 'OWNER' ? 'owner' : role === 'EDITOR' ? 'editor' : 'viewer',
+                },
+            });
+
+            // 2) optionally show toast
+            toast.info('Access updated', { description: message });
+
+            // 3) (key) trigger immediate refetch of document meta
+            // We'll expose something like `accessRole` in context OR dispatch RTK invalidation from component.
+        });
+
         // -------- YJS EVENTS --------
         const handleYdocUpdate = (update, origin) => {
             if (origin === 'remote' || origin === 'sync') return;
@@ -227,12 +282,16 @@ export const SocketProvider = ({ children }) => {
         socket.on('assign-color', ({ color }) => {
             setAssignedColor(color);
 
+            const current = awareness.getLocalState();
+
             awareness.setLocalState({
+                ...(current ?? {}),
                 user: {
-                    id: user._id,
-                    name: user.name,
-                    color,
-                    role: 'editor',
+                ...(current?.user ?? {}),
+                id: user._id,
+                name: user.name,
+                color,
+                role: current?.user?.role ?? 'editor', // keep existing if already set
                 },
             });
         });
@@ -255,7 +314,7 @@ export const SocketProvider = ({ children }) => {
 
             socket.disconnect();
         };
-    }, [token]);
+    }, [token, editorId]);
 
     return (
         <SocketContext.Provider
