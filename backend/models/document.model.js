@@ -36,11 +36,8 @@ const documentSchema = new mongoose.Schema(
             enum: ['restricted', 'anyone-with-link:r', 'anyone-with-link:w', 'anyone-in-org:r', 'anyone-in-org:w'],
             default: 'restricted',
         },
-        userColors: {
-            type: Map,
-            of: String,
-            default: {},
-        },
+        userColors: { type: Map, of: String, default: () => ({}) }
+
     },
     { timestamps: true },
 );
