@@ -208,68 +208,157 @@ export const deleteDocument = async (req, res) => {
 	}
 };
 
+// export const addPeople = async (req, res) => {
+// 	const { documentId, emails, role } = req.body;
+// 	const userId = req.userId;
+
+// 	try {
+// 		// Validate request
+// 		if (!documentId || !Array.isArray(emails) || !role) {
+// 			return res.status(400).json({ message: "Missing required fields" });
+// 		}
+
+// 		if (!mongoose.Types.ObjectId.isValid(documentId)) {
+// 			return res.status(400).json({ message: "Invalid document ID" });
+// 		}
+
+// 		// Find document with owner and collaborators populated
+// 		const document = await Document.findById(documentId).populate("ownerId").populate("collaborators.userId").exec();
+
+// 		if (!document) {
+// 			return res.status(404).json({ message: "Document not found" });
+// 		}
+
+// 		// Block collaborator additions if doc is public
+// 		if (document.visibility === "public") {
+// 			return res.status(400).json({ message: "Cannot add collaborators to a public document" });
+// 		}
+
+// 		// Filter out already added emails (owner + collaborators)
+// 		const emailsNotAlreadyAdded = emails.filter((email) => {
+// 			if (document.ownerId.email === email) return false;
+
+// 			return !document.collaborators.some((collab) => collab.userId?.email === email);
+// 		});
+
+// 		if (emailsNotAlreadyAdded.length === 0) {
+// 			return res.status(200).json({ success: true, message: "No new users to add" });
+// 		}
+
+// 		// Fetch users by email
+// 		const users = await User.find({ email: { $in: emailsNotAlreadyAdded } });
+
+// 		if (users.length === 0) {
+// 			return res.status(404).json({ message: "No matching users found" });
+// 		}
+
+// 		const newlyAddedUsers = [];
+
+// 		users.forEach((user) => {
+// 			if (!document.collaborators.some((c) => c.userId._id.toString() === user._id.toString())) {
+// 				document.collaborators.push({ userId: user._id, role });
+// 				newlyAddedUsers.push({ user, role });
+// 			}
+// 		});
+
+// 		await document.save();
+
+// 		const fromuser = await User.findById(userId).select("name email").exec();
+// 		console.log(fromuser);
+
+// 		for (const { user, role } of newlyAddedUsers) {
+// 			if (user.email) {
+// 				// IMPORTANT: complete this logic
+// 				await sendInvite({ username: user.name, email: user.email }, { username: fromuser.name, email: fromuser.email }, { documentId: documentId, name: document.title }, role);
+// 			}
+// 		}
+
+// 		return res.status(200).json({ success: true });
+// 	} catch (error) {
+// 		console.error("Error adding people:", error);
+// 		return res.status(500).json({ message: "Failed to add people", error: error.message });
+// 	}
+// };
+
 export const addPeople = async (req, res) => {
 	const { documentId, emails, role } = req.body;
-	const userId = req.userId;
+	const actorId = req.userId;
 
 	try {
-		// Validate request
 		if (!documentId || !Array.isArray(emails) || !role) {
 			return res.status(400).json({ message: "Missing required fields" });
 		}
-
 		if (!mongoose.Types.ObjectId.isValid(documentId)) {
 			return res.status(400).json({ message: "Invalid document ID" });
 		}
 
-		// Find document with owner and collaborators populated
-		const document = await Document.findById(documentId).populate("ownerId").populate("collaborators.userId").exec();
+		const document = await Document.findById(documentId)
+			.populate("ownerId")
+			.populate("collaborators.userId")
+			.exec();
 
-		if (!document) {
-			return res.status(404).json({ message: "Document not found" });
+		if (!document) return res.status(404).json({ message: "Document not found" });
+
+		// ✅ Permission check
+		const effective = await resolveUserRole({ userId: actorId, docId: documentId });
+		if (!effective) return res.status(403).json({ message: "ACCESS_DENIED" });
+
+		const isOwner = effective === "OWNER";
+		const isEditor = effective === "EDITOR";
+
+		if (!isOwner) {
+			// editors need explicit permission
+			if (!isEditor || !document.sharing?.editorsCanManageAccess) {
+				return res.status(403).json({ message: "Not allowed to manage access" });
+			}
+
+			// editors can only grant allowed roles
+			const grantable = document.sharing?.editorGrantableRoles ?? ["viewer"];
+			if (!grantable.includes(role)) {
+				return res.status(403).json({ message: "Not allowed to grant this role" });
+			}
 		}
 
-		// Block collaborator additions if doc is public
-		if (document.visibility === "public") {
-			return res.status(400).json({ message: "Cannot add collaborators to a public document" });
-		}
+		// (optional) block adding people if document is public — your system uses "restricted" etc,
+		// so you might remove this old "public" check entirely.
+		// if (document.visibility === "public") ...
 
 		// Filter out already added emails (owner + collaborators)
 		const emailsNotAlreadyAdded = emails.filter((email) => {
-			if (document.ownerId.email === email) return false;
-
-			return !document.collaborators.some((collab) => collab.userId?.email === email);
+			if (document.ownerId?.email === email) return false;
+			return !document.collaborators.some((c) => c.userId?.email === email);
 		});
 
 		if (emailsNotAlreadyAdded.length === 0) {
 			return res.status(200).json({ success: true, message: "No new users to add" });
 		}
 
-		// Fetch users by email
 		const users = await User.find({ email: { $in: emailsNotAlreadyAdded } });
-
-		if (users.length === 0) {
-			return res.status(404).json({ message: "No matching users found" });
-		}
+		if (users.length === 0) return res.status(404).json({ message: "No matching users found" });
 
 		const newlyAddedUsers = [];
-
-		users.forEach((user) => {
-			if (!document.collaborators.some((c) => c.userId._id.toString() === user._id.toString())) {
+		for (const user of users) {
+			const already = document.collaborators.some(
+				(c) => c.userId?._id.toString() === user._id.toString()
+			);
+			if (!already) {
 				document.collaborators.push({ userId: user._id, role });
 				newlyAddedUsers.push({ user, role });
 			}
-		});
+		}
 
 		await document.save();
 
-		const fromuser = await User.findById(userId).select("name email").exec();
-		console.log(fromuser);
-
+		// send invites
+		const fromUser = await User.findById(actorId).select("name email").exec();
 		for (const { user, role } of newlyAddedUsers) {
 			if (user.email) {
-				// IMPORTANT: complete this logic
-				await sendInvite({ username: user.name, email: user.email }, { username: fromuser.name, email: fromuser.email }, { documentId: documentId, name: document.title }, role);
+				await sendInvite(
+					{ username: user.name, email: user.email },
+					{ username: fromUser.name, email: fromUser.email },
+					{ documentId, name: document.title },
+					role
+				);
 			}
 		}
 
@@ -368,74 +457,213 @@ export const generatePDF = async (req, res) => {
 // controller file
 import { emitToUserInRoom, setRoleForUserSockets, kickUserFromRoom } from "../realtime.js";
 
-export const updateDocument = async (req, res) => {
-	const { visibility, userswithupdatedrole } = req.body;
-	const { editorId } = req.params;
+// export const updateDocument = async (req, res) => {
+// 	const { visibility, userswithupdatedrole } = req.body;
+// 	const { editorId } = req.params;
 
+// 	try {
+// 		const document = await Document.findById(editorId);
+// 		if (!document) return res.status(404).json({ message: "Document not found" });
+
+// 		// snapshot BEFORE changes
+// 		const before = new Map(document.collaborators.map((c) => [c.userId.toString(), c.role]));
+// 		const beforeVisibility = document.visibility;
+
+// 		if (visibility) document.visibility = visibility;
+
+// 		const changedUserIds = [];
+
+// 		if (Array.isArray(userswithupdatedrole) && userswithupdatedrole.length > 0) {
+// 			userswithupdatedrole.forEach((u) => {
+// 				const prevRole = before.get(u.id); // 'editor'|'viewer'|undefined
+
+// 				if (u.role === "remove") {
+// 					document.collaborators = document.collaborators.filter((c) => c.userId.toString() !== u.id);
+// 				} else if (u.role === "editor" || u.role === "viewer") {
+// 					const collab = document.collaborators.find((c) => c.userId.toString() === u.id);
+// 					if (collab) collab.role = u.role;
+// 					// (optional) if not found, you might add them
+// 				}
+
+// 				// track only real changes
+// 				const nextRole = u.role === "remove" ? null : u.role;
+// 				if ((prevRole ?? null) !== nextRole) changedUserIds.push(u.id);
+// 			});
+// 		}
+
+// 		await document.save();
+
+// 		// ✅ Notify ONLY users whose access changed
+// 		for (const userId of changedUserIds) {
+// 			// re-resolve effective role (important if visibility also matters)
+// 			const effective = await resolveUserRole({ userId, docId: editorId }); // return OWNER/EDITOR/VIEWER/null
+
+// 			if (!effective) {
+// 				setRoleForUserSockets(editorId, userId, null);
+// 				// emitToUserInRoom(editorId, userId, "access-updated", {
+// 				// 	docId: editorId,
+// 				// 	role: null,
+// 				// 	message: "Your access was removed.",
+// 				// });
+// 				// optional: also force client to exit
+// 				emitToUserInRoom(editorId, userId, "error", "ACCESS_DENIED");
+// 				kickUserFromRoom(editorId, userId); // ✅ enforce immediately
+// 			} else {
+// 				setRoleForUserSockets(editorId, userId, effective);
+// 				emitToUserInRoom(editorId, userId, "access-updated", {
+// 					docId: editorId,
+// 					role: effective,
+// 					message: `Your access is now ${effective}.`,
+// 				});
+// 			}
+// 		}
+
+// 		// ✅ If visibility changed, it can affect “link users” (not in collaborators).
+// 		// Notify only currently connected users whose *effective* role changed due to visibility.
+// 		if (visibility && visibility !== beforeVisibility) {
+// 			// OPTIONAL refinement: iterate connected users in room and re-resolve
+// 			// (keeps disturbance minimal: only affected, only online)
+// 			// You can implement this if you want; it’s the closest to Google Docs behavior.
+// 		}
+
+// 		return res.status(200).json({ success: true, updatedDocument: document });
+// 	} catch (err) {
+// 		console.error(err);
+// 		return res.status(500).json({ error: "Failed to update document" });
+// 	}
+// };
+
+export const updateDocument = async (req, res) => {
+	const { visibility, userswithupdatedrole, sharing } = req.body;
+	const { editorId } = req.params;
+	const actorId = req.userId;
+	
 	try {
 		const document = await Document.findById(editorId);
 		if (!document) return res.status(404).json({ message: "Document not found" });
-
-		// snapshot BEFORE changes
+		
+		const effective = await resolveUserRole({ userId: actorId, docId: editorId });
+		if (!effective) return res.status(403).json({ message: "ACCESS_DENIED" });
+		console.log("check = "+effective);
+		
+		const isOwner = effective === "OWNER";
+		const isEditor = effective === "EDITOR";
+		
+		// Snapshot collaborators BEFORE changes
 		const before = new Map(document.collaborators.map((c) => [c.userId.toString(), c.role]));
 		const beforeVisibility = document.visibility;
 
-		if (visibility) document.visibility = visibility;
+		// ====== Sharing updates (advanced settings) ======
+		if (sharing) {
+			// 🔒 recommended: only OWNER can change sharing rules
+			if (!isOwner) {
+				return res.status(403).json({ message: "Only owner can change sharing settings" });
+			}
 
+			// apply only allowed fields
+			if (typeof sharing.editorsCanManageAccess === "boolean")
+				document.sharing.editorsCanManageAccess = sharing.editorsCanManageAccess;
+
+			if (typeof sharing.editorsCanChangeVisibility === "boolean")
+				document.sharing.editorsCanChangeVisibility = sharing.editorsCanChangeVisibility;
+
+			if (Array.isArray(sharing.editorGrantableRoles))
+				document.sharing.editorGrantableRoles = sharing.editorGrantableRoles;
+
+			if (Array.isArray(sharing.allowedVisibility))
+				document.sharing.allowedVisibility = sharing.allowedVisibility;
+
+			if (typeof sharing.lockContent === "boolean")
+				document.sharing.lockContent = sharing.lockContent;
+		}
+
+		// ====== Visibility updates ======
+		if (typeof visibility === "string") {
+			if (!isOwner) {
+				if (!isEditor || !document.sharing?.editorsCanChangeVisibility) {
+					return res.status(403).json({ message: "Not allowed to change visibility" });
+				}
+
+				// editors cannot set a visibility mode that is not allowed
+				const allowed = document.sharing?.allowedVisibility ?? [];
+				if (visibility !== "restricted" && !allowed.includes(visibility)) {
+					return res.status(403).json({ message: "Visibility mode not allowed" });
+				}
+			}
+
+			// OWNER should also respect allowedVisibility? (optional)
+			// If you want owner restricted by allowedVisibility, enforce here too.
+			document.visibility = visibility;
+		}
+
+		// ====== Collaborator role changes/removals ======
 		const changedUserIds = [];
 
 		if (Array.isArray(userswithupdatedrole) && userswithupdatedrole.length > 0) {
-			userswithupdatedrole.forEach((u) => {
+			if (!isOwner) {
+				if (!isEditor || !document.sharing?.editorsCanManageAccess) {
+					return res.status(403).json({ message: "Not allowed to manage access" });
+				}
+			}
+
+			const grantable = isOwner
+				? ["viewer", "editor"]
+				: (document.sharing?.editorGrantableRoles ?? ["viewer"]);
+
+			for (const u of userswithupdatedrole) {
 				const prevRole = before.get(u.id); // 'editor'|'viewer'|undefined
+				const isTargetOwner = document.ownerId.toString() === u.id;
+
+				// never allow removing/changing owner through this endpoint
+				if (isTargetOwner) continue;
 
 				if (u.role === "remove") {
-					document.collaborators = document.collaborators.filter((c) => c.userId.toString() !== u.id);
-				} else if (u.role === "editor" || u.role === "viewer") {
-					const collab = document.collaborators.find((c) => c.userId.toString() === u.id);
-					if (collab) collab.role = u.role;
-					// (optional) if not found, you might add them
+					document.collaborators = document.collaborators.filter(
+						(c) => c.userId.toString() !== u.id
+					);
+					if ((prevRole ?? null) !== null) changedUserIds.push(u.id);
+					continue;
 				}
 
-				// track only real changes
-				const nextRole = u.role === "remove" ? null : u.role;
-				if ((prevRole ?? null) !== nextRole) changedUserIds.push(u.id);
-			});
+				// only allow editor/viewer assignments
+				if (u.role !== "editor" && u.role !== "viewer") continue;
+
+				// editors can only grant roles in editorGrantableRoles
+				if (!grantable.includes(u.role)) {
+					return res.status(403).json({ message: "Not allowed to grant this role" });
+				}
+
+				const collab = document.collaborators.find((c) => c.userId.toString() === u.id);
+				if (collab) {
+					collab.role = u.role;
+				}
+
+				if ((prevRole ?? null) !== u.role) changedUserIds.push(u.id);
+			}
 		}
 
 		await document.save();
 
-		// ✅ Notify ONLY users whose access changed
+		// ✅ Realtime enforcement (your existing logic)
 		for (const userId of changedUserIds) {
-			// re-resolve effective role (important if visibility also matters)
-			const effective = await resolveUserRole({ userId, docId: editorId }); // return OWNER/EDITOR/VIEWER/null
-			
-			if (!effective) {
+			const nextEffective = await resolveUserRole({ userId, docId: editorId });
+
+			if (!nextEffective) {
 				setRoleForUserSockets(editorId, userId, null);
-				// emitToUserInRoom(editorId, userId, "access-updated", {
-					// 	docId: editorId,
-					// 	role: null,
-					// 	message: "Your access was removed.",
-					// });
-					// optional: also force client to exit
-					emitToUserInRoom(editorId, userId, "error", "ACCESS_DENIED");
-					kickUserFromRoom(editorId, userId); // ✅ enforce immediately
+				emitToUserInRoom(editorId, userId, "error", "ACCESS_DENIED");
+				kickUserFromRoom(editorId, userId);
 			} else {
-				setRoleForUserSockets(editorId, userId, effective);
+				setRoleForUserSockets(editorId, userId, nextEffective);
 				emitToUserInRoom(editorId, userId, "access-updated", {
 					docId: editorId,
-					role: effective,
-					message: `Your access is now ${effective}.`,
+					role: nextEffective,
+					message: `Your access is now ${nextEffective}.`,
 				});
 			}
 		}
 
-		// ✅ If visibility changed, it can affect “link users” (not in collaborators).
-		// Notify only currently connected users whose *effective* role changed due to visibility.
-		if (visibility && visibility !== beforeVisibility) {
-			// OPTIONAL refinement: iterate connected users in room and re-resolve
-			// (keeps disturbance minimal: only affected, only online)
-			// You can implement this if you want; it’s the closest to Google Docs behavior.
-		}
+		// Optional: if visibility changed, you can re-check all online users in room
+		// (because it may change effective access for link/org users).
 
 		return res.status(200).json({ success: true, updatedDocument: document });
 	} catch (err) {
@@ -443,7 +671,6 @@ export const updateDocument = async (req, res) => {
 		return res.status(500).json({ error: "Failed to update document" });
 	}
 };
-
 export const changeDocName = async (req, res) => {
 	const { documentId, name } = req.body;
 
@@ -477,17 +704,58 @@ export const changeDocName = async (req, res) => {
 	}
 };
 
-export const resolveUserRole = async ({ userId, docId, accessTokenType = "link" }) => {
+// export const resolveUserRole = async ({ userId, docId, accessTokenType = "link" }) => {
+// 	const doc = await Document.findById(docId).lean();
+// 	if (!doc) return null;
+
+// 	if (doc.ownerId.toString() === userId?.toString()) {
+// 		return "OWNER";
+// 	}
+
+// 	if(doc?.sharing?.lockContent){
+// 		return "VIEWER";
+// 	}
+
+// 	const collaborator = doc.collaborators.find((c) => c.userId.toString() === userId?.toString());
+// 	if (collaborator) {
+// 		return collaborator.role === "editor" ? "EDITOR" : "VIEWER";
+// 	}
+
+// 	switch (doc.visibility) {
+// 		case "anyone-with-link:r":
+// 			return "VIEWER";
+// 		case "anyone-with-link:w":
+// 			return "EDITOR";
+// 		case "anyone-in-org:r":
+// 			return userId ? "VIEWER" : null;
+// 		case "anyone-in-org:w":
+// 			return userId ? "EDITOR" : null;
+// 		default:
+// 			return null;
+// 	}
+// };
+export const resolveUserRole = async ({ userId, docId }) => {
 	const doc = await Document.findById(docId).lean();
 	if (!doc) return null;
 
-	if (doc.ownerId.toString() === userId?.toString()) {
-		return "OWNER";
-	}
+	// Owner always wins
+	if (doc.ownerId.toString() === userId?.toString()) return "OWNER";
+	console.log("user id = ",userId?.toString())
+	console.log(doc)
 
-	const collaborator = doc.collaborators.find((c) => c.userId.toString() === userId?.toString());
-	if (collaborator) {
-		return collaborator.role === "editor" ? "EDITOR" : "VIEWER";
+	// Lock content -> everyone else is VIEWER
+	if (doc?.sharing?.lockContent) return "VIEWER";
+
+	// Collaborator explicit role
+	const collaborator = doc.collaborators?.find((c) => c.userId.toString() === userId?.toString());
+	if (collaborator) return collaborator.role === "editor" ? "EDITOR" : "VIEWER";
+
+	// Non-collaborators: enforce allowed visibility
+	const allowedVisibility = doc?.sharing?.allowedVisibility ?? ["restricted", "anyone-with-link:r", "anyone-with-link:w", "anyone-in-org:r", "anyone-in-org:w"];
+
+	// If doc visibility isn't allowed by owner settings, treat as restricted
+	if (doc.visibility !== "restricted" && !allowedVisibility.includes(doc.visibility)) {
+		return null;
 	}
 
 	switch (doc.visibility) {

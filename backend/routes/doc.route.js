@@ -28,7 +28,7 @@ router.post('/save-version', verifyToken, saveVersion);
 router.post('/create', verifyToken, createDocument);
 router.post('/add-people', verifyToken, addPeople);
 router.get('/document/:editorId',verifyToken, getDocument);
-router.post('/document/:editorId', updateDocument);
+router.post('/document/:editorId',verifyToken, updateDocument);
 router.post('/:documentId/upload', upload.single('file'), verifyToken, uploadImageInEditor);
 router.post('/generate-pdf', generatePDF);
 router.post('/doc-rename', changeDocName);
