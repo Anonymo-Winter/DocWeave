@@ -8,6 +8,7 @@ import { useSocket } from "../context/socketContext";
 import { toast } from "sonner";
 import { useParams } from "react-router-dom";
 import ErrorMessage from "../components/ErrorMessage.jsx";
+import { Settings } from "lucide-react";
 
 const EnhancedEditorLayout = () => {
 	const [isChatVisible, setIsChatVisible] = useState(false);
@@ -23,7 +24,7 @@ const EnhancedEditorLayout = () => {
 		refetchOnFocus: true,
 		pollingInterval: 7000,
 	});
-	    
+
 	const permission = currentUserRole ?? data?.permission;
     
     useEffect(() => {
@@ -77,11 +78,6 @@ const EnhancedEditorLayout = () => {
 	}, [socket, refetch]);
 
 	const canEdit = permission === "OWNER" || permission === "EDITOR";
-	const canSave = canEdit;
-	const canRename = canEdit;
-	const canAddPeople = permission === "OWNER" || permission === "EDITOR";
-	const canChangeVisibility = permission === "OWNER";
-	const canDelete = permission === "OWNER";
     
 	if (permission === null) {
 		return <ErrorMessage error={{ message: "You don't have access to this document", status: "403" }} />;
@@ -96,18 +92,14 @@ const EnhancedEditorLayout = () => {
 	if (layoutError) {
 		return <ErrorMessage error={layoutError} />;
 	}
-
 	return (
 		<div className='min-h-screen w-full flex flex-col bg-white text-black dark:bg-gray-900 dark:text-white transition-colors duration-300'>
 			<EditorNavbar
 				isChatVisible={isChatVisible}
 				setIsChatVisible={setIsChatVisible}
 				document={data?.document}
-				canSave={canSave}
-				canRename={canRename}
-				canAddPeople={canAddPeople}
-				canChangeVisibility={canChangeVisibility}
-				canDelete={canDelete}
+				permission={permission}
+				canEdit={canEdit}
 			/>
 
 			<div className='flex flex-1 h-full w-full overflow-hidden'>

@@ -52,10 +52,10 @@ export const docApi = createApi({
             },
         }),
         updateDocument: builder.mutation({
-            query: ({ visibility, userswithupdatedrole, editorId }) => ({
+            query: ({ visibility, userswithupdatedrole, editorId, sharing }) => ({
                 url: `/doc/document/${editorId}`,
                 method: 'POST',
-                body: { visibility, userswithupdatedrole },
+                body: { visibility, userswithupdatedrole, sharing },
             }),
         }),
         getAllversions: builder.query({

@@ -272,10 +272,10 @@ const EditorNavbar = ({
     isChatVisible,
     setIsChatVisible,
     document,
-    canSave,
-    canRename,
-    canAddPeople,
-    canChangeVisibility,
+    // canSave,
+    // canRename,
+    permission,
+    canEdit
 }) => {
     const [showCollaborators, setShowCollaborators] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -431,7 +431,7 @@ const EditorNavbar = ({
                         <TbFileTypeDoc className='text-white' size={20} />
                     </div>
                     <div className='hidden lg:flex items-center gap-2'>
-                        {canRename ? (
+                        {canEdit ? (
                             <input
                                 type='text'
                                 value={documentName}
@@ -621,14 +621,14 @@ const EditorNavbar = ({
                                 showCloseButton={false}
                                 className='z-50 min-w-screen min-h-screen max-w-none max-h-none rounded-none p-0 overflow-x-hidden overflow-y-auto bg-white dark:bg-gray-900'
                             >
-                                <VersionComponent setVersionopen={setVersionopen} canSave={canSave} />
+                                <VersionComponent setVersionopen={setVersionopen} canSave={canEdit} />
                                 <DialogClose className='absolute top-4 left-4 p-2 z-[2] rounded-full hover:bg-gray-200 dark:hover:bg-gray-700'>
                                     <ArrowLeft className='w-5 h-5' />
                                 </DialogClose>
                             </DialogContent>
                         </Dialog>
 
-                        {canSave && (
+                        {canEdit && (
                             <div className='inline-flex items-stretch rounded-xl overflow-hidden border border-blue-600 shadow-sm bg-blue-800'>
                                 {/* Save Version Dialog */}
                                 <Dialog open={saveVersionDialogOpen} onOpenChange={setSaveVersionDialogOpen}>
@@ -808,8 +808,7 @@ const EditorNavbar = ({
                             isLoading={!document}
                             open={showShareModal}
                             onOpenChange={setShowShareModal}
-                            canAddPeople={canAddPeople}
-                            canChangeVisibility={canChangeVisibility}
+                            permission={permission}
                         />
                     </div>
 
@@ -849,7 +848,7 @@ const EditorNavbar = ({
                         setDocumentName={setDocumentName}
                         collaborators={activeUsers}
                         actions={navbarActions}
-                        canRename={canRename}
+                        canRename={canEdit}
                     />
                 </div>
             )}
