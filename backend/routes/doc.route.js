@@ -15,6 +15,7 @@ import {
     updateDocument,
     changeDocName,
     getUserDocuments,
+    deleteDocument,
     // getContributors,
 } from '../controllers/doc.controller.js';
 
@@ -33,4 +34,5 @@ router.post('/:documentId/upload', upload.single('file'), verifyToken, uploadIma
 router.post('/generate-pdf', generatePDF);
 router.post('/doc-rename', changeDocName);
 router.get('/user-documents/:userId', getUserDocuments);
+router.delete('/document/:documentId', verifyToken, deleteDocument);
 export default router;
