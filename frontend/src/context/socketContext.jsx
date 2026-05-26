@@ -110,20 +110,28 @@ export const SocketProvider = ({ children }) => {
                 },
                 ({ color, role, error }) => {
                     if (error) {
-                        if (error === "ACCESS_DENIED") {
-                            setFatalSocketError({ code: "NO_ACCESS", status: 403, message: "You do not have permission..." });
+                        if (error === 'ACCESS_DENIED') {
+                            setFatalSocketError({
+                                code: 'NO_ACCESS',
+                                status: 403,
+                                message: 'You do not have permission...',
+                            });
                             socket.disconnect();
                             return;
                         }
-                        if (error === "ROOM_NOT_FOUND") {
-                            setFatalSocketError({ code: "DOC_NOT_FOUND", status: 404, message: "The document does not exist." });
+                        if (error === 'ROOM_NOT_FOUND') {
+                            setFatalSocketError({
+                                code: 'DOC_NOT_FOUND',
+                                status: 404,
+                                message: 'The document does not exist.',
+                            });
                             socket.disconnect();
                             return;
                         }
-                        toast.error("Join failed", { description: String(error) });
+                        toast.error('Join failed', { description: String(error) });
                         return;
                     }
-                    
+
                     setAssignedColor(color);
                     const current = awareness.getLocalState();
                     awareness.setLocalState({
@@ -133,7 +141,7 @@ export const SocketProvider = ({ children }) => {
                             id: user._id,
                             name: user.name,
                             color,
-                            role: role === "OWNER" ? "owner" : role === "EDITOR" ? "editor" : "viewer",
+                            role: role === 'OWNER' ? 'owner' : role === 'EDITOR' ? 'editor' : 'viewer',
                         },
                     });
                     setConnectionStatus({
@@ -230,12 +238,12 @@ export const SocketProvider = ({ children }) => {
         });
 
         socket.on('access-updated', ({ docId, role, message }) => {
-            console.log(role, message)
+            console.log(role, message);
             if (!role) {
                 setFatalSocketError({
-                    code: "NO_ACCESS",
+                    code: 'NO_ACCESS',
                     status: 403,
-                    message: "Your access was removed.",
+                    message: 'Your access was removed.',
                 });
                 socket.disconnect();
                 return;
@@ -246,8 +254,8 @@ export const SocketProvider = ({ children }) => {
             awareness.setLocalState({
                 ...(current ?? {}),
                 user: {
-                ...(current?.user ?? {}),
-                role: role === 'OWNER' ? 'owner' : role === 'EDITOR' ? 'editor' : 'viewer',
+                    ...(current?.user ?? {}),
+                    role: role === 'OWNER' ? 'owner' : role === 'EDITOR' ? 'editor' : 'viewer',
                 },
             });
 
@@ -287,11 +295,11 @@ export const SocketProvider = ({ children }) => {
             awareness.setLocalState({
                 ...(current ?? {}),
                 user: {
-                ...(current?.user ?? {}),
-                id: user._id,
-                name: user.name,
-                color,
-                role: current?.user?.role ?? 'editor', // keep existing if already set
+                    ...(current?.user ?? {}),
+                    id: user._id,
+                    name: user.name,
+                    color,
+                    role: current?.user?.role ?? 'editor', // keep existing if already set
                 },
             });
         });

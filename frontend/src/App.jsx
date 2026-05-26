@@ -1,7 +1,5 @@
-import { Routes, Route, useLocation, Navigate, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import EditorPage from './pages/EditorPage';
-import EditorPage2 from './pages/EditorPage2.jsx';
-import Navbar from './components/Navbar';
 import { SocketProvider } from './context/socketContext';
 import HomePage from './pages/HomePage';
 import MainHomePage from './pages/MainHomePage';
@@ -16,8 +14,9 @@ import Loader from './components/Loader.jsx';
 import NotFoundPage from './pages/Page404.jsx';
 import { useSelector } from 'react-redux';
 import VersionComponent from './components/VersionComponent.jsx';
-import { useEffect } from 'react';
 import ErrorMessage from './components/ErrorMessage.jsx';
+import LandingPage from './pages/LandingPage.jsx';
+import DocsPage from './pages/DocsPage.jsx';
 
 const ErrorComponent = () => (
     <div className='relative min-h-[calc(100vh-3rem)] flex items-center justify-center bg-transparent overflow-hidden px-4'>
@@ -82,7 +81,7 @@ export default function App() {
     return (
         <div className='min-h-screen w-full flex flex-col bg-white text-black dark:bg-[#242424] dark:text-white transition-colors duration-500'>
             <main className='flex flex-1 w-full'>
-                <ThemeToggle className='absolute top-1/2 right-4 z-[200]' />
+                {/* <ThemeToggle className='absolute top-1/2 right-4 z-[200]' /> */}
                 <div className='w-full relative'>
                     <Routes>
                         <Route path='/' element={<HomePage />} />
@@ -96,16 +95,6 @@ export default function App() {
                                 </PrivateRoute>
                             }
                         />
-                        {/* <Route
-                            path='/editor2'
-                            element={
-                                <PrivateRoute>
-                                    <SocketProvider>
-                                        <EditorPage2 />
-                                    </SocketProvider>
-                                </PrivateRoute>
-                            }
-                        /> */}
                         <Route
                             path='/login'
                             element={
@@ -114,14 +103,6 @@ export default function App() {
                                 </RedirectAuthUser>
                             }
                         />
-                        {/* <Route
-                            path='/version'
-                            element={
-                                <SocketProvider>
-                                    <VersionComponent />
-                                </SocketProvider>
-                            }
-                        /> */}
                         <Route
                             path='/signup'
                             element={
@@ -149,6 +130,8 @@ export default function App() {
                         <Route path='/error' element={<ErrorMessage />} />
                         <Route path='/user-profile' element={<PrivateRoute>{'User Profile'}</PrivateRoute>} />
                         <Route path='/k' element={<MainHomePage />} />
+                        <Route path='/testing' element={<LandingPage />} />
+                        <Route path='/testing/docs' element={<DocsPage />} />
                         <Route path='*' element={<NotFoundPage />} />
                     </Routes>
                 </div>

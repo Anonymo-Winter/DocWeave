@@ -1007,19 +1007,28 @@ const VersionComponent = ({ setVersionopen, canSave }) => {
 
                 {/* Scrollable Editor Content */}
                 <div className='max-h-screen overflow-y-auto p-6'>
-                    {/* <div className={`dark:text-gray-400 text-gray-400 text-center mt-20`}> */}
-                    {selectedVersion && (
-                        <>
-                            <div className='mt-4' key={selectedVersion._id}>
-                                <VersionViewer
-                                    selectedVersion={selectedVersion}
-                                    versionUpdateBase64={selectedVersion?.update}
-                                    onEditorReady={setPreviewEditor}
-                                />
+                    {selectedVersion ? (
+                        <div className='mt-4' key={selectedVersion._id}>
+                            <VersionViewer
+                                selectedVersion={selectedVersion}
+                                versionUpdateBase64={selectedVersion?.update}
+                                onEditorReady={setPreviewEditor}
+                            />
+                        </div>
+                    ) : (
+                        <div className='h-full min-h-[60vh] flex flex-col items-center justify-center text-center px-6'>
+                            <div className='w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-200/40 dark:border-blue-800/40 flex items-center justify-center mb-4'>
+                                <AiOutlineHistory className='w-8 h-8 text-blue-500/80' />
                             </div>
-                        </>
+                            <h3 className='text-base font-semibold text-gray-800 dark:text-gray-100 mb-1'>
+                                Select a version to preview
+                            </h3>
+                            <p className='text-sm text-gray-500 dark:text-gray-400 max-w-sm'>
+                                Pick any saved version from the right sidebar to see its contents here. You can restore
+                                it from this view.
+                            </p>
+                        </div>
                     )}
-                    {/* </div> */}
                 </div>
             </div>
 
@@ -1029,8 +1038,11 @@ const VersionComponent = ({ setVersionopen, canSave }) => {
                 <div className='p-4 border-b bg-gray-50 dark:bg-gray-900 dark:border-gray-700 flex-shrink-0 z-[5]'>
                     <div className='flex items-center justify-between'>
                         <div className='flex items-center gap-2'>
-                            <Clock className='w-5 h-5 text-gray-600 dark:text-gray-400' />
-                            <span className='text-lg font-medium text-gray-800 dark:text-white'>Version history</span>
+                            <Clock className='w-5 h-5 text-blue-600 dark:text-blue-400' />
+                            <span className='text-lg font-semibold text-gray-800 dark:text-white'>Version history</span>
+                            <span className='text-[11px] px-1.5 py-0.5 rounded-full bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-400 font-medium'>
+                                {data?.versions?.length ?? 0}
+                            </span>
                         </div>
                         <button
                             className='p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700'
@@ -1041,17 +1053,22 @@ const VersionComponent = ({ setVersionopen, canSave }) => {
                             <Menu className='w-4 h-4 text-gray-600 dark:text-gray-400' />
                         </button>
                     </div>
-                    <div className='mt-2 text-xs text-gray-500 dark:text-gray-400'>
-                        {data?.versions.length} versions available
-                    </div>
                 </div>
 
                 {/* Version List */}
                 <div className='max-h-screen overflow-y-auto'>
                     <div className='p-3 space-y-3'>
                         {data?.versions && data.versions.length === 0 ? (
-                            <div className='text-center text-gray-500 dark:text-gray-400 py-10'>
-                                No versions available yet. Start editing to create your first version.
+                            <div className='flex flex-col items-center text-center text-gray-500 dark:text-gray-400 py-12 px-6'>
+                                <div className='w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-3'>
+                                    <FileText className='w-6 h-6 text-gray-400 dark:text-gray-500' />
+                                </div>
+                                <p className='text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+                                    No versions yet
+                                </p>
+                                <p className='text-xs max-w-xs'>
+                                    Save a version from the document to start tracking changes over time.
+                                </p>
                             </div>
                         ) : (
                             <>

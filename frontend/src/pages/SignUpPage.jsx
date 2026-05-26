@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, AlertCircle, Mail, Lock, CheckCircle } from 'lucide-react';
 import { FaEnvelope, FaGithub, FaLock, FaUser } from 'react-icons/fa';
 import { FcGoogle } from 'react-icons/fc';
+import { TbFileTypeDoc } from 'react-icons/tb';
 import AnimatedBlob from '../components/Blob';
 import { useNavigate } from 'react-router-dom';
 import { useRegisterMutation } from '../api/userApi';
@@ -155,21 +156,33 @@ const LoginComponent = () => {
                     <div className='bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border border-white/20 dark:border-gray-700/50 rounded-2xl shadow-2xl p-8'>
                         {/* Header */}
                         <div className='text-center mb-8'>
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className='inline-flex items-center gap-2 mb-4'
+                            >
+                                <span className='w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-md'>
+                                    <TbFileTypeDoc className='text-white size-5' />
+                                </span>
+                                <span className='font-semibold text-gray-900 dark:text-white tracking-tight'>
+                                    CollabDocs
+                                </span>
+                            </motion.div>
                             <motion.h1
                                 initial={{ opacity: 0, y: -10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.1 }}
-                                className='text-3xl font-bold text-gray-900 dark:text-white mb-2'
+                                className='text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1'
                             >
-                                Ready to Join?
+                                Create your account
                             </motion.h1>
                             <motion.p
                                 initial={{ opacity: 0, y: -10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.2 }}
-                                className='text-gray-600 dark:text-gray-300'
+                                className='text-sm text-gray-600 dark:text-gray-300'
                             >
-                                Let's get you set up with a CollabDocs account
+                                Start collaborating in seconds
                             </motion.p>
                         </div>
 
@@ -178,7 +191,7 @@ const LoginComponent = () => {
                         <SuccessAlert message={successMessage} onClose={() => setSuccessMessage('')} />
 
                         {/* Form */}
-                        <div className='space-y-6'>
+                        <form onSubmit={handleSubmit} className='space-y-5'>
                             <InputField
                                 type='text'
                                 placeholder='Enter your name'
@@ -206,13 +219,12 @@ const LoginComponent = () => {
                                 error={errors.password}
                                 icon={FaLock}
                                 showPasswordToggle={true}
-                                autoComplete='current-password'
+                                autoComplete='new-password'
                             />
 
                             {/* Submit Button */}
                             <motion.button
-                                type='button'
-                                onClick={handleSubmit}
+                                type='submit'
                                 disabled={isLoading}
                                 className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 ${
                                     isLoading
@@ -225,13 +237,13 @@ const LoginComponent = () => {
                                 {isLoading ? (
                                     <div className='flex items-center justify-center gap-2'>
                                         <div className='w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin' />
-                                        Signing Up...
+                                        Creating account…
                                     </div>
                                 ) : (
-                                    'Sign Up'
+                                    'Create account'
                                 )}
                             </motion.button>
-                        </div>
+                        </form>
 
                         {/* Divider */}
                         <div className='flex items-center gap-4 my-6'>
@@ -279,21 +291,6 @@ const LoginComponent = () => {
                     </div>
                 </motion.div>
             </div>
-
-            <style>{`
-                @keyframes blob {
-                    0%,
-                    100% {
-                        transform: translate(0px, 0px) scale(1);
-                    }
-                    33% {
-                        transform: translate(30px, -50px) scale(1.1);
-                    }
-                    66% {
-                        transform: translate(-20px, 20px) scale(0.9);
-                    }
-                }
-            `}</style>
         </div>
     );
 };

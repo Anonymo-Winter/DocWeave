@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Mail } from 'lucide-react';
+import { TbFileTypeDoc } from 'react-icons/tb';
 import AnimatedBlob from '../components/Blob';
 import { useNavigate } from 'react-router-dom';
 
@@ -122,10 +123,22 @@ const ForgotPassword = () => {
                 >
                     <div className='bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border border-white/20 dark:border-gray-700/50 rounded-2xl shadow-2xl p-8'>
                         <div className='text-center mb-8'>
-                            <motion.h1 className='text-3xl font-bold text-gray-900 dark:text-white mb-2'>
-                                Forgot Password?
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className='inline-flex items-center gap-2 mb-4'
+                            >
+                                <span className='w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-md'>
+                                    <TbFileTypeDoc className='text-white size-5' />
+                                </span>
+                                <span className='font-semibold text-gray-900 dark:text-white tracking-tight'>
+                                    CollabDocs
+                                </span>
+                            </motion.div>
+                            <motion.h1 className='text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1'>
+                                Forgot password?
                             </motion.h1>
-                            <motion.p className='text-gray-600 dark:text-gray-300'>
+                            <motion.p className='text-sm text-gray-600 dark:text-gray-300'>
                                 No worries — we'll help you get back in.
                             </motion.p>
                         </div>
@@ -168,7 +181,7 @@ const ForgotPassword = () => {
                                 </motion.button>
                             </div>
                         ) : (
-                            <div className='space-y-6'>
+                            <form onSubmit={handleSubmit} className='space-y-5'>
                                 <InputField
                                     type='email'
                                     placeholder='Enter your email'
@@ -180,7 +193,7 @@ const ForgotPassword = () => {
                                 />
 
                                 <motion.button
-                                    onClick={handleSubmit}
+                                    type='submit'
                                     disabled={isLoading}
                                     className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-all ${
                                         isLoading
@@ -191,21 +204,21 @@ const ForgotPassword = () => {
                                     {isLoading ? (
                                         <div className='flex items-center justify-center gap-2'>
                                             <div className='w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin' />
-                                            Sending...
+                                            Sending…
                                         </div>
                                     ) : (
-                                        'Send Reset Link'
+                                        'Send reset link'
                                     )}
                                 </motion.button>
-                            </div>
+                            </form>
                         )}
 
                         <div className='mt-6 text-center'>
                             <button
                                 onClick={() => navigate('/login')}
-                                className='text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-semibold transition-colors'
+                                className='text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium transition-colors inline-flex items-center gap-1'
                             >
-                                ← Back to Sign In
+                                <span aria-hidden>←</span> Back to sign in
                             </button>
                         </div>
                     </div>

@@ -126,6 +126,12 @@ export const docApi = createApi({
                 method: 'POST',
             }),
         }),
+        deleteDocument: builder.mutation({
+            query: (documentId) => ({
+                url: `/doc/document/${documentId}`,
+                method: 'DELETE',
+            }),
+        }),
     }),
 });
 
@@ -143,4 +149,5 @@ export const {
     useChangeDocNameMutation,
     useGetUserDocumentsQuery,
     useToggleStarMutation,
+    useDeleteDocumentMutation,
 } = docApi;

@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import { useParams } from 'react-router-dom';
 import { useSocket } from '../context/socketContext';
 import { toast } from 'sonner';
-import { MessageSquareMore, Smile, Send, Paperclip, Lock, CheckCheck, X } from 'lucide-react';
+import { MessageSquareMore, Smile, Send, Lock, CheckCheck, X } from 'lucide-react';
 
 const emojiCategories = {
     Smileys: [
@@ -109,7 +109,7 @@ const EmojiPicker = ({ isOpen, onSelect, onClose }) => {
     );
 };
 
-const EditorChat = ({ setIsChatVisible, currentUserRole, activeUsers, messages, setMessages }) => {
+const EditorChat = ({ setIsChatVisible, canEdit, activeUsers, messages, setMessages }) => {
     const user = useSelector((state) => state.user.user);
     const [input, setInput] = useState('');
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -127,7 +127,7 @@ const EditorChat = ({ setIsChatVisible, currentUserRole, activeUsers, messages, 
     }, [messages]);
 
     const handleSend = async () => {
-        if (input.trim() && currentUserRole !== 'viewer') {
+        if (input.trim() && canEdit) {
             const newMessage = {
                 roomId: editorId,
                 message: input,
@@ -192,20 +192,6 @@ const EditorChat = ({ setIsChatVisible, currentUserRole, activeUsers, messages, 
                     <div>
                         <span className='font-semibold text-white text-lg'>Live Chat</span>
                         <div className='flex items-center gap-2 mt-1'>
-                            <div className='flex -space-x-1'>
-                                {/* {mockCollaborators.slice(0, 3).map((collab, index) => {
-                                    return (
-                                        <div
-                                            key={collab.id}
-                                            className='w-5 h-5 rounded-full border-2 border-white flex items-center justify-center text-white text-xs font-medium'
-                                            style={{ backgroundColor: collab.color }}
-                                            title={collab.name}
-                                        >
-                                            {collab.avatar[0]}
-                                        </div>
-                                    );
-                                })} */}
-                            </div>
                             <span className='text-xs text-blue-100'>{activeUsers.length} online</span>
                         </div>
                     </div>
@@ -272,13 +258,13 @@ const EditorChat = ({ setIsChatVisible, currentUserRole, activeUsers, messages, 
                                         isCurrentUser ? 'justify-end' : 'justify-start'
                                     }`}
                                 >
-                                    {isCurrentUser && msg.sent && (
+                                    {/* {isCurrentUser && msg.sent && (
                                         <>
                                             <div className='text-gray-400'>
                                                 <CheckCheck className='text-sky-500 size-4' />
                                             </div>
                                         </>
-                                    )}
+                                    )} */}
                                     {isCurrentUser && !msg.sent && (
                                         <>
                                             <div className='text-red-400'>
@@ -297,7 +283,7 @@ const EditorChat = ({ setIsChatVisible, currentUserRole, activeUsers, messages, 
 
             {/* Enhanced Input */}
             <div className='p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800'>
-                {currentUserRole === 'viewer' ? (
+                {!canEdit ? (
                     <div className='text-center text-gray-500 text-sm py-3'>
                         <Lock size={16} className='inline mr-2' />
                         You have view-only access. Cannot send messages.
@@ -333,12 +319,6 @@ const EditorChat = ({ setIsChatVisible, currentUserRole, activeUsers, messages, 
                                             onClose={() => setShowEmojiPicker(false)}
                                         />
                                     </div>
-                                    <button
-                                        onClick={() => fileInputRef.current?.click()}
-                                        className='p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full'
-                                    >
-                                        <Paperclip size={16} />
-                                    </button>
                                     <input
                                         ref={fileInputRef}
                                         type='file'

@@ -3,9 +3,9 @@ import debounce from 'lodash.debounce';
 import { useCallback, useState, useEffect } from 'react';
 import { useSocket } from '../context/socketContext';
 import { useSelector } from 'react-redux';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { MessageSquareMore, Share2, History, Plus, Menu, ArrowLeft, Mail, X } from 'lucide-react';
+import { MessageSquareMore, Share2, History, Plus, Menu, ArrowLeft, Mail, X, Crown, Eye, Edit } from 'lucide-react';
 import { TbFileTypeDoc } from 'react-icons/tb';
 import { MdSave } from 'react-icons/md';
 
@@ -36,7 +36,7 @@ import { Buffer } from 'buffer';
 import { getWordCountFromYdoc } from '../util/wordCount.js';
 import { cn } from '../lib/utils.ts';
 
-function ChatToggle({ isActive, onClick, children }) {
+function ChatToggle({ isActive, onClick, children, unreadCount = 0 }) {
     return (
         <button
             type='button'
@@ -44,32 +44,28 @@ function ChatToggle({ isActive, onClick, children }) {
             aria-label='Toggle chat panel'
             className={`relative h-9 w-9 inline-flex items-center justify-center
                         rounded-md border transition-colors duration-200
-                        focus:outline-none focus:ring-2 focus:ring-blue-500/50${
+                        focus:outline-none focus:ring-2 focus:ring-blue-500/50 ${
                             isActive
-                                ? `
-                        bg-blue-600/10 border-blue-600 text-blue-600
-                        dark:bg-blue-400/10 dark:border-blue-400 dark:text-blue-400
-                        `
-                                : `
-                        bg-slate-100 border-slate-300 text-slate-600
-                        hover:bg-slate-200
-                        dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400
-                        dark:hover:bg-slate-700
-                        `
+                                ? 'bg-blue-600/10 border-blue-600 text-blue-600 dark:bg-blue-400/10 dark:border-blue-400 dark:text-blue-400'
+                                : 'bg-slate-100 border-slate-300 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-700'
                         }`}
         >
             {children}
 
-            <span className='sr-only'>3 unread messages</span>
-            <span
-                className='absolute -top-1 -right-1
-               h-4 min-w-[16px] px-1
-               rounded-full bg-red-500
-               text-[10px] font-semibold text-white
-               flex items-center justify-center'
-            >
-                3
-            </span>
+            {unreadCount > 0 && (
+                <>
+                    <span className='sr-only'>{unreadCount} unread messages</span>
+                    <span
+                        className='absolute -top-1 -right-1
+                            h-4 min-w-[16px] px-1
+                            rounded-full bg-red-500
+                            text-[10px] font-semibold text-white
+                            flex items-center justify-center'
+                    >
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                </>
+            )}
         </button>
     );
 }
@@ -186,7 +182,11 @@ function MobileMenu({ documentName, setDocumentName, collaborators, actions, can
     );
 }
 
-function CollaboratorsDropdown({ list }) {
+function CollaboratorsDropdown({ list, isChatVisible, setIsChatVisible }) {
+    const onEmailClick = (toemail) => {
+        const gmailURL = `https://mail.google.com/mail/?view=cm&fs=1` + `&to=${encodeURIComponent(toemail)}`;
+        window.open(gmailURL, '_blank');
+    };
     return (
         <div
             className='absolute top-full right-0 mt-2 w-72
@@ -196,17 +196,12 @@ function CollaboratorsDropdown({ list }) {
                 shadow-xl z-20 overflow-hidden'
         >
             {/* Header */}
-            <div
-                className='flex items-center justify-between px-4 py-3 border-b
+            <h4
+                className='font-semibold text-sm text-gray-900 dark:text-white px-4 py-3 border-b
                   border-gray-200 dark:border-gray-700'
             >
-                <h4 className='font-semibold text-sm text-gray-900 dark:text-white'>Active collaborators</h4>
-                <IoMdInformationCircleOutline
-                    size={16}
-                    className='text-gray-400'
-                    title='Users currently active in this document'
-                />
-            </div>
+                Active collaborators
+            </h4>
 
             {/* List */}
             <div className='max-h-60 overflow-y-auto custom-scrollbar'>
@@ -235,28 +230,28 @@ function CollaboratorsDropdown({ list }) {
 
                         {/* Name & role */}
                         <div className='flex-1 min-w-0'>
-                            <p className='text-sm font-medium text-gray-900 dark:text-white truncate'>{c.name}</p>
-                            <p className='text-xs text-gray-500 dark:text-gray-400 capitalize'>{c.role}</p>
+                            <div className='flex items-center gap-1 font-semibold text-gray-900 dark:text-white truncate text-sm'>
+                                {c?.name}{' '}
+                                {c?.role === 'OWNER' ? (
+                                    <Crown size={19} className='text-yellow-500' />
+                                ) : c?.role == 'EDITOR' ? (
+                                    <Edit size={19} className='text-green-500' />
+                                ) : (
+                                    <Eye size={19} className='text-blue-500' />
+                                )}
+                            </div>
+                            <div className='text-sm text-gray-600 dark:text-gray-400 truncate'>{c?.email} hey</div>
                         </div>
 
                         {/* Actions */}
                         <div className='flex items-center gap-2 text-gray-400'>
                             <button
                                 type='button'
-                                className='p-1 rounded hover:text-blue-600
-                       hover:bg-blue-50 dark:hover:bg-blue-900/30
-                       transition-colors'
-                                aria-label={`Message ${c.name}`}
-                            >
-                                <MessageSquareMore size={16} />
-                            </button>
-
-                            <button
-                                type='button'
                                 className='p-1 rounded hover:text-emerald-600
                        hover:bg-emerald-50 dark:hover:bg-emerald-900/30
                        transition-colors'
                                 aria-label={`Email ${c.name}`}
+                                onClick={() => onEmailClick(c.email)}
                             >
                                 <Mail size={16} />
                             </button>
@@ -275,7 +270,8 @@ const EditorNavbar = ({
     // canSave,
     // canRename,
     permission,
-    canEdit
+    canEdit,
+    refetch,
 }) => {
     const [showCollaborators, setShowCollaborators] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -283,6 +279,7 @@ const EditorNavbar = ({
     const [saveVersion] = useSaveVersionMutation();
     const user = useSelector((state) => state.user.user);
     const { editorId } = useParams();
+    const navigate = useNavigate();
     const [saveVersionDialogOpen, setSaveVersionDialogOpen] = useState(false);
     const [documentName, setDocumentName] = useState(document?.title);
     const [showShareModal, setShowShareModal] = useState(false);
@@ -371,34 +368,31 @@ const EditorNavbar = ({
         }
     }, [document]);
 
-    const debouncedRename = useCallback(
-        debounce(async (name) => {
-            if (name === documentName) return;
+    const handleRenameDocument = async (name) => {
+        if (name === document?.title) return;
 
-            if (!name) {
-                toast.error('Document name cannot be empty');
-                setDocumentName('Untitled Document');
-                return;
-            }
+        if (!name) {
+            toast.error('Document name cannot be empty');
+            setDocumentName('Untitled Document');
+            return;
+        }
 
-            try {
-                await renameDocument({
-                    documentId: editorId,
-                    name,
-                }).unwrap();
-            } catch (error) {
-                const message = error?.data?.message || error?.message || 'Something went wrong';
+        try {
+            await renameDocument({
+                documentId: editorId,
+                name,
+            }).unwrap();
+        } catch (error) {
+            const message = error?.data?.message || error?.message || 'Something went wrong';
 
-                toast.error('Failed to change document name', {
-                    description: message,
-                });
-            }
-        }, 700),
-        [documentName, renameDocument, editorId, toast],
-    );
+            toast.error('Failed to change document name', {
+                description: message,
+            });
+        }
+    };
 
     const navbarActions = {
-        renameDocument: debouncedRename,
+        renameDocument: handleRenameDocument,
         openVersionHistory: () => {
             setMobileMenuOpen(false);
             setVersionopen(true);
@@ -407,6 +401,11 @@ const EditorNavbar = ({
             setMobileMenuOpen(false);
             setSaveVersionDialogOpen(true);
         },
+    };
+
+    const onEmailClick = (toemail) => {
+        const gmailURL = `https://mail.google.com/mail/?view=cm&fs=1` + `&to=${encodeURIComponent(toemail)}`;
+        window.open(gmailURL, '_blank');
     };
 
     if (fatalSocketError) {
@@ -427,9 +426,15 @@ const EditorNavbar = ({
                     >
                         <Menu size={20} />
                     </button>
-                    <div className='w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center'>
+                    <button
+                        type='button'
+                        onClick={() => navigate('/dashboard')}
+                        aria-label='Go to dashboard'
+                        title='Back to dashboard'
+                        className='w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-sm hover:shadow-md hover:scale-105 transition-all'
+                    >
                         <TbFileTypeDoc className='text-white' size={20} />
-                    </div>
+                    </button>
                     <div className='hidden lg:flex items-center gap-2'>
                         {canEdit ? (
                             <input
@@ -439,13 +444,16 @@ const EditorNavbar = ({
                                     setDocumentName(e.target.value);
                                 }}
                                 onBlur={(e) => {
-                                    debouncedRename(e.target.value);
+                                    handleRenameDocument(e.target.value);
                                 }}
-                                title={documentName}
-                                className='ml-2 bg-transparent text-ellipsis text-gray-900 dark:text-white font-medium focus:outline-none focus:bg-gray-50 dark:focus:bg-gray-800 px-2 py-1 rounded'
+                                title='Click to rename'
+                                className='ml-2 bg-transparent text-ellipsis text-gray-900 dark:text-white font-medium focus:outline-none hover:bg-gray-100 dark:hover:bg-gray-800 focus:bg-gray-50 dark:focus:bg-gray-800 px-2 py-1 rounded transition-colors'
                             />
                         ) : (
-                            <span className='ml-2 bg-transparent text-ellipsis text-gray-900 dark:text-white font-medium focus:outline-none focus:bg-gray-50 dark:focus:bg-gray-800 px-2 py-1 rounded pointer-events-none'>
+                            <span
+                                title={documentName}
+                                className='ml-2 bg-transparent text-ellipsis text-gray-900 dark:text-white font-medium px-2 py-1 rounded pointer-events-none'
+                            >
                                 {documentName}
                             </span>
                         )}
@@ -523,12 +531,12 @@ const EditorNavbar = ({
                                                     type='button'
                                                     style={{ backgroundColor: c.color }}
                                                     className='w-9 h-9 rounded-full
-               flex items-center justify-center
-               font-semibold text-white
-               border-2 border-white dark:border-gray-800
-               shadow
-               focus:outline-none
-               focus:ring-2 focus:ring-blue-500/50'
+                                                        flex items-center justify-center
+                                                        font-semibold text-white
+                                                        border-2 border-white dark:border-gray-800
+                                                        shadow
+                                                        focus:outline-none
+                                                        focus:ring-2 focus:ring-blue-500/50'
                                                 >
                                                     <span className='sr-only'>{c.name}</span>
                                                     {getInitials(c.name)}
@@ -552,29 +560,34 @@ const EditorNavbar = ({
                                                         )}
                                                     </div>
                                                     <div className='flex-1 min-w-0'>
-                                                        <div className='font-semibold text-gray-900 dark:text-white truncate text-sm'>
-                                                            {c?.name}
+                                                        <div className='flex items-center gap-1 font-semibold text-gray-900 dark:text-white truncate text-sm'>
+                                                            {c?.name}{' '}
+                                                            {c?.role === 'OWNER' ? (
+                                                                <Crown size={19} className='text-yellow-500' />
+                                                            ) : c?.role == 'EDITOR' ? (
+                                                                <Edit size={19} className='text-green-500' />
+                                                            ) : (
+                                                                <Eye size={19} className='text-blue-500' />
+                                                            )}
                                                         </div>
                                                         <div className='text-sm text-gray-600 dark:text-gray-400 truncate'>
                                                             {c?.email}
                                                         </div>
-                                                        {c.isOnline && (
-                                                            <div className='flex items-center gap-1 mt-1'>
-                                                                <div className='w-2 h-2 bg-green-500 rounded-full'></div>
-                                                                <span className='text-xs text-green-600 dark:text-green-400'>
-                                                                    Online
-                                                                </span>
-                                                            </div>
-                                                        )}
+                                                        <div className='flex items-center gap-1 mt-1'>
+                                                            <div className='w-2 h-2 bg-green-500 rounded-full'></div>
+                                                            <span className='text-xs text-green-600 dark:text-green-400'>
+                                                                Online
+                                                            </span>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                                <button
-                                                    // onClick={() => onEmailClick(collab.email)}
-                                                    className='w-full flex items-center justify-center gap-2 px-3 py-2.5 border text-sm bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-950/70 transition-all duration-200 font-medium'
+                                                <a
+                                                    onClick={() => onEmailClick(c?.email)}
+                                                    className='w-full flex items-center justify-center gap-2 px-3 py-2.5 border text-sm bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-950/70 transition-all duration-200 font-medium cursor-pointer'
                                                 >
                                                     <Mail size={16} />
                                                     Send email
-                                                </button>
+                                                </a>
                                             </HoverCardContent>
                                         </HoverCard>
                                     );
@@ -596,7 +609,13 @@ const EditorNavbar = ({
                                     )}
                                 </button>
                             </div>
-                            {showCollaborators && <CollaboratorsDropdown list={activeUsers} />}
+                            {showCollaborators && (
+                                <CollaboratorsDropdown
+                                    list={activeUsers}
+                                    isChatVisible={isChatVisible}
+                                    setIsChatVisible={setIsChatVisible}
+                                />
+                            )}
                         </div>
 
                         <Dialog open={versionopen} onOpenChange={setVersionopen}>
@@ -809,9 +828,9 @@ const EditorNavbar = ({
                             open={showShareModal}
                             onOpenChange={setShowShareModal}
                             permission={permission}
+                            refetch={refetch}
                         />
                     </div>
-
                     {/* Chat Toggle */}
                     <ChatToggle
                         isActive={isChatVisible}
@@ -821,7 +840,6 @@ const EditorNavbar = ({
                     >
                         <MessageSquareMore size={16} />
                     </ChatToggle>
-
                     <button
                         type='button'
                         onClick={() => setShowShareModal(true)}
@@ -834,7 +852,6 @@ const EditorNavbar = ({
                     >
                         <Share2 size={16} />
                     </button>
-
                     {/* <ConnectionStatusIndicator connectionStatus={{ connected: true }} /> */}
                     <ConnectionStatus />
                     <DropDown />

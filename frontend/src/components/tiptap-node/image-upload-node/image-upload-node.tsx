@@ -28,7 +28,7 @@ function useFileUpload(options: UploadOptions) {
     const [fileItem, setFileItem] = React.useState<FileItem | null>(null);
 
     const uploadFile = async (file: File): Promise<string | null> => {
-        if (file.size > options.maxSize) {
+        if (options.maxSize > 0 && file.size > options.maxSize) {
             const error = new Error(`File size exceeds maximum allowed (${options.maxSize / 1024 / 1024}MB)`);
             options.onError?.(error);
             return null;
@@ -301,9 +301,10 @@ const DropZoneContent: React.FC<{ maxSize: number }> = ({ maxSize }) => (
 import { useParams } from 'react-router-dom';
 export const ImageUploadNode: React.FC<NodeViewProps> = (props) => {
     const { editorId } = useParams();
-    const { accept, limit, maxSize } = props.node.attrs;
-    const inputRef = React.useRef<HTMLInputElement>(null);
+    const { accept, limit } = props.node.attrs;
     const extension = props.extension;
+    const maxSize = extension.options.maxSize ?? props.node.attrs.maxSize ?? 0;
+    const inputRef = React.useRef<HTMLInputElement>(null);
 
     const uploadOptions: UploadOptions = {
         maxSize,

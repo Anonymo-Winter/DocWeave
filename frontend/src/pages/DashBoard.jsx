@@ -4,8 +4,6 @@ import {
     Search,
     Plus,
     FileText,
-    Grid3X3,
-    List,
     Filter,
     Clock,
     Users,
@@ -18,6 +16,12 @@ import {
     Sun,
     ChevronDown,
     Check,
+    Trash2,
+    Lock,
+    Globe,
+    Building2,
+    Crown,
+    Eye,
 } from 'lucide-react';
 import logo3 from '../assets/logo3.svg';
 import { useSelector } from 'react-redux';
@@ -34,7 +38,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 import { useLogoutMutation } from '../api/userApi';
-import { useCreateDocumentMutation, useGetUserDocumentsQuery, useToggleStarMutation } from '../api/docApi';
+import {
+    useCreateDocumentMutation,
+    useGetUserDocumentsQuery,
+    useToggleStarMutation,
+    useDeleteDocumentMutation,
+} from '../api/docApi';
 
 import ProfileEditModal from '../components/EditProfile';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -42,6 +51,78 @@ import ThemeToggle from '../components/ThemeToggleTool';
 import { TbFileTypeDoc } from 'react-icons/tb';
 import { getInitials } from '../util/getInitials.js';
 import { cn } from '@/lib/utils';
+
+const formatRelativeTime = (value) => {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '—';
+    const diffMs = Date.now() - date.getTime();
+    const minutes = Math.round(diffMs / 60000);
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.round(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.round(hours / 24);
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return `${days}d ago`;
+    if (days < 30) return `${Math.round(days / 7)}w ago`;
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
+const ownershipMeta = {
+    owned: {
+        label: 'Owned',
+        icon: Crown,
+        className:
+            'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800',
+    },
+    collaborator: {
+        label: 'Shared',
+        icon: Users,
+        className:
+            'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800',
+    },
+    view: {
+        label: 'View only',
+        icon: Eye,
+        className: 'bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700',
+    },
+};
+
+const OwnershipChip = ({ ownership, size = 'sm' }) => {
+    const meta = ownershipMeta[ownership] || ownershipMeta.view;
+    const Icon = meta.icon;
+    return (
+        <span
+            className={`inline-flex items-center gap-1 rounded-full border ${meta.className} ${
+                size === 'xs' ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-0.5 text-[11px]'
+            } font-medium`}
+        >
+            <Icon className={size === 'xs' ? 'w-2.5 h-2.5' : 'w-3 h-3'} />
+            {meta.label}
+        </span>
+    );
+};
+
+const getVisibilityMeta = (visibility = 'restricted') => {
+    if (visibility.startsWith('anyone-with-link')) {
+        return { icon: Globe, label: 'Anyone with the link', color: 'text-emerald-500' };
+    }
+    if (visibility.startsWith('anyone-in-org')) {
+        return { icon: Building2, label: 'Anyone in your org', color: 'text-indigo-500' };
+    }
+    return { icon: Lock, label: 'Restricted', color: 'text-gray-400' };
+};
+
+const VisibilityIndicator = ({ visibility, className = '' }) => {
+    const meta = getVisibilityMeta(visibility);
+    const Icon = meta.icon;
+    return (
+        <span title={meta.label} className={`inline-flex items-center ${meta.color} ${className}`}>
+            <Icon className='w-3 h-3' />
+        </span>
+    );
+};
 
 // Filter options
 const filterOptions = [
@@ -53,22 +134,14 @@ const filterOptions = [
 ];
 
 const templates = [
-    { id: 1, name: 'Blank Document', icon: '📄', description: 'Start with a clean slate', templateName: 'blank' },
-    {
-        id: 2,
-        name: 'Meeting Notes',
-        icon: '📋',
-        description: 'Structured meeting template',
-        templateName: 'meeting-notes',
-    },
-    {
-        id: 3,
-        name: 'Project Proposal',
-        icon: '📊',
-        description: 'Professional proposal format',
-        templateName: 'proposal',
-    },
-    { id: 4, name: 'Report', icon: '📈', description: 'Detailed report template', templateName: 'report' },
+    { id: 1, name: 'Blank Document', icon: '📄', description: 'Start with a clean slate', templateName: 'blank-doc' },
+    // {
+    //     id: 2,
+    //     name: 'Sketch Board',
+    //     icon: '🎨',
+    //     description: 'Collaborative whiteboard.',
+    //     templateName: 'sketch-board',
+    // },
 ];
 
 export const DropDown = () => {
@@ -246,101 +319,130 @@ const FilterDropdown = ({ selectedFilter, onFilterChange }) => {
     );
 };
 
-const DocumentCard = ({ document, viewMode }) => {
+const DocumentCard = ({ document, refetch }) => {
     const [isStarred, setIsStarred] = useState(document?.starred || false);
     const navigate = useNavigate();
     const [toggleStar] = useToggleStarMutation();
+    const [deleteDocument, { isLoading: isDeleting }] = useDeleteDocumentMutation();
     if (!document) return null;
 
-    if (viewMode === 'list') {
-        return (
-            <motion.div
-                whileHover={{ backgroundColor: 'rgba(59, 130, 246, 0.05)' }}
-                className='flex items-center gap-4 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 cursor-pointer group'
-                onClick={() => navigate(`/editor/${document.id}`)}
-            >
-                <div className='text-2xl'>
-                    <img
-                        src='https://www.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50'
-                        alt={document.title}
-                        className='w-12 h-12 rounded-lg'
-                    />
-                </div>
-                <div className='flex-1 min-w-0'>
-                    <h3 className='font-medium text-gray-900 dark:text-white truncate'>{document.title}</h3>
-                    <div className='flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mt-1'>
-                        <span className='flex items-center gap-1 text-nowrap'>
-                            <Clock className='w-3 h-3' />
-                            {document.lastModified ? new Date(document.lastModified).toLocaleString() : '—'}
-                        </span>
-                        <span className='flex items-center gap-1'>
-                            <Users className='w-3 h-3' />
-                            {document.collaborators}
-                        </span>
-                    </div>
-                </div>
-                <button
-                    onClick={async (e) => {
-                        e.stopPropagation();
-                        setIsStarred(!isStarred);
-                        await toggleStar(document.id);
-                    }}
-                    className='p-1 transition-opacity'
-                >
-                    <Star className={`w-4 h-4 ${isStarred ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400'}`} />
-                </button>
-                <button className='p-1 opacity-0 group-hover:opacity-100 transition-opacity'>
-                    <MoreVertical className='w-4 h-4 text-gray-400' />
-                </button>
-            </motion.div>
-        );
-    }
+    const isOwner = document.ownership === 'owned';
+
+    const handleDelete = async (e) => {
+        e.stopPropagation();
+        if (!isOwner) return;
+        const confirmed = window.confirm(`Delete "${document.title}"? This cannot be undone.`);
+        if (!confirmed) return;
+        try {
+            const res = await deleteDocument(document.id).unwrap();
+            if (res?.success) {
+                toast.success('Document deleted');
+                refetch?.();
+            } else {
+                toast.error('Failed to delete document');
+            }
+        } catch (err) {
+            const message = err?.data?.message || 'Failed to delete document';
+            toast.error(message);
+        }
+    };
+
+    const collabCount = Number(document.collaborators) || 0;
+    const relativeTime = formatRelativeTime(document.lastModified);
+    const fullTime = document.lastModified ? new Date(document.lastModified).toLocaleString() : '';
+    const visibilityMeta = getVisibilityMeta(document.visibility);
+    const VisibilityIcon = visibilityMeta.icon;
 
     return (
         <motion.div
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className='bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden cursor-pointer hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-600 transition-all group'
-            onClick={() => navigate(`/editor/${document.id}`)}
+            whileHover={{ y: -3 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            className='bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden cursor-pointer hover:shadow-xl hover:border-blue-300 dark:hover:border-blue-600 transition-shadow group'
+            onClick={() => navigate(`/${document.template == 'blank-doc' ? 'editor' : 'canva'}/${document.id}`)}
         >
-            <div className='aspect-[4/3] bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center text-4xl'>
-                {document.thumbnail}
-            </div>
-            {/* <div className='aspect-[4/3] bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center'>
-                <img
-                    // src='https://www.gravatar.com/avatar/205e460b479e2e5b48aec07710c08d50'
-                    src={document.thumbnail}
-                    alt={document.title}
-                    className='w-full h-full rounded-lg'
-                />
-            </div> */}
-            <div className='p-4'>
-                <div className='flex items-start justify-between gap-2 mb-2'>
-                    <h3 className='font-medium text-gray-900 dark:text-white line-clamp-2'>{document.title}</h3>
+            <div className='aspect-[4/3] bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 border-b border-gray-100 dark:border-gray-700 overflow-hidden relative'>
+                {document.contentPreview?.trim() ? (
+                    <div
+                        className='doc-thumbnail prose prose-sm dark:prose-invert max-w-none absolute inset-0 p-4 overflow-hidden pointer-events-none'
+                        dangerouslySetInnerHTML={{ __html: document.contentPreview }}
+                    />
+                ) : (
+                    <div className='h-full flex flex-col items-center justify-center gap-2 text-gray-300 dark:text-gray-600'>
+                        <FileText className='w-10 h-10 opacity-60' />
+                        <span className='text-[11px] uppercase tracking-wider'>Empty document</span>
+                    </div>
+                )}
+
+                {/* subtle inner bevel for paper feel */}
+                <div className='pointer-events-none absolute inset-0 ring-1 ring-inset ring-black/[0.03] dark:ring-white/[0.04]' />
+
+                {/* visibility badge */}
+                <div
+                    className={`absolute top-2 left-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-white/80 dark:bg-gray-900/80 backdrop-blur border border-gray-200 dark:border-gray-700 ${visibilityMeta.color}`}
+                    title={visibilityMeta.label}
+                >
+                    <VisibilityIcon className='w-3 h-3' />
+                </div>
+
+                {/* hover actions overlay */}
+                <div className='absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity'>
                     <button
                         onClick={async (e) => {
                             e.stopPropagation();
                             setIsStarred(!isStarred);
                             await toggleStar(document.id);
                         }}
-                        className='opacity-90 group-hover:opacity-100 transition-opacity'
+                        title={isStarred ? 'Unstar' : 'Star'}
+                        className='p-1.5 rounded-md bg-white/90 dark:bg-gray-900/90 backdrop-blur border border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800 transition-colors'
                     >
                         <Star
-                            className={`w-4 h-4 text-amber-400 ${
-                                isStarred ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400'
-                            }`}
+                            className={`w-3.5 h-3.5 ${isStarred ? 'fill-yellow-400 text-yellow-400' : 'text-gray-500'}`}
                         />
                     </button>
+                    {isOwner && (
+                        <button
+                            onClick={handleDelete}
+                            disabled={isDeleting}
+                            title='Delete document'
+                            className='p-1.5 rounded-md bg-white/90 dark:bg-gray-900/90 backdrop-blur border border-gray-200 dark:border-gray-700 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 disabled:opacity-40 transition-colors'
+                        >
+                            <Trash2 className='w-3.5 h-3.5' />
+                        </button>
+                    )}
                 </div>
-                <div className='flex items-center justify-between text-sm text-gray-500 dark:text-gray-400'>
-                    <span className='flex items-center gap-1'>
-                        <Clock className='w-3 h-3' />
-                        {document.lastModified}
-                    </span>
-                    <span className='flex items-center gap-1'>
-                        <Users className='w-3 h-3' />
-                        {document.collaborators}
-                    </span>
+
+                {/* always-visible star when starred */}
+                {isStarred && (
+                    <div className='absolute top-2 right-2 group-hover:hidden p-1.5'>
+                        <Star className='w-3.5 h-3.5 fill-yellow-400 text-yellow-400 drop-shadow' />
+                    </div>
+                )}
+            </div>
+
+            <div className='p-4'>
+                <div className='flex items-start justify-between gap-2 mb-2'>
+                    <h3
+                        className='font-medium text-gray-900 dark:text-white line-clamp-2 leading-snug'
+                        title={document.title}
+                    >
+                        {document.title || 'Untitled Document'}
+                    </h3>
+                </div>
+                <div className='flex items-center justify-between gap-2'>
+                    <OwnershipChip ownership={document.ownership} />
+                    <div className='flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400'>
+                        <span className='inline-flex items-center gap-1' title={fullTime}>
+                            <Clock className='w-3 h-3' />
+                            {relativeTime}
+                        </span>
+                        <span
+                            className='inline-flex items-center gap-1'
+                            title={`${collabCount} ${collabCount === 1 ? 'person' : 'people'}`}
+                        >
+                            <Users className='w-3 h-3' />
+                            {collabCount}
+                        </span>
+                    </div>
                 </div>
             </div>
         </motion.div>
@@ -350,12 +452,15 @@ const DocumentCard = ({ document, viewMode }) => {
 // Main Dashboard Component
 const Dashboard = () => {
     const [searchQuery, setSearchQuery] = useState('');
-    const [viewMode, setViewMode] = useState('grid');
     const [selectedFilter, setSelectedFilter] = useState('all');
     const [filteredDocuments, setFilteredDocuments] = useState([]);
     const user = useSelector((state) => state.user.user);
     const [createDocument, { isLoading: isDocumentLoading }] = useCreateDocumentMutation();
-    const { data, isLoading: isLoadingDocuments } = useGetUserDocumentsQuery(user?._id, {
+    const {
+        data,
+        isLoading: isLoadingDocuments,
+        refetch,
+    } = useGetUserDocumentsQuery(user?._id, {
         skip: !user?._id,
         refetchOnFocus: true,
         pollingInterval: 5000,
@@ -366,6 +471,7 @@ const Dashboard = () => {
 
     useEffect(() => {
         if (data?.userDocuments) setUserDocuments(data.userDocuments);
+        console.log(data?.userDocuments);
     }, [data]);
 
     useEffect(() => {
@@ -377,6 +483,7 @@ const Dashboard = () => {
         let filtered = userDocuments.filter((doc) => doc.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
         // Apply filter
+        console.log(filtered);
         switch (selectedFilter) {
             case 'owned':
                 filtered = filtered.filter((doc) => doc.ownership === 'owned');
@@ -388,7 +495,7 @@ const Dashboard = () => {
                 filtered = filtered.filter((doc) => doc.starred);
                 break;
             case 'view-only':
-                filtered = filtered.filter((doc) => doc.permission === 'view');
+                filtered = filtered.filter((doc) => doc.permission === 'VIEWER');
                 break;
             default:
                 // 'all' - no additional filtering
@@ -504,34 +611,9 @@ const Dashboard = () => {
 
                             {/* Filter */}
                             <FilterDropdown selectedFilter={selectedFilter} onFilterChange={setSelectedFilter} />
-
-                            {/* View Toggle */}
-                            <div className='flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg p-1 self-start sm:self-auto'>
-                                <button
-                                    onClick={() => setViewMode('grid')}
-                                    className={`p-2 rounded-md transition-colors ${
-                                        viewMode === 'grid'
-                                            ? 'bg-white dark:bg-gray-700 shadow-sm'
-                                            : 'hover:bg-gray-200 dark:hover:bg-gray-700'
-                                    }`}
-                                >
-                                    <Grid3X3 className='w-4 h-4' />
-                                </button>
-                                <button
-                                    onClick={() => setViewMode('list')}
-                                    className={`p-2 rounded-md transition-colors ${
-                                        viewMode === 'list'
-                                            ? 'bg-white dark:bg-gray-700 shadow-sm'
-                                            : 'hover:bg-gray-200 dark:hover:bg-gray-700'
-                                    }`}
-                                >
-                                    <List className='w-4 h-4' />
-                                </button>
-                            </div>
                         </div>
                     </div>
-
-                    {/* Documents Grid/List */}
+                    {/* Documents Grid */}
                     <AnimatePresence mode='wait'>
                         {filteredDocuments.length === 0 ? (
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className='text-center py-12'>
@@ -547,19 +629,14 @@ const Dashboard = () => {
                             </motion.div>
                         ) : (
                             <motion.div
-                                key={viewMode}
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className={
-                                    viewMode === 'grid'
-                                        ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'
-                                        : 'space-y-3'
-                                }
+                                className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6'
                             >
                                 {isLoadingDocuments
                                     ? 'Loading...'
                                     : filteredDocuments.map((document) => (
-                                          <DocumentCard key={document.id} document={document} viewMode={viewMode} />
+                                          <DocumentCard key={document.id} document={document} refetch={refetch} />
                                       ))}
                             </motion.div>
                         )}

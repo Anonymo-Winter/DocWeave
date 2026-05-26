@@ -3,20 +3,12 @@ import { motion } from 'framer-motion';
 import AnimatedBlob from '../components/Blob';
 import Typewriter from 'typewriter-effect/dist/core';
 import { useEffect } from 'react';
+import Navbar from '../components/Navbar';
 
 const HeroSection = () => {
     return (
-        <div className='min-h-screen bg-gradient-to-br from-blue-50 to-white'>
-            {/* Navigation */}
-            <nav className='flex justify-between items-center p-6'>
-                <div className='text-2xl font-bold text-blue-600'>DocCollab</div>
-                <div className='space-x-4'>
-                    <button className='px-4 py-2 text-blue-600 hover:text-blue-800 font-medium'>Login</button>
-                    <button className='px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors'>
-                        Get Started
-                    </button>
-                </div>
-            </nav>
+        <div className='min-h-screen bg-gradient-to-br from-blue-50 to-white dark:from-gray-950 dark:to-gray-900'>
+            <Navbar />
 
             {/* Hero Content */}
             <div className='container mx-auto px-6 py-20 flex flex-col md:flex-row items-center'>

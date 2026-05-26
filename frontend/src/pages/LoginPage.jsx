@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { FaEnvelope, FaGithub, FaLock } from 'react-icons/fa';
 import { FcGoogle } from 'react-icons/fc';
+import { TbFileTypeDoc } from 'react-icons/tb';
 import AnimatedBlob from '../components/Blob';
 import { useNavigate } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggleTool';
@@ -139,19 +140,31 @@ const LoginComponent = () => {
                     <div className='bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border border-white/20 dark:border-gray-700/50 rounded-2xl shadow-2xl p-8'>
                         {/* Header */}
                         <div className='text-center mb-8'>
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className='inline-flex items-center gap-2 mb-4'
+                            >
+                                <span className='w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-md'>
+                                    <TbFileTypeDoc className='text-white size-5' />
+                                </span>
+                                <span className='font-semibold text-gray-900 dark:text-white tracking-tight'>
+                                    CollabDocs
+                                </span>
+                            </motion.div>
                             <motion.h1
                                 initial={{ opacity: 0, y: -10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.1 }}
-                                className='text-3xl font-bold text-gray-900 dark:text-white mb-2'
+                                className='text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1'
                             >
-                                Welcome Back
+                                Welcome back
                             </motion.h1>
                             <motion.p
                                 initial={{ opacity: 0, y: -10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.2 }}
-                                className='text-gray-600 dark:text-gray-300'
+                                className='text-sm text-gray-600 dark:text-gray-300'
                             >
                                 Sign in to your CollabDocs account
                             </motion.p>
@@ -162,7 +175,7 @@ const LoginComponent = () => {
                         <SuccessAlert message={successMessage} onClose={() => setSuccessMessage('')} />
 
                         {/* Form */}
-                        <div className='space-y-6'>
+                        <form onSubmit={handleSubmit} className='space-y-5'>
                             <InputField
                                 type='email'
                                 placeholder='Enter your email'
@@ -173,21 +186,31 @@ const LoginComponent = () => {
                                 autoComplete='email'
                             />
 
-                            <InputField
-                                type='password'
-                                placeholder='Enter your password'
-                                value={formData.password}
-                                onChange={handleInputChange('password')}
-                                error={errors.password}
-                                icon={FaLock}
-                                showPasswordToggle={true}
-                                autoComplete='current-password'
-                            />
+                            <div>
+                                <InputField
+                                    type='password'
+                                    placeholder='Enter your password'
+                                    value={formData.password}
+                                    onChange={handleInputChange('password')}
+                                    error={errors.password}
+                                    icon={FaLock}
+                                    showPasswordToggle={true}
+                                    autoComplete='current-password'
+                                />
+                                <div className='flex justify-end mt-2'>
+                                    <button
+                                        type='button'
+                                        onClick={() => navigate('/forgot-password')}
+                                        className='text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium transition-colors'
+                                    >
+                                        Forgot password?
+                                    </button>
+                                </div>
+                            </div>
 
                             {/* Submit Button */}
                             <motion.button
-                                type='button'
-                                onClick={handleSubmit}
+                                type='submit'
                                 disabled={isLoading || successMessage.length > 0}
                                 className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 ${
                                     isLoading
@@ -200,13 +223,13 @@ const LoginComponent = () => {
                                 {isLoading ? (
                                     <div className='flex items-center justify-center gap-2'>
                                         <div className='w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin' />
-                                        Signing In...
+                                        Signing in…
                                     </div>
                                 ) : (
-                                    'Sign In'
+                                    'Sign in'
                                 )}
                             </motion.button>
-                        </div>
+                        </form>
 
                         {/* Divider */}
                         <div className='flex items-center gap-4 my-6'>
@@ -240,7 +263,7 @@ const LoginComponent = () => {
                         </div>
 
                         {/* Footer Links */}
-                        <div className='mt-6 text-center space-y-2'>
+                        <div className='mt-6 text-center'>
                             <p className='text-sm text-gray-600 dark:text-gray-400'>
                                 Don't have an account?{' '}
                                 <button
@@ -252,33 +275,10 @@ const LoginComponent = () => {
                                     Sign up
                                 </button>
                             </p>
-                            <button
-                                className='text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors cursor-pointer'
-                                onClick={() => {
-                                    navigate('/forgot-password');
-                                }}
-                            >
-                                Forgot your password?
-                            </button>
                         </div>
                     </div>
                 </motion.div>
             </div>
-
-            <style>{`
-                @keyframes blob {
-                    0%,
-                    100% {
-                        transform: translate(0px, 0px) scale(1);
-                    }
-                    33% {
-                        transform: translate(30px, -50px) scale(1.1);
-                    }
-                    66% {
-                        transform: translate(-20px, 20px) scale(0.9);
-                    }
-                }
-            `}</style>
         </div>
     );
 };
