@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react';
 import { useGetDocumentQuery } from '../api/docApi.js';
 import EditorNavbar from '../components/EditorNavbar.jsx';
 import EditorChat from '../components/EditorChat.jsx';
+import AskDocPanel from '../components/AskDocPanel.jsx';
+import { registerAIOpeners } from '../util/editorBridge.js';
 
 import Editor from '../components/Editor';
 import { useSocket } from '../context/socketContext';
@@ -12,7 +14,14 @@ import { Settings } from 'lucide-react';
 
 const EnhancedEditorLayout = () => {
     const [isChatVisible, setIsChatVisible] = useState(false);
+    const [isAskVisible, setIsAskVisible] = useState(false);
     const isChatVisibleRef = useRef(isChatVisible);
+
+    // Expose the ask-panel opener so the slash-command menu can trigger it.
+    useEffect(() => {
+        registerAIOpeners({ openAskPanel: () => setIsAskVisible(true) });
+        return () => registerAIOpeners({ openAskPanel: null });
+    }, []);
     const [currentUserRole, setCurrentUserRole] = useState(null);
     const { socket, isConnected, activeUsers, fatalSocketError } = useSocket();
     const [layoutError, setLayoutError] = useState(null);
@@ -93,10 +102,12 @@ const EnhancedEditorLayout = () => {
         return <ErrorMessage error={layoutError} />;
     }
     return (
-        <div className='min-h-screen w-full flex flex-col bg-white text-black dark:bg-gray-900 dark:text-white transition-colors duration-300'>
+        <div className='h-screen w-full flex flex-col overflow-hidden bg-white text-black dark:bg-gray-900 dark:text-white transition-colors duration-300'>
             <EditorNavbar
                 isChatVisible={isChatVisible}
                 setIsChatVisible={setIsChatVisible}
+                isAskVisible={isAskVisible}
+                setIsAskVisible={setIsAskVisible}
                 document={data?.document}
                 permission={permission}
                 canEdit={canEdit}
@@ -120,6 +131,13 @@ const EnhancedEditorLayout = () => {
                             messages={messages}
                             setMessages={setMessages}
                         />
+                    </aside>
+                )}
+
+                {/* Ask-the-doc panel */}
+                {isAskVisible && (
+                    <aside className='w-full shadow-xl shadow-gray-200 dark:shadow-gray-800 md:w-[400px] max-w-[450px] min-w-[320px] bg-white dark:bg-gray-900 flex flex-col h-full overflow-hidden border-l border-gray-200 dark:border-gray-700'>
+                        <AskDocPanel onClose={() => setIsAskVisible(false)} />
                     </aside>
                 )}
             </div>

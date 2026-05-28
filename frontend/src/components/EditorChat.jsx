@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import { useParams } from 'react-router-dom';
 import { useSocket } from '../context/socketContext';
 import { toast } from 'sonner';
-import { MessageSquareMore, Smile, Send, Lock, CheckCheck, X } from 'lucide-react';
+import { MessageSquareMore, Smile, Send, Lock, CheckCheck, AlertCircle, X } from 'lucide-react';
 
 const emojiCategories = {
     Smileys: [
@@ -184,29 +184,46 @@ const EditorChat = ({ setIsChatVisible, canEdit, activeUsers, messages, setMessa
         return names.length >= 2 ? names[0][0].toUpperCase() + names[1][0].toUpperCase() : names[0][0].toUpperCase();
     };
     return (
-        <div className='flex flex-col justify-between h-full bg-white dark:bg-gray-900'>
-            {/* Enhanced Header */}
-            <div className='bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-3 flex items-center rounded-t-lg justify-between'>
-                <div className='flex items-center gap-3'>
-                    <MessageSquareMore className='text-white' size={20} />
-                    <div>
-                        <span className='font-semibold text-white text-lg'>Live Chat</span>
-                        <div className='flex items-center gap-2 mt-1'>
-                            <span className='text-xs text-blue-100'>{activeUsers.length} online</span>
+        <div className='flex flex-col h-full bg-white dark:bg-gray-900'>
+            {/* Header */}
+            <div className='flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 shrink-0'>
+                <div className='flex items-center gap-2.5 min-w-0'>
+                    <span className='inline-flex items-center justify-center size-8 rounded-lg bg-white/20 text-white shrink-0'>
+                        <MessageSquareMore size={18} />
+                    </span>
+                    <div className='min-w-0'>
+                        <div className='font-semibold text-white text-sm leading-tight'>Live Chat</div>
+                        <div className='flex items-center gap-1.5 mt-0.5'>
+                            <span className='size-1.5 rounded-full bg-green-400' />
+                            <span className='text-[11px] text-blue-100'>{activeUsers.length} online</span>
                         </div>
                     </div>
                 </div>
                 <div className='flex items-center gap-2'>
+                    {/* Presence avatars */}
+                    {activeUsers.length > 0 && (
+                        <div className='hidden sm:flex -space-x-2'>
+                            {activeUsers.slice(0, 3).map((u, i) => (
+                                <div
+                                    key={u.id ?? i}
+                                    title={u.name}
+                                    className='size-7 rounded-full flex items-center justify-center text-white text-[10px] font-semibold ring-2 ring-white/40'
+                                    style={{ backgroundColor: u.color || '#6b7280' }}
+                                >
+                                    {getInitials(u.name || '?')}
+                                </div>
+                            ))}
+                            {activeUsers.length > 3 && (
+                                <div className='size-7 rounded-full bg-white/25 text-white text-[10px] font-semibold flex items-center justify-center ring-2 ring-white/40'>
+                                    +{activeUsers.length - 3}
+                                </div>
+                            )}
+                        </div>
+                    )}
                     <button
-                        onClick={() => {
-                            setIsChatVisible(false);
-                            const activeChat = document.querySelector('.active-chats');
-                            if (activeChat) {
-                                activeChat.style.display = 'none';
-                                activeChat.style.visibility = 'hidden';
-                            }
-                        }}
-                        className='text-white/80 hover:text-white'
+                        onClick={() => setIsChatVisible(false)}
+                        title='Close chat'
+                        className='p-1.5 rounded-md text-white/80 hover:text-white hover:bg-white/15 transition-colors'
                     >
                         <X size={16} />
                     </button>
@@ -214,7 +231,19 @@ const EditorChat = ({ setIsChatVisible, canEdit, activeUsers, messages, setMessa
             </div>
 
             {/* Messages */}
-            <div className='overflow-y-auto p-4 space-y-4 h-[calc(100vh-15rem)]'>
+            <div className='flex-1 min-h-0 overflow-y-auto p-4 space-y-3 custom-scrollbar'>
+                {messages.length === 0 && (
+                    <div className='h-full flex flex-col items-center justify-center text-center px-6'>
+                        <div className='size-12 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-950/50 dark:to-purple-950/50 flex items-center justify-center mb-3'>
+                            <MessageSquareMore className='size-6 text-blue-500' />
+                        </div>
+                        <p className='text-sm font-medium text-gray-700 dark:text-gray-300'>No messages yet</p>
+                        <p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
+                            Say hello to your collaborators.
+                        </p>
+                    </div>
+                )}
+
                 {messages.map((msg, index) => {
                     const isCurrentUser = msg.sender === user._id;
                     const isSystem = msg.type === 'system';
@@ -242,10 +271,12 @@ const EditorChat = ({ setIsChatVisible, canEdit, activeUsers, messages, setMessa
                                     {getInitials(msg.user?.name)}
                                 </div>
                             )}
-                            <div className={`max-w-xs lg:max-w-md ${isCurrentUser ? 'text-right' : 'text-left'}`}>
-                                {!isCurrentUser && <div className='text-xs text-gray-500 mb-1'>{msg.user.name}</div>}
+                            <div className={`max-w-[78%] ${isCurrentUser ? 'text-right' : 'text-left'}`}>
+                                {!isCurrentUser && (
+                                    <div className='text-[11px] text-gray-500 mb-1 px-1'>{msg.user.name}</div>
+                                )}
                                 <div
-                                    className={`inline-block px-4 py-2 rounded-2xl text-wrap break-words break-all ${
+                                    className={`inline-block px-3.5 py-2 rounded-2xl text-sm leading-relaxed break-words whitespace-pre-wrap ${
                                         isCurrentUser
                                             ? 'bg-blue-600 text-white rounded-br-md'
                                             : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white rounded-bl-md'
@@ -254,25 +285,15 @@ const EditorChat = ({ setIsChatVisible, canEdit, activeUsers, messages, setMessa
                                     {msg.message}
                                 </div>
                                 <div
-                                    className={`flex items-center gap-1 mt-0.5 ${
+                                    className={`flex items-center gap-1 mt-0.5 px-1 ${
                                         isCurrentUser ? 'justify-end' : 'justify-start'
                                     }`}
                                 >
-                                    {/* {isCurrentUser && msg.sent && (
-                                        <>
-                                            <div className='text-gray-400'>
-                                                <CheckCheck className='text-sky-500 size-4' />
-                                            </div>
-                                        </>
-                                    )} */}
-                                    {isCurrentUser && !msg.sent && (
-                                        <>
-                                            <div className='text-red-400'>
-                                                <IoMdInformationCircle className='size-4' />
-                                            </div>
-                                        </>
+                                    <span className='text-[10px] text-gray-400'>{formatTime(msg.timestamp)}</span>
+                                    {isCurrentUser && msg.sent && <CheckCheck className='size-3.5 text-sky-400' />}
+                                    {isCurrentUser && msg.sent === false && (
+                                        <AlertCircle className='size-3.5 text-red-400' />
                                     )}
-                                    <div className='text-xs text-gray-400'>{formatTime(msg.timestamp)}</div>
                                 </div>
                             </div>
                         </div>
@@ -281,8 +302,8 @@ const EditorChat = ({ setIsChatVisible, canEdit, activeUsers, messages, setMessa
                 <div ref={messagesEndRef} />
             </div>
 
-            {/* Enhanced Input */}
-            <div className='p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800'>
+            {/* Input */}
+            <div className='shrink-0 p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800'>
                 {!canEdit ? (
                     <div className='text-center text-gray-500 text-sm py-3'>
                         <Lock size={16} className='inline mr-2' />

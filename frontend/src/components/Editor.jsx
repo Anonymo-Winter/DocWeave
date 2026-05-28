@@ -92,6 +92,13 @@ import ErrorPage from './ErrorMessage.jsx';
 import { toast } from 'sonner';
 import { getCriticalEditorError } from '../context/yjsSetup.js';
 import ErrorMessage from './ErrorMessage.jsx';
+import AISelectionMenu from './AISelectionMenu.jsx';
+import SlashCommandMenu from './SlashCommandMenu.jsx';
+import {
+    setEditor as registerActiveEditor,
+    openAIGenerate,
+    openAskPanel,
+} from '../util/editorBridge.js';
 
 const MainToolbarContent = ({
     onHighlighterClick,
@@ -304,6 +311,13 @@ export function SimpleEditor({ onError, canEdit }) {
         editor: editor ?? null,
         overlayHeight: toolbarRef.current?.getBoundingClientRect().height ?? 0,
     });
+
+    // Expose the active editor to siblings (e.g. EditorNavbar's AI modal).
+    React.useEffect(() => {
+        if (!editor) return;
+        registerActiveEditor(editor);
+        return () => registerActiveEditor(null);
+    }, [editor]);
     // React.useEffect(() => {
     //     if (!extensions || !isInitialized || editor) return;
 
@@ -612,6 +626,16 @@ export function SimpleEditor({ onError, canEdit }) {
                             role='presentation'
                             className={isReadOnly ? 'tiptap-readonly' : ''}
                         />
+                        {!isReadOnly && (
+                            <>
+                                <AISelectionMenu editor={editor} />
+                                <SlashCommandMenu
+                                    editor={editor}
+                                    onOpenAIGenerate={openAIGenerate}
+                                    onOpenAsk={openAskPanel}
+                                />
+                            </>
+                        )}
                     </div>
                 </div>
             </EditorContext>

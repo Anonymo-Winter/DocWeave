@@ -5,7 +5,23 @@ import { useSocket } from '../context/socketContext';
 import { useSelector } from 'react-redux';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { MessageSquareMore, Share2, History, Plus, Menu, ArrowLeft, Mail, X, Crown, Eye, Edit } from 'lucide-react';
+import {
+    MessageSquareMore,
+    Share2,
+    History,
+    Plus,
+    Menu,
+    ArrowLeft,
+    Mail,
+    X,
+    Crown,
+    Eye,
+    Edit,
+    Sparkles,
+    HelpCircle,
+} from 'lucide-react';
+import AIGenerateModal from './AIGenerateModal.jsx';
+import { registerAIOpeners } from '../util/editorBridge.js';
 import { TbFileTypeDoc } from 'react-icons/tb';
 import { MdSave } from 'react-icons/md';
 
@@ -266,6 +282,8 @@ function CollaboratorsDropdown({ list, isChatVisible, setIsChatVisible }) {
 const EditorNavbar = ({
     isChatVisible,
     setIsChatVisible,
+    isAskVisible,
+    setIsAskVisible,
     document,
     // canSave,
     // canRename,
@@ -292,6 +310,14 @@ const EditorNavbar = ({
     // const [autoSave, setAutoSave] = useState(false);
 
     const [versionopen, setVersionopen] = useState(false);
+    const [showAIGenerate, setShowAIGenerate] = useState(false);
+
+    // Expose modal openers so the slash-command menu (rendered inside the editor)
+    // can trigger them without prop drilling.
+    useEffect(() => {
+        registerAIOpeners({ openAIGenerate: () => setShowAIGenerate(true) });
+        return () => registerAIOpeners({ openAIGenerate: null });
+    }, []);
 
     const [renameDocument] = useChangeDocNameMutation();
 
@@ -831,6 +857,42 @@ const EditorNavbar = ({
                             refetch={refetch}
                         />
                     </div>
+                    {/* AI Generate */}
+                    {canEdit && (
+                        <button
+                            type='button'
+                            onClick={() => setShowAIGenerate(true)}
+                            aria-label='Generate with AI'
+                            title='Generate with AI'
+                            className='h-9 w-9 inline-flex items-center justify-center
+                                rounded-md text-white
+                                bg-gradient-to-br from-purple-500 to-pink-500
+                                hover:from-purple-600 hover:to-pink-600
+                                shadow-sm hover:shadow-md
+                                focus:outline-none focus:ring-2 focus:ring-purple-500/50
+                                transition-all'
+                        >
+                            <Sparkles size={16} />
+                        </button>
+                    )}
+
+                    {/* Ask the document */}
+                    <button
+                        type='button'
+                        onClick={() => setIsAskVisible(!isAskVisible)}
+                        aria-label='Ask the document'
+                        title='Ask the document'
+                        className={`h-9 w-9 inline-flex items-center justify-center
+                            rounded-md border transition-colors duration-200
+                            focus:outline-none focus:ring-2 focus:ring-purple-500/50 ${
+                                isAskVisible
+                                    ? 'bg-purple-600/10 border-purple-600 text-purple-600 dark:bg-purple-400/10 dark:border-purple-400 dark:text-purple-400'
+                                    : 'bg-slate-100 border-slate-300 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-400 dark:hover:bg-slate-700'
+                            }`}
+                    >
+                        <HelpCircle size={16} />
+                    </button>
+
                     {/* Chat Toggle */}
                     <ChatToggle
                         isActive={isChatVisible}
@@ -869,6 +931,8 @@ const EditorNavbar = ({
                     />
                 </div>
             )}
+
+            <AIGenerateModal open={showAIGenerate} onOpenChange={setShowAIGenerate} />
         </header>
     );
 };
