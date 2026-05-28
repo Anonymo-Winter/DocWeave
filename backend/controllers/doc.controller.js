@@ -302,9 +302,7 @@ export const getDocument = async (req, res) => {
             return res.status(404).json({ message: 'Document not found' });
         }
 
-        console.log('user : ', req.userId, 'editorId: ', editorId);
         const role = await resolveUserRole({ userId: req.userId, docId: editorId });
-        console.log('role of user', role);
         return res.status(200).json({
             success: true,
             message: 'Document data fetched successfully',
