@@ -36,8 +36,7 @@ export const sendInvite = async (touser, fromuser, documentdata, userrole) => {
                     new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
                 ),
         };
-        const info = await transporter.sendMail(mailOptions);
-        console.log('Invite sent successfully to: ' + info.response);
+        await transporter.sendMail(mailOptions);
     } catch (error) {
         console.log('Error occured while sending invite', error.message);
     }

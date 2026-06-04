@@ -1,4 +1,5 @@
 import Version from '../models/version.model.js'; // Your Version schema
+import DocumentState from '../models/documentState.model.js'; // Rolling autosave blob (latest live state)
 import Document from '../models/document.model.js'; // Optional: for validating docId
 import User from '../models/user.model.js'; // Optional: for validating author
 import mongoose, { version } from 'mongoose';
@@ -79,6 +80,32 @@ export const getVersion = async (req, res) => {
         const documentExists = await Document.exists({ _id: documentId });
         if (!documentExists) {
             return res.status(404).json({ message: 'Document not found' });
+        }
+
+        // Load priority: rolling autosave blob (always the freshest full state)
+        // → else latest manual version → else empty doc. The autosave blob is
+        // updated on every edit and flushed when the room empties, so when it
+        // exists it is the most recent representation of the document.
+        const liveState = await DocumentState.findOne({ documentId }).select('state updatedAt');
+        if (liveState?.state) {
+            try {
+                const updateBase64 = Buffer.from(liveState.state).toString('base64');
+                Y.decodeUpdate(Buffer.from(updateBase64, 'base64')); // validate
+                return res.status(200).json({
+                    success: true,
+                    message: 'Latest autosaved state fetched successfully',
+                    version: {
+                        documentId,
+                        update: updateBase64,
+                        name: 'autosave',
+                        source: 'autosave',
+                        createdAt: liveState.updatedAt,
+                    },
+                });
+            } catch (err) {
+                // Corrupt blob: fall through to the manual version history.
+                console.error('Autosave blob corrupted, falling back to versions:', err);
+            }
         }
 
         const latestVersion = await Version.findOne({ documentId })

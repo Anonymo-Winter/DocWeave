@@ -3,6 +3,7 @@ import { Server } from 'socket.io';
 import * as Y from 'yjs';
 import jwt from 'jsonwebtoken';
 import Document from './models/document.model.js';
+import DocumentState from './models/documentState.model.js';
 import mongoose from 'mongoose';
 import { resolveUserRole } from './controllers/doc.controller.js';
 import { setRealtimeRefs } from './realtime.js';
@@ -44,6 +45,73 @@ const docsMap = new Map(); // roomId -> { doc: Y.Doc }
 const roomUsers = new Map(); // roomId -> Map(userId -> { user, sockets:Set })
 const previewSaveTimers = new Map(); // roomId -> { timer, html }
 const PREVIEW_MAX_LENGTH = 8000;
+
+// =========================
+// ROLLING-BLOB AUTOSAVE
+// =========================
+// The server owns the authoritative in-memory Y.Doc and applies every edit, so
+// it is the single writer for autosave — no need to coordinate N clients.
+// Rules:
+//   - debounce: save ~AUTOSAVE_DEBOUNCE_MS after the last edit (coalesces typing)
+//   - max-wait: force a save at least every AUTOSAVE_MAX_WAIT_MS during continuous editing
+//   - dirty-only: never write if nothing changed since the last save
+//   - flush-on-empty: persist before the in-memory doc is dropped (see handleLeaveRoom)
+const autosaveTimers = new Map(); // roomId -> { timer, maxTimer, dirty }
+const AUTOSAVE_DEBOUNCE_MS = 2500;
+const AUTOSAVE_MAX_WAIT_MS = 30000;
+
+function scheduleAutosave(roomId) {
+    let entry = autosaveTimers.get(roomId);
+    if (!entry) {
+        entry = { timer: null, maxTimer: null, dirty: false };
+        autosaveTimers.set(roomId, entry);
+    }
+    entry.dirty = true;
+
+    // Reset the idle (debounce) timer on every edit.
+    if (entry.timer) clearTimeout(entry.timer);
+    entry.timer = setTimeout(() => flushAutosave(roomId), AUTOSAVE_DEBOUNCE_MS);
+
+    // Guarantee a save even if edits never stop long enough for the debounce to fire.
+    if (!entry.maxTimer) {
+        entry.maxTimer = setTimeout(() => flushAutosave(roomId), AUTOSAVE_MAX_WAIT_MS);
+    }
+}
+
+// Persist the current full state for a room. Encodes synchronously (before any
+// await) so it is safe to call right before docsMap.delete(roomId).
+async function flushAutosave(roomId, { force = false } = {}) {
+    const entry = autosaveTimers.get(roomId);
+    if (entry) {
+        if (entry.timer) clearTimeout(entry.timer);
+        if (entry.maxTimer) clearTimeout(entry.maxTimer);
+        autosaveTimers.delete(roomId);
+    }
+
+    // Skip if nothing changed since the last save (unless forced, e.g. on shutdown).
+    if (!force && !entry?.dirty) return;
+
+    const room = docsMap.get(roomId);
+    if (!room?.doc) return;
+
+    // Capture state synchronously so a subsequent docsMap.delete can't race us.
+    const state = Buffer.from(Y.encodeStateAsUpdate(room.doc));
+
+    try {
+        await DocumentState.updateOne({ documentId: roomId }, { $set: { state } }, { upsert: true });
+    } catch (err) {
+        console.error('Autosave failed for room', roomId, err);
+        // Re-mark dirty so the next edit (or flush) retries.
+        const e = autosaveTimers.get(roomId);
+        if (e) e.dirty = true;
+    }
+}
+
+// Force-persist every active room. Used on graceful shutdown.
+export async function flushAllAutosaves() {
+    const roomIds = Array.from(docsMap.keys());
+    await Promise.allSettled(roomIds.map((id) => flushAutosave(id, { force: true })));
+}
 
 function scheduleContentPreviewSave(roomId, html) {
     const trimmed = (html || '').slice(0, PREVIEW_MAX_LENGTH);
@@ -141,6 +209,10 @@ export function setupSocketIo(server) {
             socket.leave(roomId);
 
             if (io.sockets.adapter.rooms.get(roomId)?.size === 0) {
+                // Last user left: persist the latest state BEFORE dropping the
+                // in-memory doc. flushAutosave encodes synchronously, so the
+                // state is captured even though we delete the doc immediately.
+                flushAutosave(roomId);
                 docsMap.delete(roomId);
             }
 
@@ -397,6 +469,9 @@ export function setupSocketIo(server) {
                 Y.applyUpdate(doc, u8);
 
                 socket.to(ctx.roomId).emit('update', Buffer.from(u8));
+
+                // Content changed — schedule a debounced rolling-blob autosave.
+                scheduleAutosave(ctx.roomId);
             } catch (e) {
                 console.error('Error applying document update:', e);
             }
