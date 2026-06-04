@@ -85,13 +85,11 @@ const LoginComponent = () => {
             // Simulate API call
             const res = await handleSignup({ name: formData.name, email: formData.email, password: formData.password });
             if (res?.data?.success === true) {
-                console.log(res?.data?.message);
                 setSuccessMessage(res?.data?.message || 'Signup successful! Redirecting...');
                 setTimeout(() => {
                     navigate('/dashboard');
                 }, 2000);
             } else {
-                console.log(res?.error?.data?.message);
                 throw new Error(res?.error?.data?.message || 'Something went wrong. Please try again.');
             }
         } catch (error) {
@@ -102,7 +100,6 @@ const LoginComponent = () => {
     };
 
     const handleSocialLogin = (provider) => {
-        console.log(`Logging in with ${provider}`);
         // Social login logic would go here
     };
 

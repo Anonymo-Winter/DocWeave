@@ -81,7 +81,6 @@ export default function App() {
     return (
         <div className='min-h-screen w-full flex flex-col bg-white text-black dark:bg-[#242424] dark:text-white transition-colors duration-500'>
             <main className='flex flex-1 w-full'>
-                {/* <ThemeToggle className='absolute top-1/2 right-4 z-[200]' /> */}
                 <div className='w-full relative'>
                     <Routes>
                         <Route path='/' element={<HomePage />} />

@@ -13,9 +13,23 @@ import ErrorMessage from '../components/ErrorMessage.jsx';
 import { Settings } from 'lucide-react';
 
 const EnhancedEditorLayout = () => {
-    const [isChatVisible, setIsChatVisible] = useState(false);
-    const [isAskVisible, setIsAskVisible] = useState(false);
+    const [isChatVisible, _setIsChatVisible] = useState(false);
+    const [isAskVisible, _setIsAskVisible] = useState(false);
+    // Tracks which side panel was opened most recently ('chat' | 'ask').
+    // On small screens we can only fit one panel, so we show this one.
+    const [lastOpened, setLastOpened] = useState(null);
     const isChatVisibleRef = useRef(isChatVisible);
+
+    const setIsChatVisible = (v) => {
+        const next = typeof v === 'function' ? v(isChatVisible) : v;
+        _setIsChatVisible(next);
+        if (next) setLastOpened('chat');
+    };
+    const setIsAskVisible = (v) => {
+        const next = typeof v === 'function' ? v(isAskVisible) : v;
+        _setIsAskVisible(next);
+        if (next) setLastOpened('ask');
+    };
 
     // Expose the ask-panel opener so the slash-command menu can trigger it.
     useEffect(() => {
@@ -122,7 +136,11 @@ const EnhancedEditorLayout = () => {
 
                 {/* Enhanced Chat Section */}
                 {isChatVisible && (
-                    <aside className='active-chats w-full shadow-xl shadow-gray-200 dark:shadow-gray-800 md:w-[400px] max-w-[450px] min-w-[320px] bg-gray-50 dark:bg-gray-800 flex flex-col h-full overflow-hidden'>
+                    <aside
+                        className={`active-chats w-full shadow-xl shadow-gray-200 dark:shadow-gray-800 md:w-[400px] max-w-[450px] md:min-w-[320px] bg-gray-50 dark:bg-gray-800 flex-col h-full overflow-hidden ${
+                            isAskVisible && lastOpened !== 'chat' ? 'hidden md:flex' : 'flex'
+                        }`}
+                    >
                         <EditorChat
                             activeUsers={activeUsers}
                             isChatVisible={isChatVisible}
@@ -136,7 +154,11 @@ const EnhancedEditorLayout = () => {
 
                 {/* Ask-the-doc panel */}
                 {isAskVisible && (
-                    <aside className='w-full shadow-xl shadow-gray-200 dark:shadow-gray-800 md:w-[400px] max-w-[450px] min-w-[320px] bg-white dark:bg-gray-900 flex flex-col h-full overflow-hidden border-l border-gray-200 dark:border-gray-700'>
+                    <aside
+                        className={`w-full shadow-xl shadow-gray-200 dark:shadow-gray-800 md:w-[400px] max-w-[450px] md:min-w-[320px] bg-white dark:bg-gray-900 flex-col h-full overflow-hidden border-l border-gray-200 dark:border-gray-700 ${
+                            isChatVisible && lastOpened !== 'ask' ? 'hidden md:flex' : 'flex'
+                        }`}
+                    >
                         <AskDocPanel onClose={() => setIsAskVisible(false)} />
                     </aside>
                 )}

@@ -1,14 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
-import { Sparkles, Loader2, X } from 'lucide-react';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-    DialogFooter,
-} from './ui/dialog';
-import { Button } from './ui/button';
+import { Sparkles, Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
 import { useAIGenerate } from '../hooks/useAIGenerate';
 import { getEditor } from '../util/editorBridge';
 import { toast } from 'sonner';
@@ -45,11 +37,11 @@ export default function AIGenerateModal({ open, onOpenChange }) {
             onOpenChange(false);
             setInstruction('');
             reset();
-            toast.success('AI content inserted');
         },
         onError: (err) => {
             insertPosRef.current = null;
-            toast.error('AI generation failed', { description: err.message });
+            toast.error('AI generation failed');
+            console.error('AI generation failed : ', err.message);
         },
     });
 
@@ -64,7 +56,7 @@ export default function AIGenerateModal({ open, onOpenChange }) {
         if (!instruction.trim()) return;
         const editor = getEditor();
         if (!editor) {
-            toast.error('Editor not ready');
+            console.error('Editor not ready');
             return;
         }
 
@@ -99,9 +91,9 @@ export default function AIGenerateModal({ open, onOpenChange }) {
                 }
             }}
         >
-            <DialogContent className='sm:max-w-[560px]'>
+            <DialogContent className='dark:bg-gray-800 bg-white rounded-lg sm:max-w-[560px] w-full mx-4 px-5 py-4'>
                 <DialogHeader>
-                    <DialogTitle className='flex items-center gap-2'>
+                    <DialogTitle className='flex items-center gap-2 font-medium dark:text-white text-gray-900'>
                         <span className='inline-flex items-center justify-center size-7 rounded-md bg-gradient-to-br from-purple-500 to-pink-500 text-white'>
                             <Sparkles className='size-4' />
                         </span>
@@ -121,7 +113,7 @@ export default function AIGenerateModal({ open, onOpenChange }) {
                         placeholder='e.g. Write a project plan for our Q3 launch, with goals, milestones, and owners.'
                         disabled={streaming}
                         rows={4}
-                        className='w-full resize-none rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm text-gray-900 dark:text-gray-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500/40 disabled:opacity-60'
+                        className='w-full resize-none custom-scrollbar p-3 border-2 rounded-lg bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm font-light text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none transition-all duration-200 focus:border-purple-500 dark:focus:border-purple-400 border-gray-300 dark:border-gray-600 disabled:opacity-60'
                     />
 
                     {!streaming && !instruction && (
@@ -131,7 +123,7 @@ export default function AIGenerateModal({ open, onOpenChange }) {
                                     key={s}
                                     type='button'
                                     onClick={() => setInstruction(s)}
-                                    className='text-xs px-2.5 py-1 rounded-full border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors'
+                                    className='text-xs px-2.5 py-1 rounded-full border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors'
                                 >
                                     {s}
                                 </button>
@@ -140,47 +132,47 @@ export default function AIGenerateModal({ open, onOpenChange }) {
                     )}
 
                     {streaming && (
-                        <div className='rounded-md border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 p-3'>
-                            <div className='flex items-center gap-2 text-sm font-medium text-purple-700 dark:text-purple-300 mb-2'>
+                        <div className='rounded-lg border-2 border-purple-200 dark:border-purple-900 bg-purple-50 dark:bg-purple-950/40 p-3'>
+                            <div className='flex items-center gap-2 text-sm font-medium text-purple-600 dark:text-purple-400 mb-2'>
                                 <Loader2 className='size-4 animate-spin' />
                                 Writing… {tokens.length} chars
                             </div>
-                            <div className='text-xs text-gray-700 dark:text-gray-300 max-h-32 overflow-y-auto whitespace-pre-wrap font-mono'>
+                            <div className='text-xs text-gray-700 dark:text-gray-300 max-h-32 overflow-y-auto whitespace-pre-wrap font-mono custom-scrollbar'>
                                 {tokens || '…'}
                             </div>
                         </div>
                     )}
 
-                    {error && !streaming && (
-                        <div className='text-sm text-red-600 dark:text-red-400'>{error}</div>
-                    )}
+                    {error && !streaming && <div className='text-sm text-red-600 dark:text-red-400'>{error}</div>}
                 </div>
 
                 <DialogFooter>
-                    <Button
-                        variant='outline'
+                    <button
+                        type='button'
                         onClick={() => onOpenChange(false)}
                         disabled={streaming}
+                        className='px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md disabled:opacity-50'
                     >
                         Cancel
-                    </Button>
-                    <Button
+                    </button>
+                    <button
+                        type='submit'
                         onClick={submit}
                         disabled={streaming || !instruction.trim()}
-                        className='bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700'
+                        className='flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed'
                     >
                         {streaming ? (
                             <>
-                                <Loader2 className='size-4 animate-spin mr-1.5' />
+                                <Loader2 className='size-4 animate-spin' />
                                 Generating…
                             </>
                         ) : (
                             <>
-                                <Sparkles className='size-4 mr-1.5' />
+                                <Sparkles className='size-4' />
                                 Generate
                             </>
                         )}
-                    </Button>
+                    </button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

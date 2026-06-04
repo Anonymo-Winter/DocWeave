@@ -65,7 +65,6 @@ export const docApi = createApi({
         }),
         getContributors: builder.query({
             query: ({ editorId }) => {
-                console.log(editorId);
                 return `/doc/${editorId}/contributors`;
             },
         }),

@@ -86,9 +86,7 @@ const LoginComponent = () => {
         }
     };
 
-    const handleSocialLogin = (provider) => {
-        console.log(`Logging in with ${provider}`);
-    };
+    const handleSocialLogin = (provider) => {};
 
     return (
         <div className='min-h-screen w-full flex relative overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950 transition-colors duration-300'>

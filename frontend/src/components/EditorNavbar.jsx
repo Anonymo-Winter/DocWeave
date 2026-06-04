@@ -285,8 +285,6 @@ const EditorNavbar = ({
     isAskVisible,
     setIsAskVisible,
     document,
-    // canSave,
-    // canRename,
     permission,
     canEdit,
     refetch,
@@ -302,12 +300,9 @@ const EditorNavbar = ({
     const [documentName, setDocumentName] = useState(document?.title);
     const [showShareModal, setShowShareModal] = useState(false);
 
-    // const [copied, setCopied] = useState(false);
-
     const [isFocused, setIsFocused] = useState(false);
     const [versionName, setVersionName] = useState('new version');
     const [versionDescription, setVersionDescription] = useState('new description');
-    // const [autoSave, setAutoSave] = useState(false);
 
     const [versionopen, setVersionopen] = useState(false);
     const [showAIGenerate, setShowAIGenerate] = useState(false);
@@ -326,7 +321,6 @@ const EditorNavbar = ({
             console.warn('❌ Cannot save version: editor or Ydoc missing');
             return;
         }
-        console.log(awareness.getStates());
         if (!ydoc || !awareness || awareness.getStates().size === 0) {
             console.warn('❌ Cannot save version: Ydoc or awareness not ready');
             toast.error('Editor is not ready yet. Please wait.');
@@ -356,7 +350,6 @@ const EditorNavbar = ({
                     };
                 })
                 .filter(Boolean);
-            console.log(collaborators);
 
             const res = await saveVersion({
                 documentId: editorId,
@@ -506,7 +499,6 @@ const EditorNavbar = ({
                                                 </div>
                                             </PopoverTrigger>
                                             <PopoverContent
-                                                // className='w-fit'
                                                 className='bg-white block md:hidden dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl p-4 w-72'
                                             >
                                                 <div className='flex items-center gap-3 mb-4'>
@@ -542,7 +534,6 @@ const EditorNavbar = ({
                                                     </div>
                                                 </div>
                                                 <button
-                                                    // onClick={() => onEmailClick(collab.email)}
                                                     className='w-full flex items-center justify-center gap-2 px-3 py-2.5 border text-sm bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-800 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-950/70 transition-all duration-200 font-medium'
                                                 >
                                                     <Mail size={16} />
@@ -695,7 +686,6 @@ const EditorNavbar = ({
                                         </button>
                                     </DialogTrigger>
 
-                                    {/* <DialogContent className='dark:bg-red-800 min-h-screen min-w-screen bg-white rounded-lg px-5 py-4'> */}
                                     <DialogContent
                                         className={`
                                             dark:bg-gray-800 bg-white
@@ -757,8 +747,6 @@ const EditorNavbar = ({
                                                 placeholder='Add a short description...'
                                                 value={versionDescription}
                                                 onChange={(e) => setVersionDescription(e.target.value)}
-                                                // className={`w-full min-h-12 max-h-20 custom-scrollbar py-3 px-3 border-2 rounded-lg bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm font-light text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none
-                                                //     transition-all duration-200 focus:border-blue-500 dark:focus:border-blue-400 border-gray-300 dark:border-gray-600}`}
                                                 className='w-full min-h-12 max-h-20 custom-scrollbar p-3 border-2 rounded-lg bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm font-light text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none
                                             transition-all duration-200 focus:border-blue-500'
                                             />
@@ -785,7 +773,6 @@ const EditorNavbar = ({
                                     </DialogContent>
                                 </Dialog>
                                 <Separator orientation='vertical' className='bg-white' />
-                                {/* <div className='w-px bg-blue-500/40' /> */}
                                 <Popover>
                                     <PopoverTrigger asChild>
                                         <button
@@ -914,7 +901,6 @@ const EditorNavbar = ({
                     >
                         <Share2 size={16} />
                     </button>
-                    {/* <ConnectionStatusIndicator connectionStatus={{ connected: true }} /> */}
                     <ConnectionStatus />
                     <DropDown />
                 </div>

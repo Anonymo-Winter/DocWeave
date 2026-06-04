@@ -164,7 +164,6 @@ const VersionComponent = ({ setVersionopen, canSave }) => {
     const {
         data,
         isLoading: isVersionLoading,
-        // error,
         refetch,
     } = useGetAllversionsQuery(
         { editorId },
@@ -179,7 +178,6 @@ const VersionComponent = ({ setVersionopen, canSave }) => {
             console.warn('❌ Cannot save version: editor or Ydoc missing');
             return;
         }
-        console.log(awareness.getStates());
         if (!ydoc || !awareness || awareness.getStates().size === 0) {
             console.warn('❌ Cannot save version: Ydoc or awareness not ready');
             toast.error('Editor is not ready yet. Please wait.');
@@ -187,9 +185,6 @@ const VersionComponent = ({ setVersionopen, canSave }) => {
         }
         try {
             const update = Y.encodeStateAsUpdate(ydoc);
-            const fragment = ydoc.getXmlFragment('default');
-            console.log('📝 Saving fragment:', fragment.toJSON());
-            console.log('💾 Saving update with length:', update.byteLength);
             if (!update || update.byteLength < 20) {
                 console.warn('⚠️ Update too small. Likely not ready. Skipping save.');
                 return;
@@ -305,10 +300,9 @@ const VersionComponent = ({ setVersionopen, canSave }) => {
                 fragment.push([node.clone()]);
             });
 
-            console.log('✅ Version restored. Current doc:', ydoc.toJSON());
             setVersionopen(false);
         } catch (error) {
-            console.log('Error occured while restoring version:', error);
+            console.error('Error occured while restoring version:', error);
         } finally {
             setIsRestoreLoading(false);
         }
@@ -337,8 +331,6 @@ const VersionComponent = ({ setVersionopen, canSave }) => {
     };
 
     const handleVersionClick = (version) => {
-        const fragment = ydoc.getXmlFragment('default');
-        console.log('📝 selected fragment:', fragment.toJSON());
         setSelectedVersion(version);
     };
 
@@ -374,7 +366,6 @@ const VersionComponent = ({ setVersionopen, canSave }) => {
                 toast.success('Success', { description: res?.data?.message || "Successfully updated version's name" });
                 setShowNameModal(false);
             } else {
-                console.log(res);
                 throw new Error(res?.error?.data?.message);
             }
         } catch (error) {
@@ -393,7 +384,6 @@ const VersionComponent = ({ setVersionopen, canSave }) => {
                 refetch();
             }
         } catch (error) {
-            console.log(error.message);
             toast.error('Failed to remove version', {
                 description: error.message,
             });
@@ -547,7 +537,6 @@ const VersionComponent = ({ setVersionopen, canSave }) => {
 
                         const colorName = colorMap2[color] || '#faf594';
                         return `<mark style='background-color: ${colorName};color:white'>${content}</mark>`;
-                        // return `==${content}=={${colorName}}`;
                     },
                 });
 
@@ -580,8 +569,6 @@ const VersionComponent = ({ setVersionopen, canSave }) => {
                         return md + '\n';
                     },
                 });
-
-                //  `<div style="display:flex;align-items:center;justify-content"><input type="checkbox" > Task 1</div>`
 
                 // === Figures with captions ===
                 turndownService.addRule('figureWithCaption', {
@@ -668,12 +655,10 @@ const VersionComponent = ({ setVersionopen, canSave }) => {
                         </body>
                     </html>
                 `;
-                console.log(htmlContent);
 
                 try {
                     blob = await generatePdf(htmlContent).unwrap();
                     fileName = `${versionName}.pdf`;
-                    console.log('✅ PDF downloaded successfully!');
                 } catch (err) {
                     console.error('Failed to download PDF:', err);
                     toast.error('Failed to generate PDF');
@@ -966,8 +951,6 @@ const VersionComponent = ({ setVersionopen, canSave }) => {
                                                 placeholder='Add a short description...'
                                                 value={versionDescription}
                                                 onChange={(e) => setVersionDescription(e.target.value)}
-                                                // className={`w-full min-h-12 max-h-20 custom-scrollbar py-3 px-3 border-2 rounded-lg bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm font-light text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none
-                                                //     transition-all duration-200 focus:border-blue-500 dark:focus:border-blue-400 border-gray-300 dark:border-gray-600}`}
                                                 className='w-full min-h-12 max-h-20 custom-scrollbar p-3 border-2 rounded-lg bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm font-light text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none
                                                                             transition-all duration-200 focus:border-blue-500'
                                             />
@@ -1374,7 +1357,6 @@ const VersionComponent = ({ setVersionopen, canSave }) => {
                                                         <Dialog>
                                                             <DialogTrigger asChild>
                                                                 <button
-                                                                    // className='flex items-center justify-center gap-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 text-xs rounded-lg font-medium'
                                                                     className='
                                                                         flex items-center justify-center gap-1
                                                                         px-4 py-2
@@ -1562,7 +1544,6 @@ const VersionComponent = ({ setVersionopen, canSave }) => {
                                                                             selectedVersion.description,
                                                                         );
                                                                     }}
-                                                                    // className='flex items-center justify-center gap-1 bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 text-xs rounded-lg font-medium'
                                                                     className='flex items-center justify-center gap-1
                                                                         text-xs font-medium
                                                                         text-white
@@ -1662,7 +1643,6 @@ const VersionComponent = ({ setVersionopen, canSave }) => {
                                                                     <button
                                                                         onClick={() => duplicateSelectedVersion()}
                                                                         type='submit'
-                                                                        // className='flex items-center justify-center px-4 py-2 bg-purple-600 text-white hover:bg-purple-700 rounded-md'
                                                                         className='
                                                                                     flex items-center justify-center
                                                                                     px-5 py-2.5

@@ -39,20 +39,6 @@ const MultiSelectInput = ({ selectedUsers, onUserSelect, onUserRemove, placehold
     // Use a separate state for the search term to avoid rate-limiting issues
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Debounce the search term
-    // useEffect(() => {
-    //     if (searchTerm.length > 2) {
-    //         const delayDebounceFn = setTimeout(() => {
-    //             handleSearchTerm(searchTerm);
-    //         }, 300); // 300ms delay
-
-    //         return () => clearTimeout(delayDebounceFn);
-    //     } else {
-    //         // Clear fetched emails when the search term is empty
-    //         setFetchedEmails([]);
-    //     }
-    // }, [searchTerm]);
-
     useEffect(() => {
         // Filter the fetched emails. This will run whenever fetchedEmails or selectedUsers changes.
         const filtered = fetchedEmails.filter((user) => !selectedUsers.find((selected) => selected._id === user._id));
@@ -346,7 +332,6 @@ const ShareModal = ({ data, isLoading, refetch, open, onOpenChange, permission }
                 ? `${generalAccess}:${generalAccessRole == 'editor' ? 'w' : 'r'}`
                 : 'restricted';
         try {
-            // if (changedUserAccess.length > 0 || changedDocAccess != data?.visibility) {
             const res = await updateDocument({
                 editorId: documentId,
                 visibility: changedDocAccess,
@@ -357,7 +342,6 @@ const ShareModal = ({ data, isLoading, refetch, open, onOpenChange, permission }
                 toast.success('Access updated successfully');
                 refetch();
             }
-            // }
         } catch (error) {
             console.log('Error occured while updating access : ', error);
         }
@@ -593,9 +577,6 @@ const ShareModal = ({ data, isLoading, refetch, open, onOpenChange, permission }
                                                                         <span className='text-sm text-gray-900 dark:text-gray-100'>
                                                                             Editor
                                                                         </span>
-                                                                        {/* <p className='text-xs text-gray-500 dark:text-gray-400'>
-                                                                            can edit document
-                                                                        </p> */}
                                                                     </div>
                                                                 </label>
                                                                 <label
@@ -653,9 +634,6 @@ const ShareModal = ({ data, isLoading, refetch, open, onOpenChange, permission }
                                                                         <span className='text-sm text-gray-900 dark:text-gray-100'>
                                                                             Viewer
                                                                         </span>
-                                                                        {/* <p className='text-xs text-gray-500 dark:text-gray-400'>
-                                                                            can only see the document
-                                                                        </p> */}
                                                                     </div>
                                                                 </label>
                                                             </div>
@@ -725,9 +703,6 @@ const ShareModal = ({ data, isLoading, refetch, open, onOpenChange, permission }
                                                                         <span className='text-sm text-gray-900 dark:text-gray-100'>
                                                                             Editor
                                                                         </span>
-                                                                        {/* <p className='text-xs text-gray-500 dark:text-gray-400'>
-                                                                            can edit document
-                                                                        </p> */}
                                                                     </div>
                                                                 </label>
                                                                 <label
@@ -784,9 +759,6 @@ const ShareModal = ({ data, isLoading, refetch, open, onOpenChange, permission }
                                                                         <span className='text-sm text-gray-900 dark:text-gray-100'>
                                                                             Viewer
                                                                         </span>
-                                                                        {/* <p className='text-xs text-gray-500 dark:text-gray-400'>
-                                                                            can only see the document
-                                                                        </p> */}
                                                                     </div>
                                                                 </label>
                                                             </div>
@@ -1089,7 +1061,6 @@ const ShareModal = ({ data, isLoading, refetch, open, onOpenChange, permission }
                                                                     collab={collab}
                                                                     ownerId={data?.ownerId?._id}
                                                                 />
-                                                                {/* {canAddPeople ? ( */}
                                                                 <Select
                                                                     value={collab.selectedRole}
                                                                     onValueChange={(newRole) => {
@@ -1155,13 +1126,6 @@ const ShareModal = ({ data, isLoading, refetch, open, onOpenChange, permission }
                                                                         </SelectItem>
                                                                     </SelectContent>
                                                                 </Select>
-                                                                {/* ) : (
-                                                                    // <span className='text-sm sm:text-base font-semibold text-gray-900 dark:text-white'>
-                                                                    <span className='bg-white p-2  dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md text-xs sm:text-sm'>
-                                                                        {collab.selectedRole}
-                                                                    </span>
-                                                                )}
-                                                                👇 Show changed role indicator */}
                                                                 {collab.originalRole !== collab.selectedRole && (
                                                                     <span className='hidden md:block text-xs italic text-gray-500 ml-2'>
                                                                         ({collab.originalRole} →{' '}

@@ -135,13 +135,6 @@ const filterOptions = [
 
 const templates = [
     { id: 1, name: 'Blank Document', icon: '📄', description: 'Start with a clean slate', templateName: 'blank-doc' },
-    // {
-    //     id: 2,
-    //     name: 'Sketch Board',
-    //     icon: '🎨',
-    //     description: 'Collaborative whiteboard.',
-    //     templateName: 'sketch-board',
-    // },
 ];
 
 export const DropDown = () => {
@@ -466,12 +459,10 @@ const Dashboard = () => {
         pollingInterval: 5000,
     });
     const [userDocuments, setUserDocuments] = useState([]);
-    console.log(userDocuments);
     const navigate = useNavigate();
 
     useEffect(() => {
         if (data?.userDocuments) setUserDocuments(data.userDocuments);
-        console.log(data?.userDocuments);
     }, [data]);
 
     useEffect(() => {
@@ -483,7 +474,6 @@ const Dashboard = () => {
         let filtered = userDocuments.filter((doc) => doc.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
         // Apply filter
-        console.log(filtered);
         switch (selectedFilter) {
             case 'owned':
                 filtered = filtered.filter((doc) => doc.ownership === 'owned');
@@ -526,7 +516,6 @@ const Dashboard = () => {
             } else {
                 navigate(`/editor/${res.documentId}`);
             }
-            toast.success(templateName);
         } catch (err) {
             console.error('Error creating document:', err);
             toast.error('Failed to create document');

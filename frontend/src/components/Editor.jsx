@@ -81,7 +81,7 @@ import '@/components/tiptap-templates/simple/simple-editor.scss';
 import { Edit, Eye, Loader, Lock, Redo2, Undo2, Unlock, XCircle } from 'lucide-react';
 import { useSocket } from '../context/socketContext.jsx';
 import { useSelector } from 'react-redux';
-import { useGetVersionQuery, useSaveVersionMutation } from '../api/docApi.js';
+import { useGetVersionQuery } from '../api/docApi.js';
 
 import * as Y from 'yjs';
 import { useParams } from 'react-router-dom';
@@ -94,11 +94,7 @@ import { getCriticalEditorError } from '../context/yjsSetup.js';
 import ErrorMessage from './ErrorMessage.jsx';
 import AISelectionMenu from './AISelectionMenu.jsx';
 import SlashCommandMenu from './SlashCommandMenu.jsx';
-import {
-    setEditor as registerActiveEditor,
-    openAIGenerate,
-    openAskPanel,
-} from '../util/editorBridge.js';
+import { setEditor as registerActiveEditor, openAIGenerate, openAskPanel } from '../util/editorBridge.js';
 
 const MainToolbarContent = ({
     onHighlighterClick,
@@ -217,7 +213,6 @@ export function SimpleEditor({ onError, canEdit }) {
     const [mobileView, setMobileView] = React.useState('main');
     const toolbarRef = React.useRef(null);
     const { editorId } = useParams();
-    const [saveVersion] = useSaveVersionMutation();
     const [isInitialized, setIsInitialized] = React.useState(false);
     const [isReadOnly, setIsReadOnly] = React.useState(!canEdit);
     const [ydocReadyState, setYdocReadyState] = React.useState(false);
@@ -245,13 +240,6 @@ export function SimpleEditor({ onError, canEdit }) {
         return () => ydoc.off('update', handler);
     }, [ydoc]);
 
-    React.useEffect(() => {
-        if (data) {
-            console.log('📊 Fetched version data:', data);
-            console.log('📊 Version update length:', data.version?.update?.length);
-            console.log('📊 Version word count:', data.version?.wordCount);
-        }
-    }, [data]);
     const provider = React.useMemo(() => ({ awareness }), [awareness]);
     const baseExtensions = React.useMemo(
         () => [
@@ -516,30 +504,10 @@ export function SimpleEditor({ onError, canEdit }) {
     //     setEditor(newEditor);
     // }, [fatalError, extensions, isInitialized, ydocReadyState]);
 
-    // React.useEffect(() => {
-    //     const interval = setInterval(async () => {
-    //         console.log('Autosaving document...');
-    //         if (editor && ydoc) {
-    //             const update = Y.encodeStateAsUpdate(ydoc);
-    //             const updateBase64 = Buffer.from(update).toString('base64');
-
-    //             const res = await saveVersion({
-    //                 documentId: editorId,
-    //                 update: updateBase64,
-    //                 name: `Version ${new Date().toLocaleString()}`,
-    //                 author: { _id: user._id, name: user.name },
-    //                 wordCount: editor.storage.characterCount.words(),
-    //                 collaborators: Array.from(awareness.getStates()).map(([clientId, state]) => ({
-    //                     name: state?.user?.name || 'Anonymous',
-    //                     clientId,
-    //                 })),
-    //             });
-    //             console.log(res);
-    //         }
-    //     }, 6000); // every 60 seconds
-
-    //     return () => clearInterval(interval);
-    // }, [editor, ydoc]);
+    // NOTE: Autosaving is handled entirely on the server (rolling-blob approach in
+    // socket.js). The server owns the authoritative Y.Doc and persists the latest
+    // full state on a debounce + when the room empties, so the client does not run
+    // its own autosave. Manual "Save version" remains the only client-driven save.
 
     // const criticalError = !isVersionLoading ? getCriticalEditorError(error) : null;
 

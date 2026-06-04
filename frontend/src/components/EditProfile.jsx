@@ -184,7 +184,6 @@ const ProfileEditModal = ({ user }) => {
                             placeholder='Enter your email'
                             value={fullName}
                             onChange={(e) => {
-                                console.log('Typed:', e.target.value); // does it show space?
                                 setFullName(e.target.value);
                             }}
                             error={error}

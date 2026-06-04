@@ -51,7 +51,6 @@ export function useAIRewrite(callbacks = {}) {
             if (activeRef.current?.requestId !== requestId) return;
             setTokens((t) => t + delta);
             cbRef.current.onDelta?.(delta);
-            // console.log(delta);
         };
 
         const onEnd = ({ requestId, fullText, range }) => {
@@ -61,7 +60,6 @@ export function useAIRewrite(callbacks = {}) {
             cbRef.current.onEnd?.({ fullText, range });
             active.resolve({ fullText, range });
             activeRef.current = null;
-            // console.log(fullText);
         };
 
         const onError = ({ requestId, message }) => {

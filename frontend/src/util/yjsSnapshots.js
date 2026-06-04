@@ -33,6 +33,4 @@ export function applySnapshotToDoc(ydoc, encodedSnapshot) {
     restoredFragment.toArray().forEach((node) => {
         fragment.push([node.clone()]);
     });
-
-    console.log('✅ Snapshot successfully applied to document.');
 }

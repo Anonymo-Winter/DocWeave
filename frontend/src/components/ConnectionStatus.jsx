@@ -116,17 +116,6 @@ const ConnectionStatusIndicator = () => {
             </PopoverTrigger>
 
             <PopoverContent className='w-[90vw] sm:w-80 mt-2 p-0 rounded-xl shadow-xl border overflow-hidden z-50 bg-white dark:bg-gray-900'>
-                {/* <div className={cn('px-4 py-3 border-b', status.bgColor)}>
-                    <div className='flex items-center gap-3'>
-                        <div className={cn('p-2 rounded-full bg-white dark:bg-gray-800', status.color)}>
-                            {status.icon}
-                        </div>
-                        <div>
-                            <h3 className={cn('font-semibold text-base', status.color)}>{status.label}</h3>
-                            <p className='text-sm text-gray-600 dark:text-gray-400'>{status.description}</p>
-                        </div>
-                    </div>
-                </div> */}
                 <div className={cn('px-4 py-3 border-b', 'bg-gray-50 dark:bg-gray-800/60')}>
                     <div className='flex items-center gap-3'>
                         <div className={cn('p-2 rounded-full', 'bg-white dark:bg-gray-800', status.color)}>
@@ -209,8 +198,8 @@ const ConnectionStatusIndicator = () => {
                                 statusKey === 'connected'
                                     ? 'bg-emerald-400'
                                     : statusKey === 'reconnecting'
-                                    ? 'bg-yellow-400'
-                                    : 'bg-red-400',
+                                      ? 'bg-yellow-400'
+                                      : 'bg-red-400',
                             )}
                         />
                         Server Status

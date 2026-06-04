@@ -71,7 +71,7 @@ export const SocketProvider = ({ children }) => {
                 awareness.setLocalState(null);
                 socketRef.current?.emit('leave-room', { roomId: editorId });
             } catch {
-                console.log('Error while leaving room');
+                // ignore errors while leaving room during unload
             }
         };
 
@@ -238,7 +238,6 @@ export const SocketProvider = ({ children }) => {
         });
 
         socket.on('access-updated', ({ docId, role, message }) => {
-            console.log(role, message);
             if (!role) {
                 setFatalSocketError({
                     code: 'NO_ACCESS',
@@ -303,11 +302,6 @@ export const SocketProvider = ({ children }) => {
                 },
             });
         });
-        // awareness.on('update', ({ added, updated, removed }, origin) => {
-        //     if (origin === 'local') {
-        //         console.log('LOCAL awareness update', { added, updated, removed });
-        //     }
-        // });
         // -------- CLEANUP --------
         return () => {
             ydoc.off('update', handleYdocUpdate);
