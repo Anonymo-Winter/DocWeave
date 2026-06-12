@@ -32,7 +32,14 @@ export const versionApi = createApi({
                 body: { versionId },
             }),
         }),
+        toggleVersionStar: builder.mutation({
+            query: ({ versionId }) => ({
+                url: `/version/star`,
+                method: 'PATCH',
+                body: { versionId },
+            }),
+        }),
     }),
 });
 
-export const { useUpdateVersionMutation, useDeleteVersionMutation } = versionApi;
+export const { useUpdateVersionMutation, useDeleteVersionMutation, useToggleVersionStarMutation } = versionApi;

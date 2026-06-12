@@ -63,7 +63,7 @@ import { IoLogoMarkdown } from 'react-icons/io5';
 
 // VersionViewer.jsx
 import { Collaboration } from '@tiptap/extension-collaboration';
-import { useDeleteVersionMutation, useUpdateVersionMutation } from '../api/versionApi.js';
+import { useDeleteVersionMutation, useUpdateVersionMutation, useToggleVersionStarMutation } from '../api/versionApi.js';
 
 import { StarterKit } from '@tiptap/starter-kit';
 import { Image } from '@tiptap/extension-image';
@@ -159,6 +159,18 @@ const VersionComponent = ({ setVersionopen, canSave }) => {
     const [saveVersion] = useSaveVersionMutation();
     const [deleteVersion, { isLoading: isDeleteLoading }] = useDeleteVersionMutation();
     const [updateVersion, { isLoading: isUpdating }] = useUpdateVersionMutation();
+    const [toggleVersionStar] = useToggleVersionStarMutation();
+
+    const handleToggleStar = async (e, version) => {
+        e.stopPropagation();
+        try {
+            await toggleVersionStar({ versionId: version._id }).unwrap();
+            refetch();
+        } catch (err) {
+            console.error('Failed to toggle version star:', err);
+            toast.error('Failed to update star');
+        }
+    };
     const [generatePdf, { isLoading, isSuccess, error }] = useGeneratePdfMutation();
 
     const {
@@ -1086,8 +1098,29 @@ const VersionComponent = ({ setVersionopen, canSave }) => {
                                                                         Current
                                                                     </span>
                                                                 )}
-                                                                {version.isStarred && (
-                                                                    <Star className='w-3 h-3 text-yellow-500 fill-current' />
+                                                                {canSave ? (
+                                                                    <button
+                                                                        type='button'
+                                                                        onClick={(e) => handleToggleStar(e, version)}
+                                                                        title={
+                                                                            version.isStarred
+                                                                                ? 'Unstar version'
+                                                                                : 'Star version'
+                                                                        }
+                                                                        className='ml-auto rounded p-0.5 hover:bg-gray-100 dark:hover:bg-gray-600'
+                                                                    >
+                                                                        <Star
+                                                                            className={`w-3.5 h-3.5 transition-colors ${
+                                                                                version.isStarred
+                                                                                    ? 'text-yellow-500 fill-current'
+                                                                                    : 'text-gray-300 dark:text-gray-500'
+                                                                            }`}
+                                                                        />
+                                                                    </button>
+                                                                ) : (
+                                                                    version.isStarred && (
+                                                                        <Star className='ml-auto w-3 h-3 text-yellow-500 fill-current' />
+                                                                    )
                                                                 )}
                                                             </div>
                                                             <div className='text-xs text-gray-500 dark:text-gray-400'>

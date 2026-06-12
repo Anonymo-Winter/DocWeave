@@ -1,4 +1,4 @@
-import { Sun } from 'lucide-react';
+import { Sun, Moon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 const ThemeToggle = () => {
@@ -33,8 +33,12 @@ const ThemeToggle = () => {
     };
 
     return (
-        <button onClick={toggleTheme} className='bg-black text-white  px-4 py-2 rounded cursor-pointer'>
-            {theme === 'light' ? '🌙' : '🔆'}
+        <button
+            onClick={toggleTheme}
+            aria-label='Toggle theme'
+            className='inline-flex items-center justify-center size-9 rounded-full border border-gray-300/70 dark:border-gray-700/70 bg-white/60 dark:bg-gray-900/50 backdrop-blur text-gray-700 dark:text-gray-200 hover:bg-gray-100/80 dark:hover:bg-gray-800/70 hover:text-gray-950 dark:hover:text-white transition-colors cursor-pointer'
+        >
+            {theme === 'light' ? <Moon className='size-4' /> : <Sun className='size-4' />}
         </button>
     );
 };
