@@ -94,7 +94,7 @@ const NavBar = ({ className }) => {
             <div className='flex gap-1'>
                 <img src={logo} alt='Logo' className='h-6' />
                 <span className='text-black text-xl font-body font-bold' style={{ fontFamily: 'Nunito' }}>
-                    Colabdocx
+                    DocWeave
                 </span>
             </div>
             <div className='flex items-center justify-evenly gap-1 dark:text-black font-semibold'>

@@ -34,7 +34,7 @@ import {
 } from 'lucide-react';
 
 const DEFAULT_CONTENT = `
-<h2>👋 Welcome to the Colabdocx playground</h2>
+<h2>👋 Welcome to the DocWeave playground</h2>
 <p>This is a <strong>real Tiptap editor</strong> — exactly the same one your team will use. Click anywhere and start typing. Try the toolbar above.</p>
 <p>Things you can do right now:</p>
 <ul>
@@ -120,7 +120,7 @@ const PlaygroundEditor = () => {
                     <span className='size-3 rounded-full bg-yellow-400 shrink-0' />
                     <span className='size-3 rounded-full bg-green-400 shrink-0' />
                     <span className='ml-3 text-xs text-gray-500 dark:text-gray-400 font-mono truncate'>
-                        colabdocx.com/editor/playground
+                        docweave.app/editor/playground
                     </span>
                 </div>
                 <div className='flex items-center gap-3'>

@@ -1,9 +1,7 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 import { clearCredentials, setCredentials, setToken } from '../store/userSlice';
-
-const hostname = window.location.hostname;
-const backendUrl = hostname === 'localhost' ? 'http://localhost:5000/api' : `${import.meta.env.VITE_BACKEND_URL}/api`;
+import { API_URL as backendUrl } from '../config';
 
 export const userApi = createApi({
     reducerPath: 'userApi',
@@ -87,6 +85,20 @@ export const userApi = createApi({
                 body: { emailTerm, editorId },
             }),
         }),
+        forgotPassword: builder.mutation({
+            query: ({ email }) => ({
+                url: '/auth/forgot-password',
+                method: 'POST',
+                body: { email },
+            }),
+        }),
+        resetPassword: builder.mutation({
+            query: ({ token, password }) => ({
+                url: '/auth/reset-password',
+                method: 'POST',
+                body: { token, password },
+            }),
+        }),
     }),
 });
 
@@ -96,4 +108,6 @@ export const {
     useCheckAuthQuery,
     useLogoutMutation,
     useSearchForEmailMutation,
+    useForgotPasswordMutation,
+    useResetPasswordMutation,
 } = userApi;

@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { EditorContent, EditorContext, useEditor } from '@tiptap/react';
-// import { Editor } from '@tiptap/react';
 
 import { StarterKit } from '@tiptap/starter-kit';
 import { Image } from '@tiptap/extension-image';
@@ -46,8 +45,6 @@ import { HighlightPopover, HighlightContent, HighlighterButton } from '@/compone
 import { LinkPopover, LinkContent, LinkButton } from '@/components/tiptap-ui/link-popover';
 import { MarkButton } from '@/components/tiptap-ui/mark-button';
 import { TextAlignButton } from '@/components/tiptap-ui/text-align-button';
-// import { UndoRedoButton } from '@/components/tiptap-ui/undo-redo-button';
-
 // --- Icons ---
 import { ArrowLeftIcon } from '@/components/tiptap-icons/arrow-left-icon';
 import { HighlighterIcon } from '@/components/tiptap-icons/highlighter-icon';
@@ -73,8 +70,6 @@ import '@/components/tiptap-node/paragraph-node/paragraph-node.scss';
 import '@/components/tiptap-ui-primitive/button/button.scss';
 
 // --- Tiptap Node ---
-// import { UndoRedoButton } from '@/components/tiptap-ui/undo-redo-button';
-
 // --- Styles ---
 import '@/components/tiptap-templates/simple/simple-editor.scss';
 
@@ -87,8 +82,6 @@ import * as Y from 'yjs';
 import { useParams } from 'react-router-dom';
 import { Buffer } from 'buffer';
 import ErrorPage from './ErrorMessage.jsx';
-
-// import ImageUploadButton from './ImageUploadButton.jsx';
 import { toast } from 'sonner';
 import { getCriticalEditorError } from '../context/yjsSetup.js';
 import ErrorMessage from './ErrorMessage.jsx';
@@ -207,7 +200,6 @@ const MobileToolbarContent = ({ type, onBack }) => (
 export function SimpleEditor({ onError, canEdit }) {
     const user = useSelector((state) => state.user.user);
     const { ydoc, awareness, assignedColor, socket } = useSocket();
-    // const [editor, setEditor] = React.useState(null);
     const isMobile = useMobile();
     const windowSize = useWindowSize();
     const [mobileView, setMobileView] = React.useState('main');
@@ -237,7 +229,19 @@ export function SimpleEditor({ onError, canEdit }) {
         };
 
         ydoc.on('update', handler);
-        return () => ydoc.off('update', handler);
+
+        // An empty document may never fire an 'update' (nothing to sync yet, and the
+        // user can't type because the editor isn't rendered). Resolve after a short
+        // grace period so the loader can't hang forever on a blank doc.
+        const fallback = setTimeout(() => {
+            setYdocReadyState(true);
+            ydoc.off('update', handler);
+        }, 1500);
+
+        return () => {
+            ydoc.off('update', handler);
+            clearTimeout(fallback);
+        };
     }, [ydoc]);
 
     const provider = React.useMemo(() => ({ awareness }), [awareness]);
@@ -261,8 +265,8 @@ export function SimpleEditor({ onError, canEdit }) {
                 maxSize: MAX_FILE_SIZE,
                 limit: 1,
                 upload: handleImageUpload,
-                // onError: (error) => toast.error(error.message | 'Error uploading image'),
-                onError: (error) => console.error('Upload failed:', error),
+                onError: (error) => toast.error(error.message | 'Error uploading image'),
+                // onError: (error) => console.error('Upload failed:', error),
             }),
             TrailingNode,
             Link.configure({ openOnClick: false }),
@@ -306,65 +310,6 @@ export function SimpleEditor({ onError, canEdit }) {
         registerActiveEditor(editor);
         return () => registerActiveEditor(null);
     }, [editor]);
-    // React.useEffect(() => {
-    //     if (!extensions || !isInitialized || editor) return;
-
-    //     console.log('🚀 Creating editor...');
-    //     const newEditor = new Editor({
-    //         extensions,
-    //         onCreate: ({ editor }) => {
-    //             console.log('🎯 Editor created successfully');
-    //             console.log('🎯 Editor HTML:', editor.getHTML());
-    //             console.log('🎯 Editor JSON:', editor.getJSON());
-    //         },
-    //         onUpdate: ({ editor }) => {
-    //             console.log('📝 Editor updated:', editor.getHTML());
-    //         },
-    //     });
-
-    //     setEditor(newEditor);
-
-    //     // return () => {
-    //     //     console.log('🗑️ Destroying editor');
-    //     //     newEditor?.destroy();
-    //     // };
-    // }, [extensions, isInitialized, editor]);
-
-    // React.useEffect(() => {
-    //     if (!extensions || !isInitialized || !ydocReadyState || editor) return;
-
-    //     console.log('🚀 Creating editor with current Ydoc state...');
-    //     const newEditor = new Editor({
-    //         extensions,
-    //         autofocus: true,
-    //         editable: canEdit,
-    //     });
-
-    //     setEditor(newEditor);
-
-    //     return () => {
-    //         // newEditor?.destroy();
-    //         if (!editor) setEditor(newEditor);
-    //     };
-    // }, [extensions, isInitialized, ydocReadyState, canEdit, editor]);
-
-    //     React.useEffect(() => {
-    //   if (!extensions || !isInitialized || !ydocReadyState) return;
-    //   if (editor) return; // already created
-
-    //   const newEditor = new Editor({
-    //     extensions,
-    //     autofocus: true,
-    //     editable: canEdit,
-    //   });
-
-    //   setEditor(newEditor);
-
-    //   return () => {
-    //     newEditor.destroy();
-    //   };
-    //   // IMPORTANT: do NOT include `editor` here
-    // }, [extensions, isInitialized, ydocReadyState, canEdit]);
 
     React.useEffect(() => {
         if (!editor) return;
@@ -400,18 +345,6 @@ export function SimpleEditor({ onError, canEdit }) {
     }, [editor, canEdit, socket]);
 
     React.useEffect(() => {
-        if (!editor || !ydoc) return;
-
-        const interval = setInterval(() => {
-            const editorContent = editor.getHTML();
-            const yjsContent = ydoc.getXmlFragment('default').toString();
-            // console.log('Sync Check:', { editorContent, yjsContent });
-        }, 5000);
-
-        return () => clearInterval(interval);
-    }, [editor, ydoc]);
-
-    React.useEffect(() => {
         if (!isMobile && mobileView !== 'main') {
             setMobileView('main');
         }
@@ -422,42 +355,12 @@ export function SimpleEditor({ onError, canEdit }) {
 
     const fatalError = criticalApiError || criticalYjsError;
 
-    // React.useEffect(() => {
-    //     if (!editor || !ydoc) return;
-
-    //     const checkSync = () => {
-    //         console.log('🔍 Sync check:');
-    //         console.log('  - Editor HTML:', editor.getHTML());
-    //         console.log('  - Editor JSON:', editor.getJSON());
-    //         console.log('  - Ydoc content:', ydoc.getXmlFragment('default').toString());
-    //         console.log('  - Word count:', editor.storage.characterCount?.words?.() || 0);
-    //     };
-
-    //     // Check initial sync
-    //     setTimeout(checkSync, 100);
-    //     setTimeout(checkSync, 500);
-    //     setTimeout(checkSync, 1000);
-
-    //     // Monitor Ydoc changes
-    //     const observer = () => {
-    //         console.log('📡 Ydoc changed, checking editor sync...');
-    //         setTimeout(checkSync, 100);
-    //     };
-
-    //     ydoc.on('update', observer);
-    //     return () => ydoc.off('update', observer);
-    // }, [editor, ydoc]);
-
-    // React.useEffect(() => {
-    //     if (editor) {
-    //         editor.commands.focus('end'); // You can use 'start' or a number too
-    //     }
-    // }, [editor]);
-
-    // In SimpleEditor component
     React.useEffect(() => {
         if (fatalError) return;
-        if (!ydoc || !data?.version?.update || isInitialized) return;
+        // Gate on the version object, not `.update` — a doc with no saved version
+        // returns an empty update, and we still need to run the empty-doc branch
+        // below (which seeds a paragraph and marks the editor initialized).
+        if (!ydoc || !data?.version || isInitialized) return;
 
         const initialize = async () => {
             try {
@@ -494,32 +397,13 @@ export function SimpleEditor({ onError, canEdit }) {
         };
 
         initialize();
-    }, [fatalError, ydoc, data?.version?.update, isInitialized]);
-
-    // React.useEffect(() => {
-    //     if (fatalError) return;
-    //     if (!extensions || !isInitialized || !ydocReadyState || editor) return;
-
-    //     const newEditor = new Editor({ extensions, autofocus: true });
-    //     setEditor(newEditor);
-    // }, [fatalError, extensions, isInitialized, ydocReadyState]);
+    }, [fatalError, ydoc, data?.version, isInitialized]);
 
     // NOTE: Autosaving is handled entirely on the server (rolling-blob approach in
     // socket.js). The server owns the authoritative Y.Doc and persists the latest
     // full state on a debounce + when the room empties, so the client does not run
     // its own autosave. Manual "Save version" remains the only client-driven save.
 
-    // const criticalError = !isVersionLoading ? getCriticalEditorError(error) : null;
-
-    // if (criticalError) {
-    //     return <ErrorMessage error={criticalError} showBack />;
-    // }
-
-    // if (criticalYjsError) {
-    //     return <ErrorMessage error={criticalYjsError} showBack />;
-    // }
-
-    // 2️⃣ BLOCK EVERYTHING
     if (fatalError) {
         onError?.({
             ...fatalError,
@@ -528,7 +412,6 @@ export function SimpleEditor({ onError, canEdit }) {
         return null;
     }
 
-    // if (!editor || isVersionLoading || !isInitialized) {
     if (!ready || !editor || isVersionLoading) {
         return (
             <div className='h-full w-full bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm dark:shadow-slate-900/10 flex items-center justify-center'>

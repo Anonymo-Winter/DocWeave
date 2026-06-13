@@ -1,7 +1,5 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-
-const hostname = window.location.hostname;
-const backendUrl = hostname === 'localhost' ? 'http://localhost:5000/api' : `${import.meta.env.VITE_BACKEND_URL}/api`;
+import { API_URL as backendUrl } from '../config';
 
 export const docApi = createApi({
     reducerPath: 'docApi',

@@ -5,12 +5,12 @@ import { io } from 'socket.io-client';
 import { toast } from 'sonner';
 import * as Y from 'yjs';
 import { applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protocols/awareness.js';
-import { useLogoutMutation } from '../api/userApi';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useOfflineStatus } from '../hooks/useOfflineStatus';
 
 import { getYjsForDoc, whenIndexeddbSynced } from './yjsSetup';
 import ErrorMessage from '../components/ErrorMessage';
+import { BACKEND_URL as SOCKET_URL } from '../config';
 
 const SocketContext = createContext();
 
@@ -18,8 +18,6 @@ export const SocketProvider = ({ children }) => {
     const token = useSelector((state) => state.user.token);
     const user = useSelector((state) => state.user.user);
     const isOnline = useOfflineStatus();
-    const navigate = useNavigate();
-    const [logout] = useLogoutMutation();
 
     const socketRef = useRef(null);
     const updateQueue = useRef([]);
@@ -81,7 +79,7 @@ export const SocketProvider = ({ children }) => {
 
     // ---- Socket lifecycle ----
     useEffect(() => {
-        const socket = io(import.meta.env.VITE_BACKEND_URL, {
+        const socket = io(SOCKET_URL, {
             transports: ['websocket'],
             reconnection: true,
             reconnectionAttempts: 5,
@@ -191,7 +189,6 @@ export const SocketProvider = ({ children }) => {
         });
 
         socket.on('disconnect', () => {
-            // 🔴 CRITICAL FIX
             joinedRef.current = false;
             socketReadyRef.current = false;
             awareness.setLocalState(null);
@@ -220,13 +217,19 @@ export const SocketProvider = ({ children }) => {
 
         socket.on('active-users', setActiveUsers);
 
-        socket.on('connect_error', async (err) => {
+        socket.on('connect_error', (err) => {
             console.error('Connect error:', err);
 
             if (err.message?.includes('Auth')) {
+                // Token was rejected/expired. Stop reconnecting and surface a clear
+                // error instead of force-logging-out mid-reconnect — the latter
+                // thrashes auth state (and races checkAuth), which can loop the app.
                 socket.disconnect();
-                await logout().unwrap();
-                navigate('/login');
+                setFatalSocketError({
+                    code: 'AUTH',
+                    status: 401,
+                    message: 'Your session has expired. Please sign in again.',
+                });
                 return;
             }
 

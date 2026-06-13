@@ -23,7 +23,6 @@ import {
     Crown,
     Eye,
 } from 'lucide-react';
-import logo3 from '../assets/logo3.svg';
 import { useSelector } from 'react-redux';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
@@ -48,7 +47,7 @@ import {
 import ProfileEditModal from '../components/EditProfile';
 import { useNavigate, useParams } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggleTool';
-import { TbFileTypeDoc } from 'react-icons/tb';
+import { GiOverInfinity } from 'react-icons/gi';
 import { getInitials } from '../util/getInitials.js';
 import { cn } from '@/lib/utils';
 
@@ -220,14 +219,14 @@ const NavBar = () => {
         <nav className='h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-6 lg:px-8'>
             <div className='flex items-center gap-3 cursor-pointer' onClick={() => navigate('/')}>
                 <div className='flex items-center gap-3'>
-                    <div className='w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center'>
-                        <TbFileTypeDoc className='text-white size-7' />
+                    <div className='w-8 h-8 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg flex items-center justify-center'>
+                        <GiOverInfinity className='text-white size-5' />
                     </div>
                     <span
                         className='font-bold text-xl text-gray-900 dark:text-white tracking-tight'
                         style={{ fontFamily: 'cursive' }}
                     >
-                        CollabDocs
+                        DocWeave
                     </span>
                 </div>
             </div>

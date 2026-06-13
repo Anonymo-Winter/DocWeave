@@ -80,7 +80,7 @@ const NavBar = () => {
                         className='text-black dark:text-white text-xl font-bold'
                         style={{ fontFamily: 'Nunito' }}
                     >
-                        Colabdocx
+                        DocWeave
                     </span>
                     <span className='hidden sm:inline ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300'>
                         Docs
@@ -227,7 +227,7 @@ const DocsPage = () => {
                             Implementation guide · v1
                         </div>
                         <h1 className='text-4xl md:text-6xl font-bold font-heading text-gray-900 dark:text-white leading-tight'>
-                            How Colabdocx was built
+                            How DocWeave was built
                         </h1>
                         <p className='mt-4 text-lg md:text-xl text-gray-600 dark:text-gray-400 max-w-3xl'>
                             A walk through the engineering core — the CRDT layer, the socket protocol, the
@@ -245,7 +245,7 @@ const DocsPage = () => {
                     {/* Overview */}
                     <Section id='overview' icon={BookOpen} title='Overview' kicker='Start here'>
                         <p>
-                            Colabdocx is a real-time collaborative document editor built on three load-bearing
+                            DocWeave is a real-time collaborative document editor built on three load-bearing
                             ideas: a <strong>CRDT</strong> for the document state, a thin{' '}
                             <strong>WebSocket relay</strong> for transport, and a{' '}
                             <strong>policy-driven permission resolver</strong> that decides who can do what every
@@ -724,7 +724,7 @@ const color = palette[hashStringToIndex(userId + roomId, palette.length)];`}
                             className='font-bold text-gray-900 dark:text-white'
                             style={{ fontFamily: 'Nunito' }}
                         >
-                            Colabdocx
+                            DocWeave
                         </span>
                         <span className='text-gray-400 dark:text-gray-600'>· docs</span>
                     </div>

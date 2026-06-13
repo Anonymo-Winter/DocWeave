@@ -1,11 +1,11 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import EditorPage from './pages/EditorPage';
 import { SocketProvider } from './context/socketContext';
-import HomePage from './pages/HomePage';
 import MainHomePage from './pages/MainHomePage';
 import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage.jsx';
 import ForgetPasswordPage from './pages/ForgotPasswordPage.jsx';
+import ResetPasswordPage from './pages/ResetPasswordPage.jsx';
 import ThemeToggle from './components/ThemeToggleTool.jsx';
 import { BiError } from 'react-icons/bi';
 import { useCheckAuthQuery } from './api/userApi';
@@ -83,7 +83,7 @@ export default function App() {
             <main className='flex flex-1 w-full'>
                 <div className='w-full relative'>
                     <Routes>
-                        <Route path='/' element={<HomePage />} />
+                        <Route path='/' element={<LandingPage />} />
                         <Route
                             path='/editor/:editorId'
                             element={
@@ -119,6 +119,14 @@ export default function App() {
                             }
                         />
                         <Route
+                            path='/reset-password'
+                            element={
+                                <RedirectAuthUser>
+                                    <ResetPasswordPage />
+                                </RedirectAuthUser>
+                            }
+                        />
+                        <Route
                             path='/dashboard'
                             element={
                                 <PrivateRoute>
@@ -128,9 +136,7 @@ export default function App() {
                         />
                         <Route path='/error' element={<ErrorMessage />} />
                         <Route path='/user-profile' element={<PrivateRoute>{'User Profile'}</PrivateRoute>} />
-                        <Route path='/k' element={<MainHomePage />} />
-                        <Route path='/testing' element={<LandingPage />} />
-                        <Route path='/testing/docs' element={<DocsPage />} />
+                        {/* <Route path='/testing/docs' element={<DocsPage />} /> */}
                         <Route path='*' element={<NotFoundPage />} />
                     </Routes>
                 </div>

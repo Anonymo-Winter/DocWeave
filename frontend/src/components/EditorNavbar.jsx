@@ -23,6 +23,7 @@ import {
 import AIGenerateModal from './AIGenerateModal.jsx';
 import { registerAIOpeners } from '../util/editorBridge.js';
 import { TbFileTypeDoc } from 'react-icons/tb';
+import { GiOverInfinity } from 'react-icons/gi';
 import { MdSave } from 'react-icons/md';
 
 import {
@@ -180,18 +181,37 @@ function MobileMenu({ documentName, setDocumentName, collaborators, actions, can
                 {/* Secondary actions */}
                 <button
                     onClick={actions.openVersionHistory}
-                    className='
-            w-full h-11 rounded-xl
-            flex items-center justify-center gap-2
-            bg-gray-100 text-gray-700
-            font-medium
-            hover:bg-gray-200
-            dark:bg-gray-700 dark:text-gray-200
-            dark:hover:bg-gray-600
-        '
+                    className='w-full h-11 rounded-xl flex items-center justify-center gap-2 whitespace-nowrap bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'
                 >
-                    <History size={18} />
-                    Version history
+                    <History size={18} className='shrink-0' />
+                    History
+                </button>
+            </div>
+
+            {/* Tools */}
+            <div className='grid grid-cols-3 gap-3'>
+                {canRename && (
+                    <button
+                        onClick={actions.generateAI}
+                        className='h-16 rounded-xl flex flex-col items-center justify-center gap-1 text-xs font-medium text-white bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 shadow-sm'
+                    >
+                        <Sparkles size={18} />
+                        AI
+                    </button>
+                )}
+                <button
+                    onClick={actions.toggleAsk}
+                    className='h-16 rounded-xl flex flex-col items-center justify-center gap-1 text-xs font-medium bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-900/50'
+                >
+                    <HelpCircle size={18} />
+                    Ask
+                </button>
+                <button
+                    onClick={actions.toggleChat}
+                    className='h-16 rounded-xl flex flex-col items-center justify-center gap-1 text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50'
+                >
+                    <MessageSquareMore size={18} />
+                    Chat
                 </button>
             </div>
         </div>
@@ -420,6 +440,18 @@ const EditorNavbar = ({
             setMobileMenuOpen(false);
             setSaveVersionDialogOpen(true);
         },
+        generateAI: () => {
+            setMobileMenuOpen(false);
+            setShowAIGenerate(true);
+        },
+        toggleAsk: () => {
+            setMobileMenuOpen(false);
+            setIsAskVisible((v) => !v);
+        },
+        toggleChat: () => {
+            setMobileMenuOpen(false);
+            setIsChatVisible((v) => !v);
+        },
     };
 
     const onEmailClick = (toemail) => {
@@ -450,9 +482,9 @@ const EditorNavbar = ({
                         onClick={() => navigate('/dashboard')}
                         aria-label='Go to dashboard'
                         title='Back to dashboard'
-                        className='w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-sm hover:shadow-md hover:scale-105 transition-all'
+                        className='w-8 h-8 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg flex items-center justify-center shadow-sm hover:shadow-md hover:scale-105 transition-all'
                     >
-                        <TbFileTypeDoc className='text-white' size={20} />
+                        <GiOverInfinity className='text-white' size={18} />
                     </button>
                     <div className='hidden lg:flex items-center gap-2'>
                         {canEdit ? (
@@ -480,7 +512,7 @@ const EditorNavbar = ({
                 </div>
 
                 {/* Right: Controls */}
-                <div className='flex items-center gap-3'>
+                <div className='flex items-center gap-2 sm:gap-3'>
                     {/* Desktop-only actions */}
                     <div className='hidden md:flex items-center gap-3'>
                         {/* Collaborators Group */}
@@ -851,7 +883,7 @@ const EditorNavbar = ({
                             onClick={() => setShowAIGenerate(true)}
                             aria-label='Generate with AI'
                             title='Generate with AI'
-                            className='h-9 w-9 inline-flex items-center justify-center
+                            className='h-9 w-9 hidden md:inline-flex items-center justify-center
                                 rounded-md text-white
                                 bg-gradient-to-br from-purple-500 to-pink-500
                                 hover:from-purple-600 hover:to-pink-600
@@ -869,7 +901,7 @@ const EditorNavbar = ({
                         onClick={() => setIsAskVisible(!isAskVisible)}
                         aria-label='Ask the document'
                         title='Ask the document'
-                        className={`h-9 w-9 inline-flex items-center justify-center
+                        className={`h-9 w-9 hidden md:inline-flex items-center justify-center
                             rounded-md border transition-colors duration-200
                             focus:outline-none focus:ring-2 focus:ring-purple-500/50 ${
                                 isAskVisible
@@ -881,14 +913,16 @@ const EditorNavbar = ({
                     </button>
 
                     {/* Chat Toggle */}
-                    <ChatToggle
-                        isActive={isChatVisible}
-                        onClick={() => {
-                            setIsChatVisible(!isChatVisible);
-                        }}
-                    >
-                        <MessageSquareMore size={16} />
-                    </ChatToggle>
+                    <div className='hidden md:block'>
+                        <ChatToggle
+                            isActive={isChatVisible}
+                            onClick={() => {
+                                setIsChatVisible(!isChatVisible);
+                            }}
+                        >
+                            <MessageSquareMore size={16} />
+                        </ChatToggle>
+                    </div>
                     <button
                         type='button'
                         onClick={() => setShowShareModal(true)}

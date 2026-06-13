@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, AlertCircle, Mail, Lock, CheckCircle } from 'lucide-react';
 import { FaEnvelope, FaGithub, FaLock, FaUser } from 'react-icons/fa';
 import { FcGoogle } from 'react-icons/fc';
-import { TbFileTypeDoc } from 'react-icons/tb';
+import { GiOverInfinity } from 'react-icons/gi';
 import AnimatedBlob from '../components/Blob';
 import { useNavigate } from 'react-router-dom';
 import { useRegisterMutation } from '../api/userApi';
@@ -137,7 +137,7 @@ const LoginComponent = () => {
             </div>
 
             {/* Theme Toggle */}
-            <ThemeToggle className='absolute top-0 left-0 z-20' />
+            <ThemeToggle className='absolute top-4 right-4 z-20' />
 
             {/* Main Content */}
             <div className='flex-1 flex items-center justify-center p-4 relative'>
@@ -158,11 +158,11 @@ const LoginComponent = () => {
                                 animate={{ opacity: 1, scale: 1 }}
                                 className='inline-flex items-center gap-2 mb-4'
                             >
-                                <span className='w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-md'>
-                                    <TbFileTypeDoc className='text-white size-5' />
+                                <span className='w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center shadow-md'>
+                                    <GiOverInfinity className='text-white size-5' />
                                 </span>
                                 <span className='font-semibold text-gray-900 dark:text-white tracking-tight'>
-                                    CollabDocs
+                                    DocWeave
                                 </span>
                             </motion.div>
                             <motion.h1

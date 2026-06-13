@@ -6,8 +6,8 @@ import { Button } from '../components/ui/button';
 import AnimatedBlob from '../components/Blob';
 import ThemeToggle from '../components/ThemeToggle';
 import PlaygroundEditor from '../components/PlaygroundEditor';
-import logo from '../assets/logo3.svg';
 import { FaGithub } from 'react-icons/fa';
+import { GiOverInfinity } from 'react-icons/gi';
 import {
     ArrowRight,
     History,
@@ -27,6 +27,9 @@ import {
     PenLine,
     Globe,
     Lock,
+    Image as ImageIcon,
+    LayoutGrid,
+    Moon,
 } from 'lucide-react';
 
 const fadeUp = {
@@ -50,22 +53,29 @@ const NavBar = () => {
 
     const navLinks = [
         { label: 'Playground', to: 'playground' },
-        { label: 'Features', to: 'features' },
-        { label: 'Why us', to: 'unique' },
+        { label: 'Collaborate', to: 'collaboration' },
+        { label: 'AI', to: 'ai' },
+        { label: 'Versions', to: 'versions' },
+        { label: 'Sharing', to: 'sharing' },
     ];
 
     const scrollTo = (id) => {
         setOpen(false);
-        document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+        const el = document.getElementById(id);
+        if (!el) return;
+        // Defer so the mobile menu can start collapsing first, and offset for the
+        // fixed navbar so the section heading isn't hidden underneath it.
+        setTimeout(() => {
+            const top = el.getBoundingClientRect().top + window.scrollY - 72;
+            window.scrollTo({ top, behavior: 'smooth' });
+        }, 50);
     };
 
     return (
         <motion.nav
             initial={false}
             animate={{
-                backgroundColor: scrolled
-                    ? 'rgba(255,255,255,0.78)'
-                    : 'rgba(255,255,255,0)',
+                backgroundColor: scrolled ? 'rgba(255,255,255,0.78)' : 'rgba(255,255,255,0)',
             }}
             transition={{ duration: 0.25 }}
             className={`fixed top-0 left-0 right-0 z-50 transition-[backdrop-filter,border-color,box-shadow] duration-300 ${
@@ -76,18 +86,20 @@ const NavBar = () => {
         >
             <div className='container mx-auto max-w-7xl px-4 sm:px-6 h-16 grid grid-cols-[1fr_auto_1fr] items-center gap-2'>
                 {/* Logo */}
-                <Link to='/' className='flex items-center gap-2 shrink-0 justify-self-start'>
-                    <img src={logo} alt='Colabdocx' className='h-7' />
+                <Link to='/' className='col-start-1 flex items-center gap-2 shrink-0 justify-self-start'>
+                    <span className='inline-flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-600 to-pink-600 text-white shadow-sm'>
+                        <GiOverInfinity className='size-[18px]' />
+                    </span>
                     <span
-                        className='text-black dark:text-white text-xl font-extrabold tracking-tight'
-                        style={{ fontFamily: 'Nunito' }}
+                        className='text-xl font-extrabold tracking-tight bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent'
+                        style={{ fontFamily: 'cursive' }}
                     >
-                        Colabdocx
+                        DocWeave
                     </span>
                 </Link>
 
                 {/* Center nav */}
-                <div className='hidden md:flex items-center justify-self-center gap-1 text-sm font-medium text-gray-700 dark:text-gray-300'>
+                <div className='col-start-2 hidden lg:flex items-center justify-self-center gap-1 text-sm font-medium text-gray-700 dark:text-gray-300'>
                     {navLinks.map((l) => (
                         <button
                             key={l.to}
@@ -97,19 +109,13 @@ const NavBar = () => {
                             {l.label}
                         </button>
                     ))}
-                    <Link
-                        to='/testing/docs'
-                        className='px-3 py-2 rounded-md hover:text-gray-950 dark:hover:text-white hover:bg-gray-100/70 dark:hover:bg-gray-800/60 transition-colors'
-                    >
-                        Docs
-                    </Link>
                 </div>
 
                 {/* Right cluster */}
-                <div className='flex items-center justify-self-end gap-2 shrink-0'>
+                <div className='col-start-3 flex items-center justify-self-end gap-2 shrink-0'>
                     <a
                         href='#'
-                        className='hidden sm:inline-flex items-center justify-center size-9 rounded-full border border-gray-300/70 dark:border-gray-700/70 bg-white/60 dark:bg-gray-900/50 backdrop-blur text-gray-600 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-800/70 hover:text-gray-950 dark:hover:text-white transition-colors'
+                        className='inline-flex items-center justify-center size-9 rounded-full border border-gray-300/70 dark:border-gray-700/70 bg-white/60 dark:bg-gray-900/50 backdrop-blur text-gray-600 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-800/70 hover:text-gray-950 dark:hover:text-white transition-colors'
                         aria-label='GitHub'
                     >
                         <FaGithub className='size-4' />
@@ -125,7 +131,7 @@ const NavBar = () => {
                         whileHover={{ scale: 1.03 }}
                         whileTap={{ scale: 0.96 }}
                         onClick={() => navigate('/signup')}
-                        className='relative bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-sm font-semibold px-4 py-2 rounded-full flex items-center gap-1.5 shadow-md hover:shadow-lg transition-shadow'
+                        className='relative hidden sm:inline-flex bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-sm font-semibold px-4 py-2 rounded-full items-center gap-1.5 shadow-md hover:shadow-lg transition-shadow'
                     >
                         <span>Get started</span>
                         <ArrowRight className='size-4' />
@@ -134,7 +140,7 @@ const NavBar = () => {
                     {/* Mobile menu toggle */}
                     <button
                         onClick={() => setOpen((v) => !v)}
-                        className='md:hidden p-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                        className='lg:hidden p-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                         aria-label='Toggle menu'
                     >
                         {open ? <X className='size-5' /> : <Menu className='size-5' />}
@@ -147,7 +153,7 @@ const NavBar = () => {
                 initial={false}
                 animate={{ height: open ? 'auto' : 0, opacity: open ? 1 : 0 }}
                 transition={{ duration: 0.2 }}
-                className='md:hidden overflow-hidden bg-white/95 dark:bg-gray-950/95 backdrop-blur border-t border-gray-200 dark:border-gray-800'
+                className='lg:hidden overflow-hidden bg-white/95 dark:bg-gray-950/95 backdrop-blur border-t border-gray-200 dark:border-gray-800'
             >
                 <div className='container mx-auto max-w-7xl px-4 py-3 flex flex-col gap-1'>
                     {navLinks.map((l) => (
@@ -160,18 +166,18 @@ const NavBar = () => {
                         </button>
                     ))}
                     <Link
-                        to='/testing/docs'
-                        onClick={() => setOpen(false)}
-                        className='px-3 py-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
-                    >
-                        Docs
-                    </Link>
-                    <Link
                         to='/login'
                         onClick={() => setOpen(false)}
                         className='px-3 py-2 rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                     >
                         Login
+                    </Link>
+                    <Link
+                        to='/signup'
+                        onClick={() => setOpen(false)}
+                        className='mt-1 flex items-center justify-center gap-1.5 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 px-3 py-2 text-sm font-semibold text-white shadow-md sm:hidden'
+                    >
+                        Get started <ArrowRight className='size-4' />
                     </Link>
                 </div>
             </motion.div>
@@ -198,15 +204,15 @@ const Hero = () => {
             <div
                 className='pointer-events-none absolute inset-0 z-[5] transition-opacity duration-300'
                 style={{
-                    background: `radial-gradient(500px circle at ${spot.x}px ${spot.y}px, rgba(168,85,247,0.18), rgba(236,72,153,0.10) 30%, transparent 60%)`,
+                    background: `radial-gradient(550px circle at ${spot.x}px ${spot.y}px, rgba(168,85,247,0.10), rgba(236,72,153,0.05) 35%, transparent 65%)`,
                 }}
             />
             <AnimatedBlob
-                size={900}
-                rotationDuration={10}
+                size={560}
+                rotationDuration={22}
                 enableRotation={true}
-                gradientSpread='50%'
-                morphDuration={40}
+                gradientSpread='45%'
+                morphDuration={44}
                 colors={[
                     'hsla(357, 95%, 73%, 0.9)',
                     'hsla(283, 79%, 65%, 0.85)',
@@ -214,8 +220,9 @@ const Hero = () => {
                     'hsla(76, 75%, 63%, 0.9)',
                 ]}
                 gradientCenter={['-10%', '-5%']}
-                intensity={1.2}
-                className='right-10 opacity-80 blur-3xl'
+                intensity={0.6}
+                opacity={0.3}
+                className='-top-44 -right-28 blur-3xl pointer-events-none'
             />
 
             <div className='container relative z-10 mx-auto px-4'>
@@ -227,51 +234,54 @@ const Hero = () => {
                         className='mb-6 inline-flex items-center gap-2 rounded-full border border-gray-300 dark:border-gray-700 bg-white/60 dark:bg-gray-900/60 backdrop-blur px-4 py-1.5 text-sm text-gray-700 dark:text-gray-300'
                     >
                         <Sparkles className='size-4 text-purple-500' />
-                        Portfolio project · MERN + Yjs + Tiptap
+                        Real-time editing, now with an AI assistant
                     </motion.div>
 
                     <motion.h1
-                        className='text-5xl md:text-7xl lg:text-8xl max-w-5xl font-bold font-heading text-black dark:text-white leading-tight'
+                        className='max-w-4xl text-5xl md:text-7xl font-bold font-heading text-black dark:text-white leading-[1.08]'
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8 }}
                     >
-                        A collaborative document editor, built end-to-end.
+                        Write together,{' '}
+                        <span className='bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 bg-clip-text text-transparent'>
+                            in real time
+                        </span>
+                        .
                     </motion.h1>
-                    <motion.span
-                        className='text-3xl md:text-5xl lg:text-6xl mt-4 mb-8 text-transparent bg-clip-text'
-                        style={{
-                            backgroundImage: 'linear-gradient(90deg, #a855f7, #ec4899, #3b82f6, #06b6d4, #a855f7)',
-                            backgroundSize: '300% auto',
-                            WebkitBackgroundClip: 'text',
-                            backgroundClip: 'text',
-                        }}
-                        animate={{ backgroundPosition: ['0% center', '300% center'] }}
-                        transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
-                    >
-                        <Typewriter
-                            options={{
-                                strings: [
-                                    'CRDTs over WebSocket',
-                                    'role-based permissions',
-                                    'versioned history',
-                                    'multi-format export',
-                                ],
-                                autoStart: true,
-                                loop: true,
-                            }}
-                        />
-                    </motion.span>
 
                     <motion.p
-                        className='mb-10 max-w-3xl text-lg md:text-xl text-gray-700 dark:text-gray-400'
+                        className='mt-5 mb-8 text-xl md:text-2xl font-medium text-gray-500 dark:text-gray-300'
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8, delay: 0.15 }}
+                    >
+                        with{' '}
+                        <span className='font-semibold text-purple-600 dark:text-purple-400'>
+                            <Typewriter
+                                options={{
+                                    strings: [
+                                        'multiplayer editing',
+                                        'AI assistance',
+                                        'version history',
+                                        'fine-grained sharing',
+                                    ],
+                                    autoStart: true,
+                                    loop: true,
+                                }}
+                            />
+                        </span>
+                    </motion.p>
+
+                    <motion.p
+                        className='mb-10 max-w-2xl text-lg md:text-xl text-gray-600 dark:text-gray-300'
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8, delay: 0.2 }}
                     >
-                        I built this to learn how real collaborative editors work under the hood — Yjs CRDTs, a
-                        custom Socket.IO relay, a permission resolver that gates both REST and WebSocket, and a
-                        version model that tracks who touched what.
+                        DocWeave is a collaborative document editor where your whole team writes on the same page at
+                        once — live cursors and presence, a built-in AI that drafts and rewrites, full version history,
+                        and sharing controls from private draft to anyone-with-the-link.
                     </motion.p>
 
                     <motion.div
@@ -280,25 +290,25 @@ const Hero = () => {
                         transition={{ duration: 0.8, delay: 0.4 }}
                         className='flex flex-col sm:flex-row gap-3'
                     >
+                        <Link to='/signup'>
+                            <Button
+                                size='lg'
+                                className='text-lg bg-gradient-to-r from-purple-500 to-pink-500 px-8 py-6 text-white shadow-lg transition-all hover:from-purple-600 hover:to-pink-600 hover:shadow-xl'
+                            >
+                                Get started — it's free
+                                <ArrowRight className='size-5 ml-1' />
+                            </Button>
+                        </Link>
                         <Button
                             size='lg'
-                            className='text-lg bg-gradient-to-r from-purple-500 to-pink-500 px-8 py-6 text-white shadow-lg transition-all hover:from-purple-600 hover:to-pink-600 hover:shadow-xl'
+                            variant='outline'
+                            className='px-8 py-6 text-lg border-gray-300 dark:border-gray-700 dark:text-white dark:hover:bg-gray-800'
                             onClick={() =>
                                 document.getElementById('playground')?.scrollIntoView({ behavior: 'smooth' })
                             }
                         >
                             Try the editor
-                            <ArrowRight className='size-5 ml-1' />
                         </Button>
-                        <Link to='/testing/docs'>
-                            <Button
-                                size='lg'
-                                variant='outline'
-                                className='px-8 py-6 text-lg border-gray-300 dark:border-gray-700 dark:text-white dark:hover:bg-gray-800'
-                            >
-                                Read the implementation notes
-                            </Button>
-                        </Link>
                     </motion.div>
                 </div>
             </div>
@@ -507,8 +517,7 @@ const UndoMock = () => (
             animate={{ scale: [1, 1, 1.12, 1, 1], opacity: [0.55, 0.55, 1, 0.7, 0.55] }}
             transition={{ duration: 5, repeat: Infinity, times: [0, 0.45, 0.52, 0.62, 1] }}
         >
-            <span className='rounded bg-gray-100 px-1 text-gray-700 dark:bg-gray-700 dark:text-gray-200'>Ctrl</span>
-            +
+            <span className='rounded bg-gray-100 px-1 text-gray-700 dark:bg-gray-700 dark:text-gray-200'>Ctrl</span>+
             <span className='rounded bg-gray-100 px-1 text-gray-700 dark:bg-gray-700 dark:text-gray-200'>Z</span>
             <span className='ml-1 text-gray-400 dark:text-gray-500'>undoes only your edit</span>
         </motion.div>
@@ -575,7 +584,7 @@ const RealtimeMarquee = () => {
 };
 
 const RealtimeShowcase = () => (
-    <section className='relative overflow-hidden bg-zinc-50 py-24 dark:bg-gray-950'>
+    <section id='collaboration' className='relative overflow-hidden bg-zinc-50 py-24 dark:bg-gray-950'>
         <div className='container mx-auto max-w-6xl px-4'>
             <motion.div {...fadeUp} className='mb-12 text-center'>
                 <span className='inline-block rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'>
@@ -709,7 +718,7 @@ const AICard = ({ tag, title, desc, children }) => (
 );
 
 const AIShowcase = () => (
-    <section className='relative overflow-hidden bg-white px-4 py-24 dark:bg-[#0a0a0a]'>
+    <section id='ai' className='relative overflow-hidden bg-white px-4 py-24 dark:bg-[#0a0a0a]'>
         <div className='container mx-auto max-w-6xl'>
             <motion.div {...fadeUp} className='mb-14 text-center'>
                 <span className='inline-flex items-center gap-1.5 rounded-full bg-fuchsia-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-fuchsia-600 dark:bg-fuchsia-900/30 dark:text-fuchsia-400'>
@@ -823,7 +832,7 @@ const VERSION_POINTS = [
 ];
 
 const VersionsShowcase = () => (
-    <section className='relative overflow-hidden bg-zinc-50 px-4 py-24 dark:bg-gray-950'>
+    <section id='versions' className='relative overflow-hidden bg-zinc-50 px-4 py-24 dark:bg-gray-950'>
         <div className='container mx-auto max-w-6xl'>
             <motion.div {...fadeUp} className='mb-14 text-center'>
                 <span className='inline-flex items-center gap-1.5 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'>
@@ -890,7 +899,9 @@ const ShareDialogMock = () => {
                         <span className='flex-1 truncate text-xs font-medium text-gray-700 dark:text-gray-200'>
                             {p.name}
                         </span>
-                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${ROLE_STYLE[p.role]}`}>
+                        <span
+                            className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${ROLE_STYLE[p.role]}`}
+                        >
                             {p.role}
                         </span>
                     </div>
@@ -945,7 +956,7 @@ const ROLE_POINTS = [
 ];
 
 const RolesShowcase = () => (
-    <section className='relative overflow-hidden bg-white px-4 py-24 dark:bg-[#0a0a0a]'>
+    <section id='sharing' className='relative overflow-hidden bg-white px-4 py-24 dark:bg-[#0a0a0a]'>
         <div className='container mx-auto max-w-6xl'>
             <motion.div {...fadeUp} className='mb-14 text-center'>
                 <span className='inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'>
@@ -955,8 +966,8 @@ const RolesShowcase = () => (
                     Share exactly how you want
                 </h2>
                 <p className='mx-auto mt-4 max-w-2xl text-lg text-gray-600 dark:text-gray-400'>
-                    From a private draft to org-wide editing — set a role per person, choose link or org visibility,
-                    or lock the whole document down. The same rules guard every request.
+                    From a private draft to org-wide editing — set a role per person, choose link or org visibility, or
+                    lock the whole document down. The same rules guard every request.
                 </p>
             </motion.div>
             <div className='grid grid-cols-1 items-center gap-10 md:grid-cols-2'>
@@ -971,114 +982,101 @@ const RolesShowcase = () => (
     </section>
 );
 
-const PILLARS = [
+const ESSENTIALS = [
     {
         icon: FileText,
-        kicker: 'Editor',
-        title: 'A genuinely capable editor',
-        accent: 'from-indigo-500 to-purple-500',
-        points: [
-            'Headings, bullet/ordered/task lists, code blocks, highlights, alignment, links, sub/superscript and typography.',
-            'Inline image uploads, stored on Cloudinary.',
-            'Try the real editor yourself in the playground above — no account required.',
-        ],
+        title: 'Rich text editor',
+        desc: 'Headings, lists, tasks, code blocks, highlights, alignment, links, and typography.',
+    },
+    {
+        icon: ImageIcon,
+        title: 'Inline images',
+        desc: 'Drop images straight into the page — uploaded and served through Cloudinary.',
     },
     {
         icon: Download,
-        kicker: 'Portability',
-        title: 'Your document, anywhere',
-        accent: 'from-amber-500 to-orange-500',
-        points: [
-            'Export to PDF, Word (DOCX), Markdown, or HTML.',
-            'A dashboard with title search and Owned / Shared / Starred / View-only filters.',
-            'Dark mode that remembers your preference.',
-        ],
+        title: 'Export anywhere',
+        desc: 'Download any document as PDF, Word, Markdown, or HTML.',
+    },
+    {
+        icon: LayoutGrid,
+        title: 'Dashboard & search',
+        desc: 'Find documents fast with title search and Owned / Shared / Starred filters.',
+    },
+    {
+        icon: Lock,
+        title: 'Secure by default',
+        desc: 'Bcrypt-hashed passwords, and one token guards both the API and the live socket.',
+    },
+    {
+        icon: Moon,
+        title: 'Dark mode',
+        desc: 'Easy on the eyes — and it remembers your preference.',
     },
 ];
 
-const PillarCard = ({ pillar }) => {
-    const { icon: Icon, kicker, title, accent, points } = pillar;
-    return (
-        <motion.div
-            {...fadeUp}
-            whileHover={{ y: -4 }}
-            className='group relative rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/60 p-7 shadow-sm hover:shadow-xl transition-all overflow-hidden'
-        >
-            <div
-                className={`absolute -top-12 -right-12 w-32 h-32 rounded-full opacity-10 group-hover:opacity-20 transition-opacity blur-2xl bg-gradient-to-br ${accent}`}
-            />
-            <div className='flex items-center gap-3 mb-5'>
-                <span
-                    className={`inline-flex items-center justify-center rounded-xl p-3 bg-gradient-to-br ${accent} text-white shadow-md shrink-0`}
-                >
-                    <Icon className='size-5' />
-                </span>
-                <div>
-                    <div className='text-[11px] font-semibold tracking-widest uppercase text-gray-500 dark:text-gray-400'>
-                        {kicker}
-                    </div>
-                    <h3 className='text-lg font-bold text-gray-900 dark:text-white'>{title}</h3>
-                </div>
-            </div>
-            <ul className='space-y-2.5'>
-                {points.map((pt) => (
-                    <li
-                        key={pt}
-                        className='flex items-start gap-2.5 text-sm text-gray-600 dark:text-gray-400 leading-relaxed'
-                    >
-                        <Check className='size-4 mt-0.5 shrink-0 text-emerald-500' />
-                        <span>{pt}</span>
-                    </li>
-                ))}
-            </ul>
-        </motion.div>
-    );
-};
-
 const Features = () => (
-    <section id='features' className='relative bg-zinc-50 dark:bg-gray-950 py-24 px-4 overflow-hidden'>
+    <section id='features' className='relative overflow-hidden bg-zinc-50 px-4 py-24 dark:bg-gray-950'>
         <div className='container mx-auto max-w-6xl'>
-            <motion.div {...fadeUp} className='text-center mb-16'>
-                <span className='inline-block px-3 py-1 text-xs font-semibold tracking-wide text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30 rounded-full uppercase'>
+            <motion.div {...fadeUp} className='mb-14 text-center'>
+                <span className='inline-block rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'>
                     The essentials
                 </span>
-                <h2 className='mt-4 text-4xl md:text-5xl font-bold text-gray-900 dark:text-white font-heading'>
-                    And the everyday details
+                <h2 className='mt-4 font-heading text-4xl font-bold text-gray-900 dark:text-white md:text-5xl'>
+                    Everything else you'd expect
                 </h2>
-                <p className='mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto'>
-                    The editor depth, exports, and dashboard that round it all out.
+                <p className='mx-auto mt-4 max-w-2xl text-lg text-gray-600 dark:text-gray-400'>
+                    The day-to-day details that make it a real editor, not a demo.
                 </p>
             </motion.div>
 
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
-                {PILLARS.map((pillar) => (
-                    <PillarCard key={pillar.title} pillar={pillar} />
-                ))}
+            <div className='grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3'>
+                {ESSENTIALS.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                        <motion.div
+                            key={item.title}
+                            {...fadeUp}
+                            whileHover={{ y: -4 }}
+                            className='flex items-start gap-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:shadow-lg dark:border-gray-800 dark:bg-gray-900/60'
+                        >
+                            <span className='inline-flex shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 p-2.5 text-white shadow-md'>
+                                <Icon className='size-5' />
+                            </span>
+                            <div>
+                                <h3 className='font-bold text-gray-900 dark:text-white'>{item.title}</h3>
+                                <p className='mt-1 text-sm leading-relaxed text-gray-600 dark:text-gray-400'>
+                                    {item.desc}
+                                </p>
+                            </div>
+                        </motion.div>
+                    );
+                })}
             </div>
         </div>
     </section>
 );
 
-// ---- Tiptap editor capabilities showcase ------------------------------------
+// ---- Under the hood (architecture highlights) -------------------------------
 const Unique = () => {
     const items = [
         {
             icon: Zap,
-            title: 'Custom Yjs relay on Socket.IO',
+            title: 'A custom real-time relay',
             description:
-                'Instead of using y-websocket, I wrote the relay on Socket.IO so the same connection that carries Y.Doc updates also carries chat, awareness, and presence. New joiners send their state-vector and the server replies with just the diff.',
+                'A single Socket.IO connection carries document updates, chat, awareness, and presence together. New collaborators sync with just a state-vector diff, so joining or reconnecting is instant.',
         },
         {
             icon: ShieldCheck,
-            title: 'One permission resolver for REST + WebSocket',
+            title: 'One permission model, everywhere',
             description:
-                'A single resolveUserRole function is the only place that answers "what role does this user have on this doc". Both Express handlers and the socket event handlers call into it, so policy fixes apply everywhere at once.',
+                'A single source of truth decides what each person can do on a document — and both the REST API and the live socket call into it, so access never drifts between them.',
         },
         {
             icon: UserCog,
-            title: 'Delegated sharing policy',
+            title: 'Layered sharing controls',
             description:
-                'Owners control more than role assignments — they decide whether editors can re-share at all, which roles editors are allowed to grant, and which visibility modes are even selectable. A small policy-on-policy layer that was fun to design.',
+                'Owners control more than who has access: whether editors can re-share, which roles they can grant, and which visibility modes are even available.',
         },
         {
             icon: Star,
@@ -1101,20 +1099,21 @@ const Unique = () => {
                 morphDuration={50}
                 colors={['hsla(283, 79%, 65%, 0.5)', 'hsla(216, 82%, 62%, 0.5)', 'hsla(157, 75%, 63%, 0.4)']}
                 gradientCenter={['80%', '20%']}
-                intensity={0.8}
-                className='opacity-40 blur-3xl pointer-events-none'
+                intensity={0.6}
+                opacity={0.35}
+                className='blur-3xl pointer-events-none'
             />
             <div className='container mx-auto max-w-6xl relative z-10'>
                 <motion.div {...fadeUp} className='text-center mb-16'>
                     <span className='inline-block px-3 py-1 text-xs font-semibold tracking-wide text-pink-600 dark:text-pink-400 bg-pink-100 dark:bg-pink-900/30 rounded-full uppercase'>
-                        Engineering highlights
+                        Under the hood
                     </span>
                     <h2 className='mt-4 text-4xl md:text-5xl font-bold text-gray-900 dark:text-white font-heading'>
-                        The parts I'm glad I built
+                        Built for real-time
                     </h2>
                     <p className='mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto'>
-                        Four pieces of the design that felt worth doing carefully — not because they're rare, but
-                        because they're where most of the learning happened.
+                        The architecture choices that keep editing fast, consistent, and secure — for everyone in the
+                        document at once.
                     </p>
                 </motion.div>
 
@@ -1149,14 +1148,20 @@ const Stats = () => {
     const groups = [
         {
             label: 'Frontend',
-            items: ['React 19', 'Vite', 'Tailwind v4', 'Redux Toolkit', 'Tiptap', 'framer-motion'],
+            items: ['React 19', 'Vite', 'Tailwind v4', 'Redux Toolkit', 'Tiptap', 'Framer Motion'],
         },
         {
-            label: 'Realtime',
-            items: ['Yjs', 'Socket.IO', '@tiptap/extension-collaboration', 'collaboration-cursor'],
+            label: 'Real-time',
+            items: ['Yjs (CRDTs)', 'Socket.IO', 'Tiptap Collaboration', 'y-protocols'],
         },
-        { label: 'Backend', items: ['Node.js', 'Express', 'jsonwebtoken', 'Nodemailer', 'Multer'] },
-        { label: 'Storage & files', items: ['MongoDB', 'Mongoose', 'Cloudinary', 'Puppeteer (PDF)'] },
+        {
+            label: 'AI & backend',
+            items: ['Node.js', 'Express 5', 'Groq · Llama 3.3 70B', 'JWT auth', 'Nodemailer'],
+        },
+        {
+            label: 'Data & files',
+            items: ['MongoDB', 'Mongoose', 'Cloudinary', 'Puppeteer (PDF)', 'bcrypt'],
+        },
     ];
     return (
         <section className='py-20 px-4 bg-zinc-50 dark:bg-gray-950 border-y border-gray-200 dark:border-gray-800'>
@@ -1208,16 +1213,17 @@ const CTA = () => {
                 morphDuration={35}
                 colors={['hsla(283, 79%, 65%, 0.6)', 'hsla(357, 95%, 73%, 0.6)', 'hsla(216, 82%, 62%, 0.6)']}
                 gradientCenter={['50%', '50%']}
-                intensity={0.9}
-                className='opacity-30 blur-3xl pointer-events-none'
+                intensity={0.7}
+                opacity={0.3}
+                className='blur-3xl pointer-events-none'
             />
             <motion.div {...fadeUp} className='relative z-10 container mx-auto max-w-3xl text-center'>
                 <h2 className='text-3xl md:text-5xl font-bold text-gray-900 dark:text-white font-heading mb-4'>
-                    Want to look around?
+                    Ready to write together?
                 </h2>
                 <p className='text-base md:text-lg text-gray-600 dark:text-gray-400 mb-8'>
-                    Create an account to try the full editor with version history and sharing — or read through
-                    the implementation notes.
+                    Create a free account and start collaborating in seconds — full editor, AI assistant, version
+                    history, and sharing included.
                 </p>
                 <div className='flex flex-col sm:flex-row gap-3 justify-center'>
                     <Button
@@ -1227,15 +1233,14 @@ const CTA = () => {
                     >
                         Create an account <ArrowRight className='size-4 ml-1' />
                     </Button>
-                    <Link to='/testing/docs'>
-                        <Button
-                            size='lg'
-                            variant='outline'
-                            className='px-6 py-5 text-base border-gray-300 dark:border-gray-700 dark:text-white dark:hover:bg-gray-800 w-full'
-                        >
-                            Read the implementation notes
-                        </Button>
-                    </Link>
+                    <Button
+                        size='lg'
+                        variant='outline'
+                        className='px-6 py-5 text-base border-gray-300 dark:border-gray-700 dark:text-white dark:hover:bg-gray-800'
+                        onClick={() => document.getElementById('playground')?.scrollIntoView({ behavior: 'smooth' })}
+                    >
+                        Try the editor
+                    </Button>
                 </div>
             </motion.div>
         </section>
@@ -1246,9 +1251,11 @@ const Footer = () => (
     <footer className='bg-white dark:bg-[#0a0a0a] border-t border-gray-200 dark:border-gray-800 py-10 px-4'>
         <div className='container mx-auto max-w-6xl flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-600 dark:text-gray-400'>
             <div className='flex items-center gap-2'>
-                <img src={logo} alt='Logo' className='h-5' />
-                <span className='font-bold text-gray-900 dark:text-white' style={{ fontFamily: 'Nunito' }}>
-                    Colabdocx
+                <span className='inline-flex size-6 items-center justify-center rounded-md bg-gradient-to-br from-purple-600 to-pink-600 text-white'>
+                    <GiOverInfinity className='size-3.5' />
+                </span>
+                <span className='font-bold text-gray-900 dark:text-white' style={{ fontFamily: 'cursive' }}>
+                    DocWeave
                 </span>
                 <span className='text-gray-400 dark:text-gray-600'>· open-source real-time docs</span>
             </div>

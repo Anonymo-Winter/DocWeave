@@ -1,7 +1,5 @@
 import axios from 'axios';
-
-const hostname = window.location.hostname;
-const backendUrl = hostname === 'localhost' ? 'http://localhost:5000/api' : `${import.meta.env.VITE_BACKEND_URL}/api`;
+import { API_URL as backendUrl } from '../config';
 
 export const uploadDocumentImageWithProgress = async (documentId, file, onProgress, signal) => {
     const formData = new FormData();

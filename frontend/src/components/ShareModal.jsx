@@ -219,8 +219,8 @@ const ShareModal = ({ data, isLoading, refetch, open, onOpenChange, permission }
         if (data) {
             const formatted = data?.collaborators.map((c) => ({
                 id: c.userId?._id,
-                name: c.userId?.name || '?',
-                email: c.userId?.email || 'Invalid Email',
+                name: c.userId?.name || 'Deleted User',
+                email: c.userId?.email || '---',
                 originalRole: c.role,
                 selectedRole: c.role,
                 color: data?.userColors[c.userId?._id],
@@ -327,6 +327,17 @@ const ShareModal = ({ data, isLoading, refetch, open, onOpenChange, permission }
         const changedUserAccess = collaborators
             .filter((c) => c.originalRole !== c.selectedRole)
             .map((c) => ({ id: c.id, role: c.selectedRole }));
+
+        // Ownership transfer is one-way and demotes you to editor — confirm first.
+        const transfer = changedUserAccess.find((c) => c.role === 'owner');
+        if (transfer) {
+            const target = collaborators.find((c) => c.id === transfer.id);
+            const ok = window.confirm(
+                `Make ${target?.name || 'this person'} the owner?\n\nYou'll become an editor and won't be able to undo this yourself.`,
+            );
+            if (!ok) return;
+        }
+
         const changedDocAccess =
             generalAccess != 'restricted'
                 ? `${generalAccess}:${generalAccessRole == 'editor' ? 'w' : 'r'}`
@@ -771,8 +782,6 @@ const ShareModal = ({ data, isLoading, refetch, open, onOpenChange, permission }
                                                         Editor's Access
                                                     </h4>
                                                     <div className='max-h-40 md:max-h-52 flex flex-col items-center overflow-y-auto custom-scrollbar border rounded-md bg-gray-50 dark:bg-gray-800'>
-                                                        {/* editorsCanManageAccess: { type: Boolean, default: false }, */}
-                                                        {/* editorsCanChangeVisibility: { type: Boolean, default: false }, */}
                                                         <div className='flex gap-2 w-[100%] border mb-2 border-b py-1'>
                                                             <label
                                                                 htmlFor='manage_access'
@@ -1066,14 +1075,23 @@ const ShareModal = ({ data, isLoading, refetch, open, onOpenChange, permission }
                                                                     onValueChange={(newRole) => {
                                                                         // normal role change (editor/viewer/remove/owner)
                                                                         setCollaborators((prev) =>
-                                                                            prev.map((c) =>
-                                                                                c.id === collab.id
-                                                                                    ? {
-                                                                                          ...c,
-                                                                                          selectedRole: newRole,
-                                                                                      }
-                                                                                    : c,
-                                                                            ),
+                                                                            prev.map((c) => {
+                                                                                if (c.id === collab.id) {
+                                                                                    return { ...c, selectedRole: newRole };
+                                                                                }
+                                                                                // Only one pending owner at a time:
+                                                                                // revert any other "owner" selection.
+                                                                                if (
+                                                                                    newRole === 'owner' &&
+                                                                                    c.selectedRole === 'owner'
+                                                                                ) {
+                                                                                    return {
+                                                                                        ...c,
+                                                                                        selectedRole: c.originalRole,
+                                                                                    };
+                                                                                }
+                                                                                return c;
+                                                                            }),
                                                                         );
                                                                     }}
                                                                     disabled={

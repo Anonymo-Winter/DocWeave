@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Mail } from 'lucide-react';
-import { TbFileTypeDoc } from 'react-icons/tb';
+import { GiOverInfinity } from 'react-icons/gi';
 import AnimatedBlob from '../components/Blob';
 import { useNavigate } from 'react-router-dom';
+import { useForgotPasswordMutation } from '../api/userApi';
 
 import ThemeToggle from '../components/ThemeToggleTool';
 import { ErrorAlert, SuccessAlert } from '../components/Alert';
@@ -22,6 +23,7 @@ const ForgotPassword = () => {
     const [showSuccessAlert, setShowSuccessAlert] = useState(false);
     const [countdown, setCountdown] = useState(0);
     const navigate = useNavigate();
+    const [forgotPassword] = useForgotPasswordMutation();
 
     // Countdown timer effect
     useEffect(() => {
@@ -64,15 +66,13 @@ const ForgotPassword = () => {
         setGeneralError('');
 
         try {
-            // Simulate API call
-            await new Promise((resolve) => setTimeout(resolve, 2000));
+            await forgotPassword({ email: formData.email }).unwrap();
 
-            // Simulate success
-            setSuccessMessage('Reset link sent to your email!');
+            setSuccessMessage('Reset link sent — check your inbox!');
             setShowSuccessAlert(true);
             setCountdown(30); // Start 30-second countdown
         } catch (error) {
-            setGeneralError(error.message || 'Failed to send reset link. Please try again.');
+            setGeneralError(error?.data?.message || 'Failed to send reset link. Please try again.');
         } finally {
             setIsLoading(false);
         }
@@ -112,7 +112,7 @@ const ForgotPassword = () => {
                 />
             </div>
 
-            <ThemeToggle className='absolute top-0 left-0 z-20' />
+            <ThemeToggle className='absolute top-4 right-4 z-20' />
 
             <div className='flex-1 flex items-center justify-center p-4 relative'>
                 <motion.div
@@ -128,11 +128,11 @@ const ForgotPassword = () => {
                                 animate={{ opacity: 1, scale: 1 }}
                                 className='inline-flex items-center gap-2 mb-4'
                             >
-                                <span className='w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center shadow-md'>
-                                    <TbFileTypeDoc className='text-white size-5' />
+                                <span className='w-9 h-9 rounded-xl bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center shadow-md'>
+                                    <GiOverInfinity className='text-white size-5' />
                                 </span>
                                 <span className='font-semibold text-gray-900 dark:text-white tracking-tight'>
-                                    CollabDocs
+                                    DocWeave
                                 </span>
                             </motion.div>
                             <motion.h1 className='text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1'>
