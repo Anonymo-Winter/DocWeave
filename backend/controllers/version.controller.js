@@ -20,8 +20,8 @@ export const updateVersionDetails = async (req, res) => {
         await version.save();
         return res.status(200).json({ success: true, message: 'Version updated successfully' });
     } catch (error) {
-        console.error('Error saving version:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        console.error('Error updating version:', error);
+        res.status(500).json({ message: 'Could not update the version. Please try again.' });
     }
     return res.status(200).json({ success: true });
 };
@@ -57,7 +57,7 @@ export const deleteVersion = async (req, res) => {
         return res.status(200).json({ success: true });
     } catch (error) {
         console.error('Error deleting version:', error);
-        return res.status(500).json({ message: 'Internal server error' });
+        return res.status(500).json({ message: 'Could not delete the version. Please try again.' });
     }
 };
 
@@ -90,6 +90,6 @@ export const toggleStarVersion = async (req, res) => {
         return res.status(200).json({ success: true, isStarred: version.isStarred });
     } catch (error) {
         console.error('Error toggling version star:', error);
-        return res.status(500).json({ success: false, message: 'Internal server error' });
+        return res.status(500).json({ success: false, message: 'Could not update the star. Please try again.' });
     }
 };

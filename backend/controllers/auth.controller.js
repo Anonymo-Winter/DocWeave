@@ -1,6 +1,9 @@
 import { compare } from 'bcryptjs';
+import crypto from 'node:crypto';
 import User from '../models/user.model.js';
 import Document from '../models/document.model.js';
+import { sendPasswordReset, sendWelcome } from '../util/sendEmail.js';
+import { CLIENT_URL } from '../config.js';
 
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
@@ -26,8 +29,8 @@ export const login = async (req, res) => {
         res.cookie('token', token, {
             maxAge: 1 * 24 * 60 * 60 * 1000, // 1 day
             httpOnly: true,
-            secure: false, // ⛔ must be false for HTTP (local testing on LAN)
-            sameSite: 'Lax', // ✅ allows cross-origin from mobile if origins match
+            secure: true, // must be false for HTTP (local testing on LAN)
+            sameSite: 'None', // use Lax to allow cross-origin from mobile if origins match
         });
         user.password = undefined;
         return res.status(200).json({
@@ -37,8 +40,8 @@ export const login = async (req, res) => {
             success: true,
         });
     } catch (error) {
-        console.warn('Failed to Login :', error.message);
-        return res.status(500).json({ message: 'Internal server error' });
+        console.error('Login error:', error.message);
+        return res.status(500).json({ message: 'Something went wrong while signing you in. Please try again.' });
     }
 };
 
@@ -73,6 +76,9 @@ export const register = async (req, res) => {
             sameSite: 'Lax', // ✅ allows cross-origin from mobile if origins match
         });
 
+        // Best-effort welcome email — fire-and-forget so it never blocks signup.
+        sendWelcome({ username: name, email });
+
         // Do not expose password
         user.password = undefined;
 
@@ -97,8 +103,8 @@ export const checkAuth = async (req, res) => {
         }
         return res.status(200).json({ success: true, user });
     } catch (error) {
-        console.log('Failed to check auth : ', error.message);
-        return res.status(500).json({ error: 'Internal server error' });
+        console.error('Check-auth error:', error.message);
+        return res.status(500).json({ message: 'Could not verify your session. Please try again.' });
     }
 };
 
@@ -112,7 +118,79 @@ export const logout = async (req, res) => {
 
         return res.status(200).json({ success: true, message: 'Logout successful' });
     } catch (error) {
-        console.log('Failed to logout : ', error.message);
+        console.error('Logout error:', error.message);
+        return res.status(500).json({ message: 'Could not log you out. Please try again.' });
+    }
+};
+
+export const forgotPassword = async (req, res) => {
+    const { email } = req.body;
+    try {
+        if (!email) {
+            return res.status(400).json({ message: 'Email is required' });
+        }
+
+        const user = await User.findOne({ email });
+
+        // Only generate + send when the account exists, but always respond the
+        // same way so the endpoint can't be used to discover registered emails.
+        if (user) {
+            const rawToken = crypto.randomBytes(32).toString('hex');
+            user.resetPasswordToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+            user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 hour
+            await user.save();
+
+            const resetLink = `${CLIENT_URL}/reset-password?token=${rawToken}`;
+
+            try {
+                await sendPasswordReset(user, resetLink);
+            } catch (mailErr) {
+                console.error('Failed to send reset email:', mailErr.message);
+            }
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'If an account exists for that email, a password reset link has been sent.',
+        });
+    } catch (error) {
+        console.error('forgotPassword error:', error.message);
+        return res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+export const resetPassword = async (req, res) => {
+    const { token, password } = req.body;
+    try {
+        if (!token || !password) {
+            return res.status(400).json({ message: 'Token and new password are required' });
+        }
+        if (password.length < 6) {
+            return res.status(400).json({ message: 'Password must be at least 6 characters long.' });
+        }
+
+        const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+        const user = await User.findOne({
+            resetPasswordToken: hashedToken,
+            resetPasswordExpires: { $gt: Date.now() },
+        });
+
+        if (!user) {
+            return res.status(400).json({ message: 'This reset link is invalid or has expired.' });
+        }
+
+        // Setting password triggers the pre-save hook that bcrypt-hashes it.
+        user.password = password;
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
+        await user.save();
+
+        return res.status(200).json({
+            success: true,
+            message: 'Password reset successful. You can now sign in with your new password.',
+        });
+    } catch (error) {
+        console.error('resetPassword error:', error.message);
         return res.status(500).json({ message: 'Internal server error' });
     }
 };

@@ -7,7 +7,7 @@ import * as Y from 'yjs';
 import fs from 'node:fs';
 import cloudinary from '../util/cloudinary.js';
 import puppeteer from 'puppeteer';
-import { sendInvite } from '../util/sendEmail.js';
+import { sendInvite, sendOwnershipTransfer } from '../util/sendEmail.js';
 
 export const saveVersion = async (req, res) => {
     try {
@@ -65,7 +65,7 @@ export const saveVersion = async (req, res) => {
         });
     } catch (error) {
         console.error('Error saving version:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        res.status(500).json({ message: 'Could not save this version. Please try again.' });
     }
 };
 
@@ -201,11 +201,9 @@ export const createDocument = async (req, res) => {
         });
     } catch (error) {
         console.error('Error creating document:', error);
-        res.status(500).json({ message: 'Failed to create document' });
+        res.status(500).json({ message: 'Could not create the document. Please try again.' });
     }
 };
-
-// import { contributorsMap, roomUsers } from '../socket.js';
 
 export const getAllVersions = async (req, res) => {
     const { editorId } = req.params;
@@ -263,10 +261,6 @@ export const addPeople = async (req, res) => {
                 return res.status(403).json({ message: 'Not allowed to grant this role' });
             }
         }
-
-        // (optional) block adding people if document is public — your system uses "restricted" etc,
-        // so you might remove this old "public" check entirely.
-        // if (document.visibility === "public") ...
 
         // Filter out already added emails (owner + collaborators)
         const emailsNotAlreadyAdded = emails.filter((email) => {
@@ -374,14 +368,8 @@ export const generatePDF = async (req, res) => {
     try {
         const { htmlContent } = req.body;
 
-        const browser = await puppeteer.launch({ headless: false }); // Use headless: false for debugging!
+        const browser = await puppeteer.launch({ headless: true });
         const page = await browser.newPage();
-
-        // Listen for console messages from the browser
-        page.on('console', (msg) => console.log('BROWSER LOG:', msg.text()));
-
-        // Log the received HTML to inspect it
-        console.log('Received HTML:', htmlContent);
 
         await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
 
@@ -394,7 +382,7 @@ export const generatePDF = async (req, res) => {
         res.end(pdfBuffer);
     } catch (error) {
         console.error('Puppeteer Error:', error);
-        res.status(500).json({ error: 'Failed to generate PDF' });
+        res.status(500).json({ message: 'Could not generate the PDF. Please try again.' });
     }
 };
 
@@ -466,6 +454,7 @@ export const updateDocument = async (req, res) => {
 
         // ====== Collaborator role changes/removals ======
         const changedUserIds = [];
+        let transferredOwnerId = null;
 
         if (Array.isArray(userswithupdatedrole) && userswithupdatedrole.length > 0) {
             if (!isOwner) {
@@ -474,9 +463,49 @@ export const updateDocument = async (req, res) => {
                 }
             }
 
+            // ====== Ownership transfer (owner-only, at most one) ======
+            const ownerEntries = userswithupdatedrole.filter((u) => u.role === 'owner');
+            if (ownerEntries.length > 1) {
+                return res.status(400).json({ message: 'You can only transfer ownership to one person at a time.' });
+            }
+            const ownerTransfer = ownerEntries[0];
+            if (ownerTransfer) {
+                if (!isOwner) {
+                    return res.status(403).json({ message: 'Only the owner can transfer ownership' });
+                }
+                const newOwnerId = ownerTransfer.id;
+                const prevOwnerId = document.ownerId.toString();
+
+                // The new owner must already be a collaborator on this document.
+                if (!newOwnerId || !before.has(newOwnerId)) {
+                    return res.status(400).json({ message: 'New owner must be an existing collaborator' });
+                }
+
+                if (newOwnerId !== prevOwnerId) {
+                    // The owner is always kept in `collaborators` too (as editor) — the same
+                    // way createDocument seeds it — so the owner lives in BOTH ownerId and the
+                    // collaborators array. The previous owner simply remains an editor; the new
+                    // owner keeps their collaborator entry and gains ownership via ownerId.
+                    const ensureCollaborator = (uid) => {
+                        const existing = document.collaborators.find((c) => c.userId.toString() === uid);
+                        if (existing) existing.role = 'editor';
+                        else document.collaborators.push({ userId: uid, role: 'editor' });
+                    };
+                    ensureCollaborator(prevOwnerId);
+                    ensureCollaborator(newOwnerId);
+
+                    document.ownerId = newOwnerId;
+                    changedUserIds.push(prevOwnerId, newOwnerId);
+                    transferredOwnerId = newOwnerId;
+                }
+            }
+
             const grantable = isOwner ? ['viewer', 'editor'] : (document.sharing?.editorGrantableRoles ?? ['viewer']);
 
             for (const u of userswithupdatedrole) {
+                // Ownership transfer is handled above.
+                if (u.role === 'owner') continue;
+
                 const prevRole = before.get(u.id); // 'editor'|'viewer'|undefined
                 const isTargetOwner = document.ownerId.toString() === u.id;
 
@@ -529,16 +558,33 @@ export const updateDocument = async (req, res) => {
         // Optional: if visibility changed, you can re-check all online users in room
         // (because it may change effective access for link/org users).
 
+        // Notify the new owner (best-effort — never blocks the response).
+        if (transferredOwnerId) {
+            try {
+                const [newOwner, actor] = await Promise.all([
+                    User.findById(transferredOwnerId).select('name email'),
+                    User.findById(actorId).select('name'),
+                ]);
+                if (newOwner?.email) {
+                    sendOwnershipTransfer(
+                        { username: newOwner.name, email: newOwner.email },
+                        { username: actor?.name },
+                        { documentId: editorId, name: document.title },
+                    );
+                }
+            } catch (mailErr) {
+                console.error('ownership transfer email failed:', mailErr.message);
+            }
+        }
+
         return res.status(200).json({ success: true, updatedDocument: document });
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ error: 'Failed to update document' });
+        return res.status(500).json({ message: 'Could not update the document. Please try again.' });
     }
 };
 export const changeDocName = async (req, res) => {
     const { documentId, name } = req.body;
-    console.log('change name of the document');
-    console.log(req.body);
 
     try {
         if (!documentId || !mongoose.Types.ObjectId.isValid(documentId)) {
@@ -563,10 +609,9 @@ export const changeDocName = async (req, res) => {
             message: 'Document renamed successfully',
             updatedDocument: document,
         });
-        console.log('changed name : ', name);
     } catch (error) {
         console.error('Error renaming document:', error);
-        res.status(500).json({ error: 'Failed to rename document' });
+        res.status(500).json({ message: 'Could not rename the document. Please try again.' });
     }
 };
 
@@ -576,8 +621,6 @@ export const resolveUserRole = async ({ userId, docId }) => {
 
     // Owner always wins
     if (doc.ownerId.toString() === userId?.toString()) return 'OWNER';
-    console.log('user id = ', userId?.toString());
-    console.log(doc);
 
     // Lock content -> everyone else is VIEWER
     if (doc?.sharing?.lockContent) return 'VIEWER';
@@ -671,7 +714,7 @@ export const getUserDocuments = async (req, res) => {
         res.json({ success: true, userDocuments });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Failed to fetch documents' });
+        res.status(500).json({ message: 'Could not load your documents. Please try again.' });
     }
 };
 
@@ -701,7 +744,7 @@ export const deleteDocument = async (req, res) => {
         return res.json({ success: true, documentId });
     } catch (error) {
         console.error('deleteDocument error:', error);
-        res.status(500).json({ message: 'Failed to delete document' });
+        res.status(500).json({ message: 'Could not delete the document. Please try again.' });
     }
 };
 
@@ -742,6 +785,6 @@ export const toggleStarDocument = async (req, res) => {
         });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Failed to toggle star' });
+        res.status(500).json({ message: 'Could not update the star. Please try again.' });
     }
 };

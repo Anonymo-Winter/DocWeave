@@ -162,8 +162,6 @@ export function setupSocketIo(server) {
         const authedUserId = authedUser?.id ? String(authedUser.id) : null;
         const authedName = authedUser?.name || 'Unknown';
 
-        // console.log('[User Connected]:', authedName);
-
         const getRoomState = (roomId) => {
             if (!docsMap.has(roomId)) {
                 const doc = new Y.Doc();
@@ -318,40 +316,37 @@ export function setupSocketIo(server) {
             if (socket.data.docId) handleLeaveRoom(socket.data.docId);
         });
 
-        socket.on(
-            'ai-ask',
-            async ({ clientRequestId, question, documentText, history }, callback = () => {}) => {
-                const ctx = getCtx();
-                if (!ctx) return callback({ error: 'no room context' });
-                // Viewers can ask too — read-only access is enough.
-                if (!ctx.role) return callback({ error: 'permission denied' });
-                if (!question || typeof question !== 'string') {
-                    return callback({ error: 'question is required' });
-                }
-                const requestId = clientRequestId || `ai-ask-${Date.now()}-${authedUserId}`;
+        socket.on('ai-ask', async ({ clientRequestId, question, documentText, history }, callback = () => {}) => {
+            const ctx = getCtx();
+            if (!ctx) return callback({ error: 'no room context' });
+            // Viewers can ask too — read-only access is enough.
+            if (!ctx.role) return callback({ error: 'permission denied' });
+            if (!question || typeof question !== 'string') {
+                return callback({ error: 'question is required' });
+            }
+            const requestId = clientRequestId || `ai-ask-${Date.now()}-${authedUserId}`;
 
-                try {
-                    // Only emit to the asking socket — Q&A is private to the user.
-                    socket.emit('ai-ask-start', { requestId });
+            try {
+                // Only emit to the asking socket — Q&A is private to the user.
+                socket.emit('ai-ask-start', { requestId });
 
-                    let full = '';
-                    for await (const delta of askStream({
-                        documentText: documentText || '',
-                        question,
-                        history: Array.isArray(history) ? history : [],
-                    })) {
-                        full += delta;
-                        socket.emit('ai-ask-stream', { requestId, delta });
-                    }
-                    socket.emit('ai-ask-end', { requestId, fullText: full });
-                    callback({ ok: true, requestId });
-                } catch (err) {
-                    console.error('[ai-ask]', err);
-                    socket.emit('ai-ask-error', { requestId, message: err.message });
-                    callback({ error: 'AI ask failed' });
+                let full = '';
+                for await (const delta of askStream({
+                    documentText: documentText || '',
+                    question,
+                    history: Array.isArray(history) ? history : [],
+                })) {
+                    full += delta;
+                    socket.emit('ai-ask-stream', { requestId, delta });
                 }
-            },
-        );
+                socket.emit('ai-ask-end', { requestId, fullText: full });
+                callback({ ok: true, requestId });
+            } catch (err) {
+                console.error('[ai-ask]', err);
+                socket.emit('ai-ask-error', { requestId, message: err.message });
+                callback({ error: 'AI ask failed' });
+            }
+        });
 
         socket.on(
             'ai-generate',
@@ -403,52 +398,55 @@ export function setupSocketIo(server) {
             },
         );
 
-        socket.on('ai-rewrite', async ({ clientRequestId, selection, instruction, range, tone, docContext }, callback = () => {}) => {
-            const ctx = getCtx();
-            if (!ctx) return callback({ error: 'no room context' });
-            if (ctx.role !== 'EDITOR' && ctx.role !== 'OWNER') {
-                return callback({ error: 'permission denied' });
-            }
-            if (!selection || !instruction || !range) {
-                return callback({ error: 'selection and instruction are required' });
-            }
-            const requestId = clientRequestId || `ai-${Date.now()}-${authedUserId}`;
+        socket.on(
+            'ai-rewrite',
+            async ({ clientRequestId, selection, instruction, range, tone, docContext }, callback = () => {}) => {
+                const ctx = getCtx();
+                if (!ctx) return callback({ error: 'no room context' });
+                if (ctx.role !== 'EDITOR' && ctx.role !== 'OWNER') {
+                    return callback({ error: 'permission denied' });
+                }
+                if (!selection || !instruction || !range) {
+                    return callback({ error: 'selection and instruction are required' });
+                }
+                const requestId = clientRequestId || `ai-${Date.now()}-${authedUserId}`;
 
-            try {
-                io.to(ctx.roomId).emit('ai-start', {
-                    requestId,
-                    userId: authedUserId,
-                    by: authedName,
-                    range,
-                });
-
-                let full = '';
-                for await (const delta of rewriteStream({ selection, instruction, tone, docContext })) {
-                    full += delta;
-                    io.to(ctx.roomId).emit('ai-stream', {
+                try {
+                    io.to(ctx.roomId).emit('ai-start', {
                         requestId,
                         userId: authedUserId,
-                        delta,
+                        by: authedName,
                         range,
                     });
+
+                    let full = '';
+                    for await (const delta of rewriteStream({ selection, instruction, tone, docContext })) {
+                        full += delta;
+                        io.to(ctx.roomId).emit('ai-stream', {
+                            requestId,
+                            userId: authedUserId,
+                            delta,
+                            range,
+                        });
+                    }
+                    io.to(ctx.roomId).emit('ai-end', {
+                        requestId,
+                        userId: authedUserId,
+                        fullText: full,
+                        range,
+                    });
+                    callback({ ok: true, requestId });
+                } catch (err) {
+                    console.error('[ai-rewrite]', err);
+                    io.to(ctx.roomId).emit('ai-error', {
+                        requestId,
+                        userId: authedUserId,
+                        message: err.message,
+                    });
+                    callback({ error: 'AI rewrite failed' });
                 }
-                io.to(ctx.roomId).emit('ai-end', {
-                    requestId,
-                    userId: authedUserId,
-                    fullText: full,
-                    range,
-                });
-                callback({ ok: true, requestId });
-            } catch (err) {
-                console.error('[ai-rewrite]', err);
-                io.to(ctx.roomId).emit('ai-error', {
-                    requestId,
-                    userId: authedUserId,
-                    message: err.message,
-                });
-                callback({ error: 'AI rewrite failed' });
-            }
-        });
+            },
+        );
 
         // =========================
         // DOC UPDATES (write guarded)
