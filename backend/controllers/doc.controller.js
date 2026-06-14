@@ -315,8 +315,8 @@ export const getDocument = async (req, res) => {
 
     try {
         const document = await Document.findById(editorId)
-            .populate('ownerId', 'name email')
-            .populate('collaborators.userId', 'name email')
+            .populate('ownerId', 'name email image')
+            .populate('collaborators.userId', 'name email image')
             .exec();
 
         if (!document) {

@@ -4,6 +4,7 @@ import User from '../models/user.model.js';
 import Document from '../models/document.model.js';
 import { sendPasswordReset, sendWelcome } from '../util/sendEmail.js';
 import { CLIENT_URL, isProduction } from '../config.js';
+import cloudinary from '../util/cloudinary.js';
 
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
@@ -92,6 +93,104 @@ export const register = async (req, res) => {
         await User.deleteOne({ email }); // Optional cleanup
         console.warn('[REGISTER ERROR]', error.message);
         return res.status(500).json({ message: 'Something went wrong during registration. Please try again later.' });
+    }
+};
+
+export const googleAuth = async (req, res) => {
+    const { accessToken } = req.body;
+    try {
+        if (!accessToken) {
+            return res.status(400).json({ message: 'Missing Google access token.' });
+        }
+
+        // Verify the token by fetching the Google profile it was issued for.
+        const googleRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+            headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (!googleRes.ok) {
+            return res.status(401).json({ message: 'Could not verify your Google account. Please try again.' });
+        }
+
+        const profile = await googleRes.json();
+        const { email, email_verified, name, sub: googleId, picture } = profile;
+
+        if (!email || email_verified === false) {
+            return res.status(401).json({ message: 'Your Google account has no verified email.' });
+        }
+
+        let user = await User.findOne({ email });
+        let isNew = false;
+
+        if (!user) {
+            user = await User.create({ name: name || email.split('@')[0], email, googleId, image: picture || '' });
+            isNew = true;
+        } else {
+            // Link the Google account, and adopt its photo if the user has none yet.
+            if (!user.googleId) user.googleId = googleId;
+            if (!user.image && picture) user.image = picture;
+            await user.save();
+        }
+
+        const token = createToken(email, user.name, user.id);
+        res.cookie('token', token, { ...COOKIE_OPTIONS, maxAge: COOKIE_MAX_AGE });
+
+        if (isNew) {
+            // Best-effort welcome email — fire-and-forget.
+            sendWelcome({ username: user.name, email });
+        }
+
+        const safeUser = await User.findById(user._id).select('-password').populate('recentDocs.document').exec();
+
+        return res.status(200).json({
+            success: true,
+            message: 'Signed in with Google',
+            user: safeUser,
+            token,
+        });
+    } catch (error) {
+        console.error('Google auth error:', error.message);
+        return res.status(500).json({ message: 'Could not sign you in with Google. Please try again.' });
+    }
+};
+
+export const updateProfile = async (req, res) => {
+    const userId = req.userId;
+    const { name, image } = req.body;
+    try {
+        if (!userId) return res.status(401).json({ message: 'Not authenticated.' });
+
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: 'User not found.' });
+
+        if (typeof name === 'string') {
+            const trimmed = name.trim();
+            if (trimmed.length < 3) {
+                return res.status(400).json({ message: 'Name must be at least 3 characters.' });
+            }
+            user.name = trimmed;
+        }
+
+        // `image` is a base64 data URL for a new upload (existing URLs / empty are left as-is).
+        if (typeof image === 'string' && image.startsWith('data:image/')) {
+            const uploaded = await cloudinary.uploader.upload(image, {
+                folder: 'docweave_avatars',
+                transformation: [{ width: 256, height: 256, crop: 'fill', gravity: 'face' }],
+            });
+            user.image = uploaded.secure_url;
+        }
+
+        await user.save();
+
+        // Reissue the session token so its embedded name stays in sync with the
+        // profile (the old token still carried the previous name).
+        const token = createToken(user.email, user.name, user.id);
+        res.cookie('token', token, { ...COOKIE_OPTIONS, maxAge: COOKIE_MAX_AGE });
+
+        const safeUser = await User.findById(user._id).select('-password').populate('recentDocs.document').exec();
+        return res.status(200).json({ success: true, message: 'Profile updated', user: safeUser, token });
+    } catch (error) {
+        console.error('updateProfile error:', error.message);
+        return res.status(500).json({ message: 'Could not update your profile. Please try again.' });
     }
 };
 

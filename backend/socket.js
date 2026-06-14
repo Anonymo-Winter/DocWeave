@@ -4,6 +4,7 @@ import * as Y from 'yjs';
 import jwt from 'jsonwebtoken';
 import Document from './models/document.model.js';
 import DocumentState from './models/documentState.model.js';
+import User from './models/user.model.js';
 import mongoose from 'mongoose';
 import { resolveUserRole } from './controllers/doc.controller.js';
 import { setRealtimeRefs } from './realtime.js';
@@ -259,12 +260,20 @@ export function setupSocketIo(server) {
                     handleLeaveRoom(socket.data.docId);
                 }
 
+                // Read the current identity from the DB rather than the JWT — the
+                // token still carries whatever name/photo the user had when it was
+                // issued, so profile edits wouldn't show up in presence otherwise.
+                const dbUser = await User.findById(authedUserId).select('name email image').lean();
+                const displayName = dbUser?.name || authedName;
+                const displayEmail = dbUser?.email || authedUser?.email;
+                const displayImage = dbUser?.image || '';
+
                 socket.join(roomId);
 
                 socket.data.docId = roomId;
                 socket.data.role = role;
                 socket.data.userId = authedUserId;
-                socket.data.userName = authedName;
+                socket.data.userName = displayName;
 
                 const docMeta = await Document.findById(roomId);
                 if (!docMeta) {
@@ -291,7 +300,14 @@ export function setupSocketIo(server) {
 
                 if (!usersInRoom.has(key)) {
                     usersInRoom.set(key, {
-                        user: { id: key, name: authedName, color: assignedColor, email: authedUser?.email, role: role },
+                        user: {
+                            id: key,
+                            name: displayName,
+                            color: assignedColor,
+                            email: displayEmail,
+                            role: role,
+                            image: displayImage,
+                        },
                         sockets: new Set(),
                     });
                 }
@@ -535,12 +551,14 @@ export function setupSocketIo(server) {
                 }
 
                 // Server-trusted sender
-                const senderColor = roomUsers.get(ctx.roomId)?.get(authedUserId)?.user?.color;
+                const senderEntry = roomUsers.get(ctx.roomId)?.get(authedUserId)?.user;
+                const senderColor = senderEntry?.color;
+                const senderName = senderEntry?.name || socket.data.userName || authedName;
                 const payload = {
                     roomId: ctx.roomId,
                     message,
                     sender: authedUserId,
-                    user: { id: authedUserId, name: authedName, color: senderColor },
+                    user: { id: authedUserId, name: senderName, color: senderColor, image: senderEntry?.image || '' },
                     timestamp: new Date().toISOString(),
                 };
 

@@ -21,7 +21,7 @@ DocWeave lets a whole team write in the same document at once — with live curs
 - **Rolling-blob autosave** — the server owns the authoritative `Y.Doc` and persists it on a debounce + max-wait, flushes when the last user leaves, and **flushes every room on graceful shutdown**.
 - **Emails** — welcome, document invite, ownership transfer, and password reset (Nodemailer).
 - **Exports & uploads** — server-side PDF (Puppeteer); inline image uploads via Multer → Cloudinary.
-- **Auth** — JWT verified by both REST middleware and the socket handshake; bcrypt-hashed passwords; password reset via hashed, expiring tokens.
+- **Auth** — email/password (bcrypt-hashed) and **Google sign-in** (the access token is verified server-side against Google's userinfo endpoint — no client secret needed). JWT verified by both REST middleware and the socket handshake; password reset via hashed, expiring tokens.
 
 ## 🧱 Tech stack
 
@@ -108,6 +108,7 @@ All routes are prefixed with `/api`. Most require a valid JWT (cookie or `Author
 | --- | --- | --- |
 | POST | `/register` | Create account (sends welcome email) |
 | POST | `/login` | Sign in, returns JWT + sets cookie |
+| POST | `/google` | Sign in / sign up with a Google access token |
 | POST | `/logout` | Clear session |
 | GET | `/check-auth` | Current user from token |
 | POST | `/search` | Find users by email (for sharing) |

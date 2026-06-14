@@ -14,9 +14,16 @@ const userSchema = new mongoose.Schema({
         unique: true,
     },
     password: {
+        // Optional: Google-authenticated users have no local password.
         type: String,
-        required: [true, 'Password is required'],
         minlength: [6, 'Password must be atleast 6 characters long'],
+    },
+    googleId: {
+        type: String,
+    },
+    image: {
+        type: String,
+        default: '',
     },
     recentDocs: [
         {
