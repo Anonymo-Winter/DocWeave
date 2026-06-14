@@ -17,6 +17,7 @@ import VersionComponent from './components/VersionComponent.jsx';
 import ErrorMessage from './components/ErrorMessage.jsx';
 import LandingPage from './pages/LandingPage.jsx';
 import DocsPage from './pages/DocsPage.jsx';
+import { Analytics } from '@vercel/analytics/react';
 
 const ErrorComponent = () => (
     <div className='relative min-h-[calc(100vh-3rem)] flex items-center justify-center bg-transparent overflow-hidden px-4'>
@@ -141,6 +142,7 @@ export default function App() {
                     </Routes>
                 </div>
             </main>
+            <Analytics />
         </div>
     );
 }
