@@ -83,6 +83,10 @@ ADMIN_GMAIL_PASSWORD=your-16-char-app-password
 CLOUDINARY_CLOUD_NAME=...
 CLOUDINARY_API_KEY=...
 CLOUDINARY_API_SECRET=...
+
+# PDF export (optional) — remote browser endpoint, e.g. Browserless.
+# If unset, Puppeteer launches a local Chrome instead (fine for local dev).
+BROWSER_WS_ENDPOINT=
 ```
 
 > `.env` is loaded **before any other import** (`import "dotenv/config"` is the first line of `index.js`) so values are available when the email transporter and AI client are constructed.
@@ -98,6 +102,7 @@ CLOUDINARY_API_SECRET=...
 | `GROQ_API_KEY` | for AI | Groq key; AI features are disabled without it |
 | `ADMIN_GMAIL` / `ADMIN_GMAIL_PASSWORD` | for email | Gmail + App Password for Nodemailer |
 | `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | for uploads | Cloudinary credentials |
+| `BROWSER_WS_ENDPOINT` | no | Remote browser (e.g. Browserless) for PDF export; falls back to local Chrome |
 
 ## 🌐 REST API
 
@@ -110,6 +115,7 @@ All routes are prefixed with `/api`. Most require a valid JWT (cookie or `Author
 | POST | `/login` | Sign in, returns JWT + sets cookie |
 | POST | `/google` | Sign in / sign up with a Google access token |
 | POST | `/logout` | Clear session |
+| PATCH | `/profile` | Update display name / avatar (uploads to Cloudinary) |
 | GET | `/check-auth` | Current user from token |
 | POST | `/search` | Find users by email (for sharing) |
 | POST | `/forgot-password` | Email a reset link |
@@ -157,4 +163,4 @@ The token is verified in `io.use()` before the connection upgrades. Key events:
 
 ---
 
-<p align="center">Part of <a href="https://docweave.tarunsumanthpuli.me/">DocWeave</a> · frontend repo: <a href="https://github.com/Anonymo-Winter/collaborative_docs_frontend">collaborative_docs_frontend</a></p>
+<p align="center">Part of <a href="https://docweave.tarunsumanthpuli.me/">DocWeave</a> · frontend repo: <a href="https://github.com/Anonymo-Winter/docweave_frontend">docweave_frontend</a></p>
