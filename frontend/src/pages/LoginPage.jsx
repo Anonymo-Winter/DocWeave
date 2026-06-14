@@ -17,8 +17,8 @@ import { setCredentials } from '../store/userSlice';
 const LoginComponent = () => {
     const dispatch = useDispatch();
     const [formData, setFormData] = useState({
-        email: 'pulitarun2432@gmail.com',
-        password: '123123',
+        email: '',
+        password: '',
     });
     const [errors, setErrors] = useState({});
     const [generalError, setGeneralError] = useState('');

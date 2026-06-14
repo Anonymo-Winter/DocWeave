@@ -16,9 +16,9 @@ import { InputField } from '../components/InputField';
 // Main Login Component
 const LoginComponent = () => {
     const [formData, setFormData] = useState({
-        name: 'tarun',
-        email: 'pulitarun2432@gmail.com',
-        password: '123123',
+        name: '',
+        email: '',
+        password: '',
     });
     const [errors, setErrors] = useState({});
     const [isLoading, setIsLoading] = useState(false);
