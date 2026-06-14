@@ -5,7 +5,7 @@
     "type": "module",
     "scripts": {
         "dev": "nodemon index.js",
-        "build": "npm i"
+        "build": "npm i && npx puppeteer browsers install chrome"
     },
     "keywords": [],
     "author": "",
