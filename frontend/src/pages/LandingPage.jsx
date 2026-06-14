@@ -39,16 +39,31 @@ const fadeUp = {
     transition: { duration: 0.6, ease: 'easeOut' },
 };
 
+const REPOS = {
+    frontend: 'https://github.com/Anonymo-Winter/collaborative_docs_frontend',
+    backend: 'https://github.com/Anonymo-Winter/collaborative_docs_backend',
+};
+
 const NavBar = () => {
     const navigate = useNavigate();
     const [scrolled, setScrolled] = useState(false);
     const [open, setOpen] = useState(false);
+    const [ghOpen, setGhOpen] = useState(false);
+    const ghRef = useRef(null);
 
     useEffect(() => {
         const onScroll = () => setScrolled(window.scrollY > 16);
         onScroll();
         window.addEventListener('scroll', onScroll, { passive: true });
         return () => window.removeEventListener('scroll', onScroll);
+    }, []);
+
+    useEffect(() => {
+        const onDown = (e) => {
+            if (ghRef.current && !ghRef.current.contains(e.target)) setGhOpen(false);
+        };
+        document.addEventListener('mousedown', onDown);
+        return () => document.removeEventListener('mousedown', onDown);
     }, []);
 
     const navLinks = [
@@ -113,13 +128,40 @@ const NavBar = () => {
 
                 {/* Right cluster */}
                 <div className='col-start-3 flex items-center justify-self-end gap-2 shrink-0'>
-                    <a
-                        href='#'
-                        className='inline-flex items-center justify-center size-9 rounded-full border border-gray-300/70 dark:border-gray-700/70 bg-white/60 dark:bg-gray-900/50 backdrop-blur text-gray-600 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-800/70 hover:text-gray-950 dark:hover:text-white transition-colors'
-                        aria-label='GitHub'
-                    >
-                        <FaGithub className='size-4' />
-                    </a>
+                    <div className='relative' ref={ghRef}>
+                        <button
+                            type='button'
+                            onClick={() => setGhOpen((v) => !v)}
+                            aria-label='View source on GitHub'
+                            aria-haspopup='menu'
+                            aria-expanded={ghOpen}
+                            className='inline-flex items-center justify-center size-9 rounded-full border border-gray-300/70 dark:border-gray-700/70 bg-white/60 dark:bg-gray-900/50 backdrop-blur text-gray-600 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-800/70 hover:text-gray-950 dark:hover:text-white transition-colors'
+                        >
+                            <FaGithub className='size-4' />
+                        </button>
+                        {ghOpen && (
+                            <div className='absolute right-0 mt-2 w-44 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg dark:border-gray-800 dark:bg-gray-900 z-50'>
+                                <a
+                                    href={REPOS.frontend}
+                                    target='_blank'
+                                    rel='noreferrer'
+                                    onClick={() => setGhOpen(false)}
+                                    className='flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800'
+                                >
+                                    <FaGithub className='size-4 shrink-0' /> Frontend repo
+                                </a>
+                                <a
+                                    href={REPOS.backend}
+                                    target='_blank'
+                                    rel='noreferrer'
+                                    onClick={() => setGhOpen(false)}
+                                    className='flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800'
+                                >
+                                    <FaGithub className='size-4 shrink-0' /> Backend repo
+                                </a>
+                            </div>
+                        )}
+                    </div>
                     <ThemeToggle />
                     <button
                         onClick={() => navigate('/login')}
@@ -1260,15 +1302,28 @@ const Footer = () => (
                 <span className='text-gray-400 dark:text-gray-600'>· open-source real-time docs</span>
             </div>
             <div className='flex items-center gap-5'>
-                <a href='#' className='hover:text-gray-900 dark:hover:text-white inline-flex items-center gap-1'>
-                    <FaGithub /> GitHub
+                <a
+                    href={REPOS.frontend}
+                    target='_blank'
+                    rel='noreferrer'
+                    className='hover:text-gray-900 dark:hover:text-white inline-flex items-center gap-1'
+                >
+                    <FaGithub /> Frontend
+                </a>
+                <a
+                    href={REPOS.backend}
+                    target='_blank'
+                    rel='noreferrer'
+                    className='hover:text-gray-900 dark:hover:text-white inline-flex items-center gap-1'
+                >
+                    <FaGithub /> Backend
                 </a>
                 <a href='#features' className='hover:text-gray-900 dark:hover:text-white'>
                     Features
                 </a>
-                <Link to='/testing/docs' className='hover:text-gray-900 dark:hover:text-white'>
+                {/* <Link to='/testing/docs' className='hover:text-gray-900 dark:hover:text-white'>
                     Docs
-                </Link>
+                </Link> */}
                 <Link to='/login' className='hover:text-gray-900 dark:hover:text-white'>
                     Login
                 </Link>

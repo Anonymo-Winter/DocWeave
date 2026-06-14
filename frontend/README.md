@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="https://collabdocs.tarunsumanthpuli.me/">🔗 Live app</a>
+  <a href="https://docweave.tarunsumanthpuli.me/">🔗 Live app</a>
 </p>
 
 ---
@@ -50,7 +50,7 @@ frontend/src/
 
 ## 🚀 Getting started
 
-**Prerequisites:** Node.js 20+ and the [DocWeave backend](../backend) running.
+**Prerequisites:** Node.js 20+ and the [DocWeave backend](https://github.com/Anonymo-Winter/collaborative_docs_backend) running.
 
 ```bash
 cd frontend
@@ -81,4 +81,4 @@ To change either URL, edit `src/config.js` (it's the single source of truth — 
 
 ---
 
-<p align="center">Part of <a href="https://collabdocs.tarunsumanthpuli.me/">DocWeave</a> · see the <code>backend/</code> README for the server & API.</p>
+<p align="center">Part of <a href="https://docweave.tarunsumanthpuli.me/">DocWeave</a> · backend repo: <a href="https://github.com/Anonymo-Winter/collaborative_docs_backend">collaborative_docs_backend</a></p>
