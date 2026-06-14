@@ -51,7 +51,7 @@ frontend/src/
 
 ## 🚀 Getting started
 
-**Prerequisites:** Node.js 20+ and the [DocWeave backend](https://github.com/Anonymo-Winter/collaborative_docs_backend) running.
+**Prerequisites:** Node.js 20+ and the [DocWeave backend](https://github.com/Anonymo-Winter/docweave_backend) running.
 
 ```bash
 cd frontend
@@ -90,4 +90,4 @@ To change either URL, edit `src/config.js`.
 
 ---
 
-<p align="center">Part of <a href="https://docweave.tarunsumanthpuli.me/">DocWeave</a> · backend repo: <a href="https://github.com/Anonymo-Winter/collaborative_docs_backend">collaborative_docs_backend</a></p>
+<p align="center">Part of <a href="https://docweave.tarunsumanthpuli.me/">DocWeave</a> · backend repo: <a href="https://github.com/Anonymo-Winter/docweave_backend">docweave_backend</a></p>

@@ -40,8 +40,8 @@ const fadeUp = {
 };
 
 const REPOS = {
-    frontend: 'https://github.com/Anonymo-Winter/collaborative_docs_frontend',
-    backend: 'https://github.com/Anonymo-Winter/collaborative_docs_backend',
+    frontend: 'https://github.com/Anonymo-Winter/docweave_frontend',
+    backend: 'https://github.com/Anonymo-Winter/docweave_backend',
 };
 
 const NavBar = () => {
