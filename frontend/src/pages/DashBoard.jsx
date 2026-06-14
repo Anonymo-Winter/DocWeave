@@ -387,8 +387,8 @@ const DocumentCard = ({ document, refetch }) => {
                     <VisibilityIcon className='w-3 h-3' />
                 </div>
 
-                {/* hover actions overlay */}
-                <div className='absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity'>
+                {/* action overlay — always visible on touch/mobile (no hover), hover-reveal on desktop */}
+                <div className='absolute top-2 right-2 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity'>
                     <button
                         onClick={async (e) => {
                             e.stopPropagation();
@@ -414,9 +414,9 @@ const DocumentCard = ({ document, refetch }) => {
                     )}
                 </div>
 
-                {/* always-visible star when starred */}
+                {/* standalone star when starred — hidden on mobile (overlay star is always shown there) */}
                 {isStarred && (
-                    <div className='absolute top-2 right-2 group-hover:hidden p-1.5'>
+                    <div className='absolute top-2 right-2 hidden md:block md:group-hover:hidden p-1.5'>
                         <Star className='w-3.5 h-3.5 fill-yellow-400 text-yellow-400 drop-shadow' />
                     </div>
                 )}
