@@ -3,13 +3,24 @@ import crypto from 'node:crypto';
 import User from '../models/user.model.js';
 import Document from '../models/document.model.js';
 import { sendPasswordReset, sendWelcome } from '../util/sendEmail.js';
-import { CLIENT_URL } from '../config.js';
+import { CLIENT_URL, isProduction } from '../config.js';
 
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 const createToken = (email, name, id) => {
     return jwt.sign({ email, name, id }, process.env.JWT_KEY, { expiresIn: '1d' });
 };
+
+// Shared, environment-aware cookie options so the session cookie is set, sent,
+// and cleared consistently. In production the frontend and API are on different
+// subdomains, so the cookie must be cross-site (`SameSite=None; Secure`); locally
+// it stays `Lax`/non-secure so it works over http.
+const COOKIE_OPTIONS = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'None' : 'Lax',
+};
+const COOKIE_MAX_AGE = 24 * 60 * 60 * 1000; // 1 day
 
 export const login = async (req, res) => {
     const { email, password } = req.body;
@@ -26,12 +37,7 @@ export const login = async (req, res) => {
             return res.status(400).json({ message: 'Invalid credentials. Please check your email and password.' });
         }
         const token = createToken(email, user.name, user.id);
-        res.cookie('token', token, {
-            maxAge: 1 * 24 * 60 * 60 * 1000, // 1 day
-            httpOnly: true,
-            secure: true, // must be false for HTTP (local testing on LAN)
-            sameSite: 'None', // use Lax to allow cross-origin from mobile if origins match
-        });
+        res.cookie('token', token, { ...COOKIE_OPTIONS, maxAge: COOKIE_MAX_AGE });
         user.password = undefined;
         return res.status(200).json({
             message: 'Login Successfull',
@@ -67,14 +73,8 @@ export const register = async (req, res) => {
             return res.status(500).json({ message: 'Unable to create user. Please try again.' });
         }
 
-        // // Set secure cookie
         const token = createToken(email, name, user.id);
-        res.cookie('token', token, {
-            maxAge: 1 * 24 * 60 * 60 * 1000, // 1 day
-            httpOnly: true,
-            secure: false, // ⛔ must be false for HTTP (local testing on LAN)
-            sameSite: 'Lax', // ✅ allows cross-origin from mobile if origins match
-        });
+        res.cookie('token', token, { ...COOKIE_OPTIONS, maxAge: COOKIE_MAX_AGE });
 
         // Best-effort welcome email — fire-and-forget so it never blocks signup.
         sendWelcome({ username: name, email });
@@ -110,11 +110,7 @@ export const checkAuth = async (req, res) => {
 
 export const logout = async (req, res) => {
     try {
-        res.clearCookie('token', {
-            httpOnly: true,
-            secure: false,
-            sameSite: 'Lax',
-        });
+        res.clearCookie('token', COOKIE_OPTIONS);
 
         return res.status(200).json({ success: true, message: 'Logout successful' });
     } catch (error) {

@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="https://collabdocs.tarunsumanthpuli.me/">🔗 Live app</a>
+  <a href="https://docweave.tarunsumanthpuli.me/">🔗 Live app</a>
 </p>
 
 ---
@@ -156,4 +156,4 @@ The token is verified in `io.use()` before the connection upgrades. Key events:
 
 ---
 
-<p align="center">Part of <a href="https://collabdocs.tarunsumanthpuli.me/">DocWeave</a> · see the <code>frontend/</code> README for the client.</p>
+<p align="center">Part of <a href="https://docweave.tarunsumanthpuli.me/">DocWeave</a> · frontend repo: <a href="https://github.com/Anonymo-Winter/collaborative_docs_frontend">collaborative_docs_frontend</a></p>
