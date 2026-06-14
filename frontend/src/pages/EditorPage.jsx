@@ -128,7 +128,7 @@ const EnhancedEditorLayout = () => {
                 refetch={refetch}
             />
 
-            <div className='flex flex-1 h-full w-full overflow-hidden'>
+            <div className='relative flex flex-1 h-full w-full overflow-hidden'>
                 {/* Editor Section */}
                 <section className='flex-1 min-w-0 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex flex-col p-2 sm:p-4 '>
                     <Editor onError={setLayoutError} canEdit={canEdit} />
@@ -137,7 +137,7 @@ const EnhancedEditorLayout = () => {
                 {/* Enhanced Chat Section */}
                 {isChatVisible && (
                     <aside
-                        className={`active-chats w-full shadow-xl shadow-gray-200 dark:shadow-gray-800 md:w-[400px] max-w-[450px] md:min-w-[320px] bg-gray-50 dark:bg-gray-800 flex-col h-full overflow-hidden ${
+                        className={`active-chats absolute inset-0 z-30 w-full shadow-xl shadow-gray-200 dark:shadow-gray-800 md:static md:z-auto md:w-[400px] max-w-full md:max-w-[450px] md:min-w-[320px] bg-gray-50 dark:bg-gray-800 flex-col h-full overflow-hidden ${
                             isAskVisible && lastOpened !== 'chat' ? 'hidden md:flex' : 'flex'
                         }`}
                     >
@@ -155,7 +155,7 @@ const EnhancedEditorLayout = () => {
                 {/* Ask-the-doc panel */}
                 {isAskVisible && (
                     <aside
-                        className={`w-full shadow-xl shadow-gray-200 dark:shadow-gray-800 md:w-[400px] max-w-[450px] md:min-w-[320px] bg-white dark:bg-gray-900 flex-col h-full overflow-hidden border-l border-gray-200 dark:border-gray-700 ${
+                        className={`absolute inset-0 z-30 w-full shadow-xl shadow-gray-200 dark:shadow-gray-800 md:static md:z-auto md:w-[400px] max-w-full md:max-w-[450px] md:min-w-[320px] bg-white dark:bg-gray-900 flex-col h-full overflow-hidden border-l border-gray-200 dark:border-gray-700 ${
                             isChatVisible && lastOpened !== 'ask' ? 'hidden md:flex' : 'flex'
                         }`}
                     >
