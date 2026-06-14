@@ -376,10 +376,15 @@ export const generatePDF = async (req, res) => {
             return res.status(400).json({ message: 'No content to export.' });
         }
 
-        browser = await puppeteer.launch({
-            headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-        });
+        // Use a remote browser (e.g. Browserless) when configured — this avoids
+        // bundling/launching Chrome on memory- and disk-constrained hosts. Falls
+        // back to a locally launched Chrome for development.
+        browser = process.env.BROWSER_WS_ENDPOINT
+            ? await puppeteer.connect({ browserWSEndpoint: process.env.BROWSER_WS_ENDPOINT })
+            : await puppeteer.launch({
+                  headless: true,
+                  args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+              });
         const page = await browser.newPage();
 
         await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
