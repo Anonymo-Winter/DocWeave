@@ -10,14 +10,17 @@ import './index.css';
 import App from './App.jsx';
 import { BrowserRouter } from 'react-router-dom';
 import { Toaster } from 'sonner';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 
 createRoot(document.getElementById('root')).render(
     <Provider store={store}>
         <PersistGate loading={null} persistor={persistor}>
-            <BrowserRouter>
-                <Toaster position='top-left' richColors closeButton visibleToasts={1} expand={true} />
-                <App />
-            </BrowserRouter>
+            <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+                <BrowserRouter>
+                    <Toaster position='top-left' richColors closeButton visibleToasts={1} expand={true} />
+                    <App />
+                </BrowserRouter>
+            </GoogleOAuthProvider>
         </PersistGate>
     </Provider>,
 );

@@ -221,6 +221,7 @@ const ShareModal = ({ data, isLoading, refetch, open, onOpenChange, permission }
                 id: c.userId?._id,
                 name: c.userId?.name || 'Deleted User',
                 email: c.userId?.email || '---',
+                image: c.userId?.image || '',
                 originalRole: c.role,
                 selectedRole: c.role,
                 color: data?.userColors[c.userId?._id],

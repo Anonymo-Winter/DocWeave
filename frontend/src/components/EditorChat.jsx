@@ -131,7 +131,7 @@ const EditorChat = ({ setIsChatVisible, canEdit, activeUsers, messages, setMessa
             const newMessage = {
                 roomId: editorId,
                 message: input,
-                user: { email: user.email, name: user.name, color: assignedColor + '' },
+                user: { email: user.email, name: user.name, color: assignedColor + '', image: user.image || '' },
                 timestamp: new Date().toISOString(),
                 sender: user?._id || 'anonymous-id',
             };
@@ -207,10 +207,14 @@ const EditorChat = ({ setIsChatVisible, canEdit, activeUsers, messages, setMessa
                                 <div
                                     key={u.id ?? i}
                                     title={u.name}
-                                    className='size-7 rounded-full flex items-center justify-center text-white text-[10px] font-semibold ring-2 ring-white/40'
+                                    className='size-7 rounded-full overflow-hidden flex items-center justify-center text-white text-[10px] font-semibold ring-2 ring-white/40'
                                     style={{ backgroundColor: u.color || '#6b7280' }}
                                 >
-                                    {getInitials(u.name || '?')}
+                                    {u.image ? (
+                                        <img src={u.image} alt={u.name} className='w-full h-full object-cover' />
+                                    ) : (
+                                        getInitials(u.name || '?')
+                                    )}
                                 </div>
                             ))}
                             {activeUsers.length > 3 && (
@@ -265,10 +269,18 @@ const EditorChat = ({ setIsChatVisible, canEdit, activeUsers, messages, setMessa
                         >
                             {!isCurrentUser && (
                                 <div
-                                    className='w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-medium flex-shrink-0'
+                                    className='w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-white text-xs font-medium flex-shrink-0'
                                     style={{ backgroundColor: msg.user.color }}
                                 >
-                                    {getInitials(msg.user?.name)}
+                                    {msg.user?.image ? (
+                                        <img
+                                            src={msg.user.image}
+                                            alt={msg.user?.name}
+                                            className='w-full h-full object-cover'
+                                        />
+                                    ) : (
+                                        getInitials(msg.user?.name || '?')
+                                    )}
                                 </div>
                             )}
                             <div className={`max-w-[78%] ${isCurrentUser ? 'text-right' : 'text-left'}`}>

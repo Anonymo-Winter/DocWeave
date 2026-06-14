@@ -85,6 +85,40 @@ export const userApi = createApi({
                 body: { emailTerm, editorId },
             }),
         }),
+        googleAuth: builder.mutation({
+            query: ({ accessToken }) => ({
+                url: '/auth/google',
+                method: 'POST',
+                body: { accessToken },
+            }),
+            async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+                try {
+                    const { data } = await queryFulfilled;
+                    dispatch(setCredentials(data.user));
+                    dispatch(setToken(data.token));
+                } catch (err) {
+                    console.error('Google auth error:', err);
+                }
+            },
+            invalidatesTags: ['User'],
+        }),
+        updateProfile: builder.mutation({
+            query: ({ name, image }) => ({
+                url: '/auth/profile',
+                method: 'PATCH',
+                body: { name, image },
+            }),
+            async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+                try {
+                    const { data } = await queryFulfilled;
+                    if (data?.user) dispatch(setCredentials(data.user));
+                    if (data?.token) dispatch(setToken(data.token));
+                } catch (err) {
+                    console.error('Update profile error:', err);
+                }
+            },
+            invalidatesTags: ['User'],
+        }),
         forgotPassword: builder.mutation({
             query: ({ email }) => ({
                 url: '/auth/forgot-password',
@@ -110,4 +144,6 @@ export const {
     useSearchForEmailMutation,
     useForgotPasswordMutation,
     useResetPasswordMutation,
+    useGoogleAuthMutation,
+    useUpdateProfileMutation,
 } = userApi;

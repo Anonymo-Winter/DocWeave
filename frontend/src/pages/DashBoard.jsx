@@ -179,6 +179,7 @@ export const DropDown = () => {
                     )}
                 >
                     <Avatar>
+                        <AvatarImage src={user?.image || undefined} alt={user?.name} className='object-cover' />
                         <AvatarFallback className='bg-gradient-to-br from-green-400 to-blue-500 text-white font-medium'>
                             {getInitials(user?.name)}
                         </AvatarFallback>

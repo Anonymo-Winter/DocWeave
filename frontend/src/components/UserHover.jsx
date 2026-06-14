@@ -31,19 +31,19 @@ const UserHover = ({ isMobile, collab, ownerId }) => {
                     <div className='flex items-center gap-3 flex-1 min-w-0'>
                         <div className='relative'>
                             <div
-                                className='w-10 h-10 rounded-full flex items-center font-semibold justify-center text-white text-base'
+                                className='w-10 h-10 rounded-full overflow-hidden flex items-center font-semibold justify-center text-white text-base'
                                 style={{
                                     backgroundColor: collab.color,
                                 }}
                             >
-                                {collab.profileImage ? (
+                                {collab.image ? (
                                     <img
-                                        src={collab.profileImage}
+                                        src={collab.image}
                                         alt={collab.name}
                                         className='w-full h-full rounded-full object-cover'
                                     />
                                 ) : (
-                                    collab.avatar
+                                    getInitials(collab?.name || '?')
                                 )}
                             </div>
                             {collab.isOnline && (
@@ -72,19 +72,19 @@ const UserHover = ({ isMobile, collab, ownerId }) => {
                 >
                     <div className='flex items-center gap-3 mb-4'>
                         <div
-                            className='w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-semibold shadow-sm'
+                            className='w-12 h-12 rounded-full overflow-hidden flex items-center justify-center text-white text-lg font-semibold shadow-sm'
                             style={{
                                 backgroundColor: collab.color,
                             }}
                         >
-                            {collab.profileImage ? (
+                            {collab.image ? (
                                 <img
-                                    src={collab.profileImage}
+                                    src={collab.image}
                                     alt={collab.name}
                                     className='w-full h-full rounded-full object-cover'
                                 />
                             ) : (
-                                collab.avatar
+                                getInitials(collab?.name || '?')
                             )}
                         </div>
                         <div className='flex-1 min-w-0'>
@@ -122,16 +122,16 @@ const UserHover = ({ isMobile, collab, ownerId }) => {
                                 '--ring-color': collab.color,
                                 backgroundColor: collab.color,
                             }}
-                            className='w-10 h-10 rounded-full
+                            className='w-10 h-10 rounded-full overflow-hidden
                                 flex items-center justify-center
                                 font-semibold text-white
                                 border-2 border-white dark:border-gray-800
                                 shadow
                                 ring-2 ring-[var(--ring-color)]'
                         >
-                            {collab.profileImage ? (
+                            {collab.image ? (
                                 <img
-                                    src={collab.profileImage}
+                                    src={collab.image}
                                     alt={collab.name}
                                     className='w-full h-full rounded-full object-cover'
                                 />
@@ -156,14 +156,14 @@ const UserHover = ({ isMobile, collab, ownerId }) => {
             <HoverCardContent className='bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl p-4 w-72'>
                 <div className='flex items-center gap-3 mb-4'>
                     <div
-                        className='w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-semibold shadow-sm'
+                        className='w-12 h-12 rounded-full overflow-hidden flex items-center justify-center text-white text-lg font-semibold shadow-sm'
                         style={{
                             backgroundColor: collab.color,
                         }}
                     >
-                        {collab.profileImage ? (
+                        {collab.image ? (
                             <img
-                                src={collab.profileImage}
+                                src={collab.image}
                                 alt={collab.name}
                                 className='w-full h-full rounded-full object-cover'
                             />

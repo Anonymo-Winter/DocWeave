@@ -131,7 +131,7 @@ function MobileMenu({ documentName, setDocumentName, collaborators, actions, can
                             key={c.id}
                             style={{ backgroundColor: c.color }}
                             className='
-                        w-9 h-9 rounded-full
+                        w-9 h-9 rounded-full overflow-hidden
                         flex items-center justify-center
                         text-sm font-semibold text-white
                         ring-2 ring-white dark:ring-gray-800
@@ -139,7 +139,11 @@ function MobileMenu({ documentName, setDocumentName, collaborators, actions, can
                     '
                         >
                             <span className='sr-only'>{c.name}</span>
-                            {getInitials(c.name)}
+                            {c.image ? (
+                                <img src={c.image} alt={c.name} className='w-full h-full object-cover' />
+                            ) : (
+                                getInitials(c.name)
+                            )}
                         </div>
                     ))}
 
@@ -254,14 +258,18 @@ function CollaboratorsDropdown({ list, isChatVisible, setIsChatVisible }) {
                                 backgroundColor: c.color,
                                 '--ring-color': c.color,
                             }}
-                            className='w-8 h-8 rounded-full
+                            className='w-8 h-8 rounded-full overflow-hidden
                      flex items-center justify-center
                      text-xs font-semibold text-white
                      border-2 border-white dark:border-gray-800
                      ring-2 ring-[var(--ring-color)]
                      shadow shrink-0'
                         >
-                            {getInitials(c.name)}
+                            {c.image ? (
+                                <img src={c.image} alt={c.name} className='w-full h-full object-cover' />
+                            ) : (
+                                getInitials(c.name)
+                            )}
                         </div>
 
                         {/* Name & role */}
@@ -276,7 +284,7 @@ function CollaboratorsDropdown({ list, isChatVisible, setIsChatVisible }) {
                                     <Eye size={19} className='text-blue-500' />
                                 )}
                             </div>
-                            <div className='text-sm text-gray-600 dark:text-gray-400 truncate'>{c?.email} hey</div>
+                            <div className='text-sm text-gray-600 dark:text-gray-400 truncate'>{c?.email}</div>
                         </div>
 
                         {/* Actions */}
@@ -525,9 +533,17 @@ const EditorNavbar = ({
                                                 <div
                                                     key={i}
                                                     style={{ backgroundColor: c.color }}
-                                                    className='w-7 h-7 rounded-full cursor-pointer flex items-center justify-center text-xs text-white border-2 border-white dark:border-gray-800 shadow'
+                                                    className='w-7 h-7 rounded-full cursor-pointer flex items-center justify-center text-xs text-white border-2 border-white dark:border-gray-800 shadow overflow-hidden'
                                                 >
-                                                    {getInitials(c.name)}
+                                                    {c.image ? (
+                                                        <img
+                                                            src={c.image}
+                                                            alt={c.name}
+                                                            className='w-full h-full object-cover'
+                                                        />
+                                                    ) : (
+                                                        getInitials(c.name)
+                                                    )}
                                                 </div>
                                             </PopoverTrigger>
                                             <PopoverContent
@@ -538,9 +554,9 @@ const EditorNavbar = ({
                                                         className='w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-semibold shadow-sm'
                                                         style={{ backgroundColor: c.color }}
                                                     >
-                                                        {c.profileImage ? (
+                                                        {c.image ? (
                                                             <img
-                                                                src={c.profileImage}
+                                                                src={c.image}
                                                                 alt={c.name}
                                                                 className='w-full h-full rounded-full object-cover'
                                                             />
@@ -583,12 +599,20 @@ const EditorNavbar = ({
                                                         flex items-center justify-center
                                                         font-semibold text-white
                                                         border-2 border-white dark:border-gray-800
-                                                        shadow
+                                                        shadow overflow-hidden
                                                         focus:outline-none
                                                         focus:ring-2 focus:ring-blue-500/50'
                                                 >
                                                     <span className='sr-only'>{c.name}</span>
-                                                    {getInitials(c.name)}
+                                                    {c.image ? (
+                                                        <img
+                                                            src={c.image}
+                                                            alt={c.name}
+                                                            className='w-full h-full object-cover'
+                                                        />
+                                                    ) : (
+                                                        getInitials(c.name)
+                                                    )}
                                                 </button>
                                             </HoverCardTrigger>
 
@@ -598,9 +622,9 @@ const EditorNavbar = ({
                                                         className='w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-semibold shadow-sm'
                                                         style={{ backgroundColor: c.color }}
                                                     >
-                                                        {c.profileImage ? (
+                                                        {c.image ? (
                                                             <img
-                                                                src={c.profileImage}
+                                                                src={c.image}
                                                                 alt={c.name}
                                                                 className='w-full h-full rounded-full object-cover'
                                                             />

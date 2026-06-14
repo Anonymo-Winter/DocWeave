@@ -103,7 +103,7 @@ export const SocketProvider = ({ children }) => {
                         id: user._id,
                         name: user.name,
                         email: user.email,
-                        // role: 'editor',
+                        image: user.image,
                     },
                 },
                 ({ color, role, error }) => {

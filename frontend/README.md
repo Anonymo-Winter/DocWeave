@@ -20,7 +20,8 @@ DocWeave is a collaborative document editor where your whole team edits the same
 - **Sharing & roles** — Owner / Editor / Viewer, five visibility modes, delegated sharing, content lock, and email invites.
 - **A capable editor** — headings, lists, task lists, code blocks, highlights, alignment, links, sub/superscript, typography, and inline image uploads (Cloudinary).
 - **Export anywhere** — PDF, Word (DOCX), Markdown, and HTML.
-- **Polish** — a public playground on the landing page, a searchable dashboard, full auth (incl. forgot/reset password), and dark mode.
+- **Auth** — email/password and **Sign in with Google** (OAuth), plus forgot/reset password.
+- **Polish** — a public playground on the landing page, a searchable dashboard, and dark mode.
 
 ## 🧱 Tech stack
 
@@ -58,12 +59,20 @@ npm install
 npm run dev        # Vite dev server → http://localhost:5173
 ```
 
-No `.env` is required. The backend URL is resolved from **Vite's build mode** in [`src/config.js`](src/config.js):
+Create a `.env` in `frontend/` for Google sign-in:
+
+```ini
+VITE_GOOGLE_CLIENT_ID=your-google-oauth-client-id
+```
+
+> Create the client ID in Google Cloud Console (OAuth 2.0 Client ID → Web application) and add your origins to **Authorized JavaScript origins**: `http://localhost:5173` and your production URL. Email/password auth works without it; only Google sign-in needs it.
+
+The **backend URL** is *not* an env var — it's resolved from **Vite's build mode** in [`src/config.js`](src/config.js):
 
 - `npm run dev` → `http://localhost:5000`
 - `npm run build` (production) → the production backend
 
-To change either URL, edit `src/config.js` (it's the single source of truth — no per-environment env vars to manage).
+To change either URL, edit `src/config.js`.
 
 ### Scripts
 

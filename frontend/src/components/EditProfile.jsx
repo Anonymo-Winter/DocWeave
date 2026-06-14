@@ -6,16 +6,18 @@ import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Camera, EditIcon } from 'lucide-react';
 import { InputField } from './InputField';
 import { SuccessAlert, ErrorAlert } from './Alert';
+import { useUpdateProfileMutation } from '../api/userApi';
 
 const ProfileEditModal = ({ user }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [fullName, setFullName] = useState(user.name);
-    const [profileImage, setProfileImage] = useState(null);
+    const [profileImage, setProfileImage] = useState(user.image || null);
     const [error, setError] = useState('');
     const [imageError, setImageError] = useState('');
     const [success, setSuccess] = useState('');
     const [generalError, setGeneralError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [updateProfile] = useUpdateProfileMutation();
 
     // Maximum file size: 2MB (industry standard for profile pictures)
     const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB in bytes
@@ -74,19 +76,15 @@ const ProfileEditModal = ({ user }) => {
         setGeneralError('');
         setIsLoading(true);
         try {
-            // wait for 5 sec
-            await new Promise((resolve) => setTimeout(resolve, 2000));
-            if (Math.random() > 0.5) {
-                throw new Error('Failed to update profile. Please try again.');
-            } else {
-                setSuccess('Profile updated successfully!');
-            }
+            const res = await updateProfile({ name: fullName.trim(), image: profileImage }).unwrap();
+            if (!res?.success) throw new Error(res?.message || 'Failed to update profile.');
+            setSuccess('Profile updated successfully!');
             setTimeout(() => {
                 setSuccess('');
                 setIsOpen(false);
-            }, 2000);
+            }, 1500);
         } catch (error) {
-            setGeneralError(error.message);
+            setGeneralError(error?.data?.message || error.message || 'Failed to update profile. Please try again.');
         } finally {
             setIsLoading(false);
         }

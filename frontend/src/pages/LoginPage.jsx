@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { FaEnvelope, FaGithub, FaLock } from 'react-icons/fa';
+import { FaEnvelope, FaLock } from 'react-icons/fa';
 import { FcGoogle } from 'react-icons/fc';
+import { useGoogleLogin } from '@react-oauth/google';
 import { GiOverInfinity } from 'react-icons/gi';
 import AnimatedBlob from '../components/Blob';
 import { useNavigate } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggleTool';
 import { ErrorAlert, SuccessAlert } from '../components/Alert';
-import { useLoginMutation } from '../api/userApi';
+import { useLoginMutation, useGoogleAuthMutation } from '../api/userApi';
 import { InputField } from '../components/InputField';
 import { motion } from 'framer-motion';
 import { useDispatch } from 'react-redux';
@@ -86,7 +87,21 @@ const LoginComponent = () => {
         }
     };
 
-    const handleSocialLogin = (provider) => {};
+    const [googleAuth, { isLoading: isGoogleLoading }] = useGoogleAuthMutation();
+
+    const loginWithGoogle = useGoogleLogin({
+        scope: 'email profile',
+        onSuccess: async (tokenResponse) => {
+            setGeneralError('');
+            try {
+                const res = await googleAuth({ accessToken: tokenResponse.access_token }).unwrap();
+                if (res?.success) navigate('/dashboard');
+            } catch (err) {
+                setGeneralError(err?.data?.message || 'Google sign-in failed. Please try again.');
+            }
+        },
+        onError: () => setGeneralError('Google sign-in was cancelled or failed.'),
+    });
 
     return (
         <div className='min-h-screen w-full flex relative overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950 transition-colors duration-300'>
@@ -237,28 +252,19 @@ const LoginComponent = () => {
                         </div>
 
                         {/* Social Login */}
-                        <div className='flex gap-3'>
-                            <motion.button
-                                onClick={() => handleSocialLogin('github')}
-                                className='flex-1 flex items-center justify-center gap-2 py-2.5 px-4 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-700/50 hover:bg-white dark:hover:bg-gray-700 transition-all duration-200'
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                            >
-                                <FaGithub className='w-4 h-4 text-gray-700 dark:text-gray-300' />
-                                <span className='text-sm font-medium text-gray-700 dark:text-gray-300'>GitHub</span>
-                            </motion.button>
-
-                            <motion.button
-                                onClick={() => handleSocialLogin('google')}
-                                className='flex-1 flex items-center justify-center gap-2 py-2.5 px-4 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-700/50 hover:bg-white dark:hover:bg-gray-700 transition-all duration-200'
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                            >
-                                <FcGoogle className='w-4 h-4 text-gray-700 dark:text-gray-300' />
-
-                                <span className='text-sm font-medium text-gray-700 dark:text-gray-300'>Google</span>
-                            </motion.button>
-                        </div>
+                        <motion.button
+                            type='button'
+                            onClick={() => loginWithGoogle()}
+                            disabled={isGoogleLoading}
+                            className='w-full flex items-center justify-center gap-2.5 py-2.5 px-4 border border-gray-300 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-700/50 hover:bg-white dark:hover:bg-gray-700 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed'
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                        >
+                            <FcGoogle className='w-5 h-5' />
+                            <span className='text-sm font-medium text-gray-700 dark:text-gray-300'>
+                                {isGoogleLoading ? 'Signing in…' : 'Continue with Google'}
+                            </span>
+                        </motion.button>
 
                         {/* Footer Links */}
                         <div className='mt-6 text-center'>

@@ -402,7 +402,7 @@ const VersionComponent = ({ setVersionopen, canSave }) => {
         }
     };
 
-    const UserAvatar = ({ name, size = 'sm', bgColor }) => {
+    const UserAvatar = ({ name, size = 'sm', bgColor, image }) => {
         const sizeClasses = {
             xs: 'w-5 h-5 text-xs',
             sm: 'w-6 h-6 text-xs',
@@ -411,12 +411,16 @@ const VersionComponent = ({ setVersionopen, canSave }) => {
 
         return (
             <div
-                className={`${bgColor || 'bg-gray-500'} ${
+                className={`${
                     sizeClasses[size]
-                } rounded-full flex items-center justify-center text-white font-medium relative group`}
-                style={{ backgroundColor: bgColor || 'bg-gray-500' }}
+                } rounded-full flex items-center justify-center text-white font-medium relative group overflow-hidden`}
+                style={{ backgroundColor: bgColor || '#6b7280' }}
             >
-                {getInitials(name)}
+                {image ? (
+                    <img src={image} alt={name || ''} className='w-full h-full object-cover' />
+                ) : (
+                    getInitials(name)
+                )}
             </div>
         );
     };
