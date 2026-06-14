@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import DOMPurify from 'dompurify';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Search,
@@ -365,7 +366,7 @@ const DocumentCard = ({ document, refetch }) => {
                 {document.contentPreview?.trim() ? (
                     <div
                         className='doc-thumbnail prose prose-sm dark:prose-invert max-w-none absolute inset-0 p-4 overflow-hidden pointer-events-none'
-                        dangerouslySetInnerHTML={{ __html: document.contentPreview }}
+                        dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(document.contentPreview) }}
                     />
                 ) : (
                     <div className='h-full flex flex-col items-center justify-center gap-2 text-gray-300 dark:text-gray-600'>
