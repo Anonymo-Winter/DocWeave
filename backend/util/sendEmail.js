@@ -2,12 +2,17 @@ import nodemailer from 'nodemailer';
 import { CLIENT_URL } from '../config.js';
 
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    port: 587,
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true, // implicit TLS — matches port 465
     auth: {
         user: process.env.ADMIN_GMAIL,
         pass: process.env.ADMIN_GMAIL_PASSWORD,
     },
+    // Bail out instead of hanging if the SMTP server stalls.
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 20000,
 });
 
 const GRADIENT = 'linear-gradient(90deg,#9333ea,#db2777)';

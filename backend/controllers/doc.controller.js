@@ -286,20 +286,24 @@ export const addPeople = async (req, res) => {
 
         await document.save();
 
-        // send invites
+        // Respond as soon as the collaborators are persisted. Invite emails are
+        // best-effort and must not gate (or hang) the request — a slow/unreachable
+        // mail server would otherwise leave the client spinner stuck forever.
         const fromUser = await User.findById(actorId).select('name email').exec();
-        for (const { user, role } of newlyAddedUsers) {
+        res.status(200).json({ success: true });
+
+        // Fire-and-forget the invite emails after responding.
+        for (const { user, role: inviteRole } of newlyAddedUsers) {
             if (user.email) {
-                await sendInvite(
+                sendInvite(
                     { username: user.name, email: user.email },
                     { username: fromUser.name, email: fromUser.email },
                     { documentId, name: document.title },
-                    role,
-                );
+                    inviteRole,
+                ).catch((err) => console.error('Failed to send invite to', user.email, err.message));
             }
         }
-
-        return res.status(200).json({ success: true });
+        return;
     } catch (error) {
         console.error('Error adding people:', error);
         return res.status(500).json({ message: 'Failed to add people', error: error.message });
