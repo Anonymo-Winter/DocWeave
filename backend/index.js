@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import cookieParser from 'cookie-parser';
 import { createServer } from 'node:http';
 import { setupSocketIo, flushAllAutosaves } from './socket.js';
+import { trackMetrics, getMetricsData } from './middlewares/metrics.js';
 import cors from 'cors';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -32,6 +33,13 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json({ limit: '50mb' }));
 
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Collect request metrics for the status dashboard (must run before the routers
+// so every API request is counted).
+app.use(trackMetrics);
+
+// Powers the live status dashboard at public/index.html.
+app.get('/api/metrics', (req, res) => res.json(getMetricsData()));
 
 // Routers
 app.use('/api/auth', authRouter);
