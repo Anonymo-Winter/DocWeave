@@ -107,7 +107,7 @@ const NavBar = () => {
                     </span>
                     <span
                         className='text-xl font-extrabold tracking-tight bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent'
-                        style={{ fontFamily: 'cursive' }}
+                        style={{ fontFamily: "'Comic Neue', cursive" }}
                     >
                         DocWeave
                     </span>
@@ -1296,7 +1296,7 @@ const Footer = () => (
                 <span className='inline-flex size-6 items-center justify-center rounded-md bg-gradient-to-br from-purple-600 to-pink-600 text-white'>
                     <GiOverInfinity className='size-3.5' />
                 </span>
-                <span className='font-bold text-gray-900 dark:text-white' style={{ fontFamily: 'cursive' }}>
+                <span className='font-bold text-gray-900 dark:text-white' style={{ fontFamily: "'Comic Neue', cursive" }}>
                     DocWeave
                 </span>
                 <span className='text-gray-400 dark:text-gray-600'>· open-source real-time docs</span>

@@ -19,7 +19,7 @@ const Brand = () => (
         </span>
         <span
             className='font-bold text-lg text-gray-900 dark:text-white tracking-tight'
-            style={{ fontFamily: 'cursive' }}
+            style={{ fontFamily: "'Comic Neue', cursive" }}
         >
             CollabDocs
         </span>

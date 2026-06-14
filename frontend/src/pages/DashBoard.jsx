@@ -227,7 +227,7 @@ const NavBar = () => {
                     </div>
                     <span
                         className='font-bold text-xl text-gray-900 dark:text-white tracking-tight'
-                        style={{ fontFamily: 'cursive' }}
+                        style={{ fontFamily: "'Comic Neue', cursive" }}
                     >
                         DocWeave
                     </span>
