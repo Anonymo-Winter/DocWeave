@@ -369,17 +369,22 @@ export const uploadImageInEditor = async (req, res) => {
 };
 
 export const generatePDF = async (req, res) => {
+    let browser;
     try {
         const { htmlContent } = req.body;
+        if (!htmlContent) {
+            return res.status(400).json({ message: 'No content to export.' });
+        }
 
-        const browser = await puppeteer.launch({ headless: true });
+        browser = await puppeteer.launch({
+            headless: true,
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+        });
         const page = await browser.newPage();
 
         await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
 
         const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
-
-        await browser.close();
 
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Length', pdfBuffer.length);
@@ -387,6 +392,8 @@ export const generatePDF = async (req, res) => {
     } catch (error) {
         console.error('Puppeteer Error:', error);
         res.status(500).json({ message: 'Could not generate the PDF. Please try again.' });
+    } finally {
+        if (browser) await browser.close();
     }
 };
 
