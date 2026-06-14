@@ -387,7 +387,9 @@ export const generatePDF = async (req, res) => {
               });
         const page = await browser.newPage();
 
-        await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+        // 'load' is reliable over a remote browser (Browserless); 'networkidle0'
+        // tends to hit the navigation timeout there.
+        await page.setContent(htmlContent, { waitUntil: 'load', timeout: 60000 });
 
         const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
 
