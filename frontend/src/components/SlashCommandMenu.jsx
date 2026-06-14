@@ -15,6 +15,7 @@ import {
     Minus,
 } from 'lucide-react';
 import { useAIGenerate } from '../hooks/useAIGenerate';
+import { aiTextToHtml } from '../util/aiTextToHtml';
 import { toast } from 'sonner';
 
 /**
@@ -28,22 +29,14 @@ export default function SlashCommandMenu({ editor, onOpenAIGenerate, onOpenAsk }
     const [state, setState] = useState({ open: false, query: '', slashPos: null, anchor: null });
     const [activeIdx, setActiveIdx] = useState(0);
     const menuRef = useRef(null);
-    const insertPosRef = useRef(null);
 
+    // Insert the finished result as proper paragraphs. Streaming raw text token
+    // by token loses paragraph breaks once the document re-renders on edit.
     const { generate } = useAIGenerate({
-        onStart: ({ insertAt }) => {
-            const pos = typeof insertAt === 'number' ? insertAt : editor?.state.selection.from;
-            if (pos == null) return;
-            editor.chain().focus().setTextSelection(pos).run();
-            insertPosRef.current = pos;
-        },
-        onDelta: (delta) => {
-            if (!editor || insertPosRef.current == null) return;
-            editor.chain().insertContentAt(insertPosRef.current, delta).run();
-            insertPosRef.current += delta.length;
-        },
-        onEnd: () => {
-            insertPosRef.current = null;
+        onEnd: ({ fullText, insertAt }) => {
+            if (!editor || !fullText || !fullText.trim()) return;
+            const pos = typeof insertAt === 'number' ? insertAt : editor.state.selection.from;
+            editor.chain().focus().insertContentAt(pos, aiTextToHtml(fullText)).run();
         },
     });
 

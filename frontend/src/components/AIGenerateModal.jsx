@@ -3,6 +3,7 @@ import { Sparkles, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
 import { useAIGenerate } from '../hooks/useAIGenerate';
 import { getEditor } from '../util/editorBridge';
+import { aiTextToHtml } from '../util/aiTextToHtml';
 import { toast } from 'sonner';
 
 const SUGGESTIONS = [
@@ -14,32 +15,23 @@ const SUGGESTIONS = [
 
 export default function AIGenerateModal({ open, onOpenChange }) {
     const [instruction, setInstruction] = useState('');
-    const insertPosRef = useRef(null);
     const textareaRef = useRef(null);
 
+    // The result is shown live in the modal preview while streaming, then
+    // inserted into the document as proper paragraphs once complete — inserting
+    // raw streamed text loses paragraph breaks on the next edit.
     const { generate, streaming, tokens, error, reset } = useAIGenerate({
-        onStart: ({ insertAt }) => {
+        onEnd: ({ fullText, insertAt }) => {
             const editor = getEditor();
-            if (!editor) return;
-            const pos = typeof insertAt === 'number' ? insertAt : editor.state.selection.from;
-            // Ensure we're on a fresh line if there's existing text right before us.
-            editor.chain().focus().setTextSelection(pos).insertContentAt(pos, '\n').run();
-            insertPosRef.current = pos + 1;
-        },
-        onDelta: (delta) => {
-            const editor = getEditor();
-            if (!editor || insertPosRef.current == null) return;
-            editor.chain().insertContentAt(insertPosRef.current, delta).run();
-            insertPosRef.current += delta.length;
-        },
-        onEnd: () => {
-            insertPosRef.current = null;
+            if (editor && fullText && fullText.trim()) {
+                const pos = typeof insertAt === 'number' ? insertAt : editor.state.selection.from;
+                editor.chain().focus().insertContentAt(pos, aiTextToHtml(fullText)).run();
+            }
             onOpenChange(false);
             setInstruction('');
             reset();
         },
         onError: (err) => {
-            insertPosRef.current = null;
             toast.error('AI generation failed');
             console.error('AI generation failed : ', err.message);
         },
@@ -100,7 +92,7 @@ export default function AIGenerateModal({ open, onOpenChange }) {
                         Generate with AI
                     </DialogTitle>
                     <DialogDescription>
-                        Describe what to write. The result will stream into the document at your cursor.
+                        Describe what to write. It streams here as it's generated, then drops into your document at the cursor.
                     </DialogDescription>
                 </DialogHeader>
 
