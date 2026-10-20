@@ -91,14 +91,10 @@ export const docApi = createApi({
                 body: { htmlContent },
                 responseHandler: (response) => response.blob(),
             }),
-            // Add this onQueryStarted property to prevent caching the data
-            onQueryStarted: async (arg, { dispatch, queryFulfilled }) => {
+            onQueryStarted: async (arg, { queryFulfilled }) => {
                 try {
-                    const { data } = await queryFulfilled;
-                    // You could handle the download directly here,
-                    // or just ensure the promise resolves
+                    await queryFulfilled;
                 } catch (error) {
-                    // Handle any errors
                     console.error('Download failed:', error);
                 }
             },

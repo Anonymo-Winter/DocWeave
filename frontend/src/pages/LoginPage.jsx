@@ -10,12 +10,9 @@ import { ErrorAlert, SuccessAlert } from '../components/Alert';
 import { useLoginMutation, useGoogleAuthMutation } from '../api/userApi';
 import { InputField } from '../components/InputField';
 import { motion } from 'framer-motion';
-import { useDispatch } from 'react-redux';
-import { setCredentials } from '../store/userSlice';
 
 // Main Login Component
 const LoginComponent = () => {
-    const dispatch = useDispatch();
     const [formData, setFormData] = useState({
         email: '',
         password: '',

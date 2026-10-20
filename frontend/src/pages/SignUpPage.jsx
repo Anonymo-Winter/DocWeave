@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, EyeOff, AlertCircle, Mail, Lock, CheckCircle } from 'lucide-react';
+import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { FaEnvelope, FaLock, FaUser } from 'react-icons/fa';
 import { FcGoogle } from 'react-icons/fc';
 import { useGoogleLogin } from '@react-oauth/google';
@@ -25,7 +24,7 @@ const LoginComponent = () => {
     const [generalError, setGeneralError] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
     const navigate = useNavigate();
-    const [handleSignup, { isLoading: isSignupLoading }] = useRegisterMutation();
+    const [handleSignup] = useRegisterMutation();
 
     const validateForm = () => {
         const newErrors = {};

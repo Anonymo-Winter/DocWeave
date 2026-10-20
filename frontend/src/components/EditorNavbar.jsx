@@ -1,6 +1,5 @@
 import { useSaveVersionMutation, useChangeDocNameMutation } from '../api/docApi.js';
-import debounce from 'lodash.debounce';
-import { useCallback, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useSocket } from '../context/socketContext';
 import { useSelector } from 'react-redux';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -13,7 +12,6 @@ import {
     Menu,
     ArrowLeft,
     Mail,
-    X,
     Crown,
     Eye,
     Edit,
@@ -40,14 +38,13 @@ import { Label } from './ui/label.tsx';
 import { AiOutlineHistory } from 'react-icons/ai';
 import { Separator } from '../components/ui/separator';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
-import { FaAngleDown, FaCheckCircle, FaHistory } from 'react-icons/fa';
+import { FaAngleDown } from 'react-icons/fa';
 import ShareModal from '../components/ShareModal.jsx';
 import VersionComponent from '../components/VersionComponent.jsx';
 import ConnectionStatus from '../components/ConnectionStatus';
 import { DropDown } from '../pages/DashBoard.jsx';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '../components/ui/hover-card';
 import { getInitials } from '../util/getInitials.js';
-import { IoMdInformationCircleOutline } from 'react-icons/io';
 import * as Y from 'yjs';
 import { Buffer } from 'buffer';
 import { getWordCountFromYdoc } from '../util/wordCount.js';
@@ -222,7 +219,7 @@ function MobileMenu({ documentName, setDocumentName, collaborators, actions, can
     );
 }
 
-function CollaboratorsDropdown({ list, isChatVisible, setIsChatVisible }) {
+function CollaboratorsDropdown({ list }) {
     const onEmailClick = (toemail) => {
         const gmailURL = `https://mail.google.com/mail/?view=cm&fs=1` + `&to=${encodeURIComponent(toemail)}`;
         window.open(gmailURL, '_blank');
@@ -369,7 +366,7 @@ const EditorNavbar = ({
                 return;
             }
             const collaborators = Array.from(awareness.getStates())
-                .map(([clientId, state]) => {
+                .map(([, state]) => {
                     if (!state?.user?.id) return null; // skip invalid entries
                     return {
                         user: state.user.id,
@@ -683,11 +680,7 @@ const EditorNavbar = ({
                                 </button>
                             </div>
                             {showCollaborators && (
-                                <CollaboratorsDropdown
-                                    list={activeUsers}
-                                    isChatVisible={isChatVisible}
-                                    setIsChatVisible={setIsChatVisible}
-                                />
+                                <CollaboratorsDropdown list={activeUsers} />
                             )}
                         </div>
 

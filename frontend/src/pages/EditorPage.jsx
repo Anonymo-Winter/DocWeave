@@ -10,7 +10,6 @@ import { useSocket } from '../context/socketContext';
 import { toast } from 'sonner';
 import { useParams } from 'react-router-dom';
 import ErrorMessage from '../components/ErrorMessage.jsx';
-import { Settings } from 'lucide-react';
 
 const EnhancedEditorLayout = () => {
     const [isChatVisible, _setIsChatVisible] = useState(false);

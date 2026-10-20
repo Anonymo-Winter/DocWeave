@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getInitials } from '../util/getInitials';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '../components/ui/hover-card';
 import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';

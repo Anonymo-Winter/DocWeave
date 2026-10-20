@@ -1,20 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import DOMPurify from 'dompurify';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Search,
-    Plus,
     FileText,
     Filter,
     Clock,
     Users,
     Star,
-    MoreVertical,
     LogOut,
-    Settings,
-    User,
-    Moon,
-    Sun,
     ChevronDown,
     Check,
     Trash2,
@@ -28,7 +22,6 @@ import {
 import { useSelector } from 'react-redux';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
-import { MdCreateNewFolder } from 'react-icons/md';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -47,7 +40,7 @@ import {
 } from '../api/docApi';
 
 import ProfileEditModal from '../components/EditProfile';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import ThemeToggle from '../components/ThemeToggleTool';
 import { GiOverInfinity } from 'react-icons/gi';
 import { getInitials } from '../util/getInitials.js';
@@ -113,16 +106,6 @@ const getVisibilityMeta = (visibility = 'restricted') => {
         return { icon: Building2, label: 'Anyone in your org', color: 'text-indigo-500' };
     }
     return { icon: Lock, label: 'Restricted', color: 'text-gray-400' };
-};
-
-const VisibilityIndicator = ({ visibility, className = '' }) => {
-    const meta = getVisibilityMeta(visibility);
-    const Icon = meta.icon;
-    return (
-        <span title={meta.label} className={`inline-flex items-center ${meta.color} ${className}`}>
-            <Icon className='w-3 h-3' />
-        </span>
-    );
 };
 
 // Filter options
@@ -458,7 +441,7 @@ const Dashboard = () => {
     const [selectedFilter, setSelectedFilter] = useState('all');
     const [filteredDocuments, setFilteredDocuments] = useState([]);
     const user = useSelector((state) => state.user.user);
-    const [createDocument, { isLoading: isDocumentLoading }] = useCreateDocumentMutation();
+    const [createDocument] = useCreateDocumentMutation();
     const {
         data,
         isLoading: isLoadingDocuments,

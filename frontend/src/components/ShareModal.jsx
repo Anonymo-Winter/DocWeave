@@ -12,14 +12,10 @@ import {
     UserPlus,
     Users,
     Copy,
-    Mail,
     Lock,
     X,
     Settings2,
     UserPen,
-    Eye,
-    Crown,
-    Edit,
 } from 'lucide-react';
 import { useSearchForEmailMutation } from '../api/userApi.js';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';

@@ -55,7 +55,7 @@ import { useMobile } from '@/hooks/use-mobile';
 import { useWindowSize } from '@/hooks/use-window-size';
 import { useCursorVisibility } from '@/hooks/use-cursor-visibility';
 
-// --- Components ImageUploadButton
+// --- Components ---
 import { ThemeToggle } from '@/components/tiptap-templates/simple/theme-toggle.tsx';
 
 // --- Lib ---
@@ -63,17 +63,9 @@ import { handleImageUpload, MAX_FILE_SIZE } from '@/lib/tiptap-utils';
 
 // --- Styles ---
 import '@/components/tiptap-templates/simple/simple-editor.scss';
-import '@/components/tiptap-node/code-block-node/code-block-node.scss';
-import '@/components/tiptap-node/list-node/list-node.scss';
-import '@/components/tiptap-node/image-node/image-node.scss';
-import '@/components/tiptap-node/paragraph-node/paragraph-node.scss';
 import '@/components/tiptap-ui-primitive/button/button.scss';
 
-// --- Tiptap Node ---
-// --- Styles ---
-import '@/components/tiptap-templates/simple/simple-editor.scss';
-
-import { Edit, Eye, Loader, Lock, Redo2, Undo2, Unlock, XCircle } from 'lucide-react';
+import { Edit, Eye, Redo2, Undo2 } from 'lucide-react';
 import { useSocket } from '../context/socketContext.jsx';
 import { useSelector } from 'react-redux';
 import { useGetVersionQuery } from '../api/docApi.js';
@@ -81,10 +73,8 @@ import { useGetVersionQuery } from '../api/docApi.js';
 import * as Y from 'yjs';
 import { useParams } from 'react-router-dom';
 import { Buffer } from 'buffer';
-import ErrorPage from './ErrorMessage.jsx';
 import { toast } from 'sonner';
 import { getCriticalEditorError } from '../context/yjsSetup.js';
-import ErrorMessage from './ErrorMessage.jsx';
 import AISelectionMenu from './AISelectionMenu.jsx';
 import SlashCommandMenu from './SlashCommandMenu.jsx';
 import { setEditor as registerActiveEditor, openAIGenerate, openAskPanel } from '../util/editorBridge.js';
@@ -144,7 +134,6 @@ const MainToolbarContent = ({
             </ToolbarGroup>
             <ToolbarSeparator />
             <ToolbarGroup>
-                {/* <ImageUploadButton editor={editor} documentId={editorId} text='Add' /> */}
                 <ImageUploadButton documentId={editorId} />
             </ToolbarGroup>
             <ToolbarSeparator />
@@ -244,7 +233,6 @@ export function SimpleEditor({ onError, canEdit }) {
         };
     }, [ydoc]);
 
-    const provider = React.useMemo(() => ({ awareness }), [awareness]);
     const baseExtensions = React.useMemo(
         () => [
             Document,
@@ -266,7 +254,6 @@ export function SimpleEditor({ onError, canEdit }) {
                 limit: 1,
                 upload: handleImageUpload,
                 onError: (error) => toast.error(error.message | 'Error uploading image'),
-                // onError: (error) => console.error('Upload failed:', error),
             }),
             TrailingNode,
             Link.configure({ openOnClick: false }),
@@ -364,8 +351,6 @@ export function SimpleEditor({ onError, canEdit }) {
 
         const initialize = async () => {
             try {
-                console.log('🔄 Starting to apply version to Ydoc...');
-
                 // Handle empty document case
                 if (!data.version.update || data.version.update.length === 0) {
                     const fragment = ydoc.getXmlFragment('default');
@@ -382,7 +367,6 @@ export function SimpleEditor({ onError, canEdit }) {
                 // Apply update
                 Y.applyUpdate(ydoc, binaryData);
 
-                console.log('✅ Version applied to Ydoc successfully');
                 setIsInitialized(true);
             } catch (err) {
                 console.error('❌ Failed to apply version:', err);
@@ -391,7 +375,6 @@ export function SimpleEditor({ onError, canEdit }) {
                     status: 500,
                     message: 'Failed to load document content. The data may be corrupted.',
                 });
-                // setIsInitialized(true); // Still continue even if version load fails
                 return;
             }
         };
@@ -490,14 +473,6 @@ export function SimpleEditor({ onError, canEdit }) {
                     </div>
                 </div>
             </EditorContext>
-            {/* <div className='fixed bottom-4 right-4 flex gap-2'>
-                <button onClick={handleSave} className='bg-blue-500 text-white px-4 py-2 rounded'>
-                    Save Version
-                </button>
-                <button onClick={forceSync} className='bg-green-500 text-white px-4 py-2 rounded'>
-                    Force Sync
-                </button>
-            </div> */}
         </div>
     );
 }

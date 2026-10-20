@@ -1,21 +1,9 @@
-import React, { useState } from 'react';
-import {
-    MessageSquareMore,
-    Wifi,
-    WifiOff,
-    RotateCw,
-    AlertTriangle,
-    CheckCircle2,
-    Clock,
-    Network,
-    Zap,
-} from 'lucide-react';
+import { RotateCw, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { cn } from '../lib/utils';
 import { motion } from 'framer-motion';
-
-// Mock data for demonstration
-const mockConnectionStatus = { connected: 'Connected to collaboration server' };
+import { MdAutorenew } from 'react-icons/md';
+import { useSocket } from '../context/socketContext';
 
 const statusConfig = {
     connected: {
@@ -130,9 +118,6 @@ const ConnectionStatusIndicator = () => {
                 </div>
 
                 <div className='p-4 space-y-3'>
-                    {/* <div className='text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 p-3 rounded-lg break-words'>
-                        {statusMessage || status.description}
-                    </div> */}
                     <div
                         className='text-sm text-gray-600 dark:text-gray-400
                 bg-gray-50 dark:bg-gray-800
@@ -142,13 +127,6 @@ const ConnectionStatusIndicator = () => {
                     </div>
 
                     {(statusKey === 'disconnected' || statusKey === 'failed') && (
-                        // <button
-                        //     className='w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors'
-                        //     onClick={handleRefresh}
-                        // >
-                        //     <MdAutorenew />
-                        //     <span>Reconnect</span>
-                        // </button>
                         <button
                             type='button'
                             onClick={handleRefresh}
@@ -166,22 +144,6 @@ const ConnectionStatusIndicator = () => {
                     )}
                 </div>
 
-                {/* <div className='px-4 py-2 text-xs flex justify-between text-gray-500 dark:text-gray-400 border-t bg-gray-50 dark:bg-gray-800'>
-                    <span>Last updated: {new Date().toLocaleTimeString()}</span>
-                    <span className='flex items-center gap-1'>
-                        <div
-                            className={cn(
-                                'w-2 h-2 rounded-full',
-                                statusKey === 'connected'
-                                    ? 'bg-green-400'
-                                    : statusKey === 'reconnecting'
-                                    ? 'bg-yellow-400'
-                                    : 'bg-red-400',
-                            )}
-                        />
-                        Server Status
-                    </span>
-                </div> */}
                 <div
                     className='px-4 py-2 text-xs
                 flex justify-between items-center
@@ -207,61 +169,6 @@ const ConnectionStatusIndicator = () => {
                 </div>
             </PopoverContent>
         </Popover>
-    );
-};
-
-import { DropDown } from '../pages/DashBoard';
-import { scale } from 'framer-motion';
-import { MdAutorenew } from 'react-icons/md';
-import { useSocket } from '../context/socketContext';
-import { toast } from 'sonner';
-
-const ProfessionalNavbar = () => {
-    const [isChatVisible, setIsChatVisible] = useState(false);
-
-    return (
-        <header className='h-16 flex items-center justify-between px-6 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm'>
-            {/* Logo/Brand */}
-            <div className='flex items-center gap-3'>
-                <div className='w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center'>
-                    <span className='text-white font-bold text-sm'>M</span>
-                </div>
-                <span className='font-bold text-xl text-gray-900 dark:text-white tracking-tight'>MyApp</span>
-                <span className='text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full font-medium'>
-                    Editor
-                </span>
-            </div>
-
-            {/* Right Section */}
-            <div className='flex items-center gap-4'>
-                {/* Connection Status */}
-                <ConnectionStatusIndicator connectionStatus={mockConnectionStatus} />
-
-                {/* Chat Toggle */}
-                <button
-                    onClick={() => setIsChatVisible(!isChatVisible)}
-                    className={`
-                        relative p-2.5 rounded-lg border transition-all duration-200
-                        ${
-                            isChatVisible
-                                ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400'
-                                : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                        }
-                        hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500
-                    `}
-                    aria-label='Toggle chat panel'
-                >
-                    <MessageSquareMore size={18} />
-                    {/* Notification badge */}
-                    <span className='absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium'>
-                        3
-                    </span>
-                </button>
-
-                {/* User Avatar Placeholder */}
-                <DropDown />
-            </div>
-        </header>
     );
 };
 

@@ -1,9 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     Clock,
-    User,
-    MoreVertical,
-    X,
     RotateCcw,
     Download,
     Copy,
@@ -11,30 +8,20 @@ import {
     Edit2,
     Save,
     Trash2,
-    Plus,
-    Sun,
-    Moon,
-    ArrowLeft,
     Menu,
-    Mail,
-    Circle,
-    Code,
     File,
     Loader2,
     FileText,
-    Check,
     Sparkles,
     Globe,
-    FileCode,
     ArrowRight,
     CheckCircle2,
 } from 'lucide-react';
-import { createNamedSnapshot, applySnapshotToDoc } from '../util/yjsSnapshots';
 import * as Y from 'yjs';
 import { useSocket } from '../context/socketContext';
 import { useSelector } from 'react-redux';
 import { AiOutlineHistory } from 'react-icons/ai';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useSaveVersionMutation, useGetAllversionsQuery, useGeneratePdfMutation } from '../api/docApi';
 import { getWordCountFromYdoc } from '../util/wordCount';
 import {
@@ -49,19 +36,15 @@ import {
 } from '../components/ui/dialog';
 import { Button } from './ui/button';
 import { Label } from './ui/label';
-import { InputField } from './InputField';
 import { toast } from 'sonner';
 import { Buffer } from 'buffer';
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { Popover, PopoverContent, PopoverTrigger } from '../components/ui/popover';
 import { getInitials } from '../util/getInitials.js';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from './ui/hover-card.js';
-import { useEditor, EditorContext, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent } from '@tiptap/react';
 import { FaRedo } from 'react-icons/fa';
 import { FaRegFilePdf } from 'react-icons/fa6';
 import { IoLogoMarkdown } from 'react-icons/io5';
 
-// VersionViewer.jsx
 import { Collaboration } from '@tiptap/extension-collaboration';
 import { useDeleteVersionMutation, useUpdateVersionMutation, useToggleVersionStarMutation } from '../api/versionApi.js';
 
@@ -84,13 +67,8 @@ import '@/components/tiptap-node/paragraph-node/paragraph-node.scss';
 
 import { style, style2 } from '../util/htmlStyles.js';
 import TurndownService from 'turndown';
-import fs from 'fs';
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, ImageRun, UnderlineType } from 'docx';
-import { saveAs } from 'file-saver';
-import html2pdf from 'html2pdf.js';
-import { Awareness } from 'y-protocols/awareness.js';
 
-export const VersionViewer = ({ selectedVersion, versionUpdateBase64, onEditorReady }) => {
+export const VersionViewer = ({ versionUpdateBase64, onEditorReady }) => {
     const [ydoc] = useState(() => new Y.Doc());
 
     // Apply update before editor is created
@@ -171,7 +149,7 @@ const VersionComponent = ({ setVersionopen, canSave }) => {
             toast.error('Failed to update star');
         }
     };
-    const [generatePdf, { isLoading, isSuccess, error }] = useGeneratePdfMutation();
+    const [generatePdf] = useGeneratePdfMutation();
 
     const {
         data,
@@ -210,7 +188,7 @@ const VersionComponent = ({ setVersionopen, canSave }) => {
                 return;
             }
             const collaborators = Array.from(awareness.getStates())
-                .map(([clientId, state]) => {
+                .map(([, state]) => {
                     if (!state?.user?.id) return null; // skip invalid entries
                     return {
                         user: state.user.id,

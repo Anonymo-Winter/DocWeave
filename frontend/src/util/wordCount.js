@@ -1,5 +1,3 @@
-import * as Y from 'yjs';
-
 export const getWordCountFromYdoc = (ydoc) => {
     try {
         const yText = ydoc.getXmlFragment('default');

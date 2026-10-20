@@ -1321,9 +1321,6 @@ const Footer = () => (
                 <a href='#features' className='hover:text-gray-900 dark:hover:text-white'>
                     Features
                 </a>
-                {/* <Link to='/testing/docs' className='hover:text-gray-900 dark:hover:text-white'>
-                    Docs
-                </Link> */}
                 <Link to='/login' className='hover:text-gray-900 dark:hover:text-white'>
                     Login
                 </Link>

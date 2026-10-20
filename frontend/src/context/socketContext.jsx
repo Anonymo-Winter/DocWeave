@@ -9,7 +9,6 @@ import { useParams } from 'react-router-dom';
 import { useOfflineStatus } from '../hooks/useOfflineStatus';
 
 import { getYjsForDoc, whenIndexeddbSynced } from './yjsSetup';
-import ErrorMessage from '../components/ErrorMessage';
 import { BACKEND_URL as SOCKET_URL } from '../config';
 
 const SocketContext = createContext();
@@ -240,7 +239,7 @@ export const SocketProvider = ({ children }) => {
             });
         });
 
-        socket.on('access-updated', ({ docId, role, message }) => {
+        socket.on('access-updated', ({ role, message }) => {
             if (!role) {
                 setFatalSocketError({
                     code: 'NO_ACCESS',
