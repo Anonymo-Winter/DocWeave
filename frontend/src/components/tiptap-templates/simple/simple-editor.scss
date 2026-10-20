@@ -1,0 +1,141 @@
+@use '../../styles/variables';
+
+body {
+    --tt-toolbar-height: 44px;
+    --tt-theme-text: var(--tt-gray-light-900);
+
+    .dark & {
+        --tt-theme-text: var(--tt-gray-dark-900);
+    }
+}
+
+html,
+body,
+#root,
+#app {
+    height: 100%;
+    background-color: var(--tt-bg-color);
+}
+
+.tiptap.ProseMirror {
+    font-family: 'Inter', sans-serif;
+}
+
+.content-wrapper {
+    overflow-y: auto;
+
+    &::-webkit-scrollbar {
+        display: block;
+        width: 0.5rem;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: var(--tt-scrollbar-color);
+        border-radius: 4px;
+    }
+
+    /* Firefox scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: var(--tt-scrollbar-color) transparent;
+}
+
+.simple-editor-content {
+    background-color: yellowgreen;
+    width: 100%;
+    height: 100%;
+    margin: 0 auto;
+    border: 1px solid silver;
+    overflow-y: auto;
+    overflow-x: auto;
+    padding: 10px;
+}
+
+.simple-editor-content .tiptap.ProseMirror {
+    padding: 3rem 3rem;
+}
+
+@media screen and (max-width: 480px) {
+    .simple-editor-content .tiptap.ProseMirror {
+        padding: 1rem 1.5rem;
+    }
+}
+
+.yjs-selection-highlight {
+    // Use a fallback color if needed
+    background-color: rgba(128, 128, 128, 0.2);
+}
+
+.yjs-cursor {
+    border-left: 2px solid var(--user-color, gray);
+    background-color: var(--user-color, gray);
+    margin-left: -1px;
+    margin-bottom: -0.2em;
+    height: 1.2em;
+    display: inline-block;
+    position: relative;
+    z-index: 10;
+    width: 2px;
+
+    &::after {
+        content: '';
+        position: absolute;
+        left: 0px;
+        top: 0px;
+        width: 4px;
+        height: 4px;
+        background-color: var(--user-color, gray);
+        transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+
+    &:hover {
+        cursor: pointer;
+
+        &::after {
+            transform: scale(1.2);
+            opacity: 1;
+        }
+
+        &::before {
+            content: attr(data-user-name);
+            position: absolute;
+            top: -20px;
+            left: -2px;
+            background-color: var(--user-color, gray);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            pointer-events: none;
+            user-select: none;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            z-index: 20;
+            opacity: 1;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+    }
+}
+
+.yjs-cursor-wrapper {
+    position: relative;
+}
+
+.cursor-label {
+    background-color: var(--user-color, gray);
+    color: white;
+    padding: 2px 6px;
+    font-size: 12px;
+    border-radius: 4px;
+    margin-left: 4px;
+    position: absolute;
+    top: -1.4em;
+    left: -3px;
+    white-space: nowrap;
+    user-select: none;
+    pointer-events: none;
+    z-index: 15;
+}
