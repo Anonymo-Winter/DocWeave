@@ -39,9 +39,10 @@ const fadeUp = {
     transition: { duration: 0.6, ease: 'easeOut' },
 };
 
+const REPO_URL = 'https://github.com/Anonymo-Winter/docweave';
 const REPOS = {
-    frontend: 'https://github.com/Anonymo-Winter/docweave_frontend',
-    backend: 'https://github.com/Anonymo-Winter/docweave_backend',
+    frontend: `${REPO_URL}/tree/main/frontend`,
+    backend: `${REPO_URL}/tree/main/backend`,
 };
 
 const NavBar = () => {
