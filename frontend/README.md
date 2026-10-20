@@ -39,7 +39,7 @@ DocWeave is a collaborative document editor where your whole team edits the same
 ## 📂 Structure
 
 ```
-frontend/src/
+src/
 ├── pages/         # LandingPage, DashBoard, EditorPage, Login/SignUp, Forgot/Reset, …
 ├── components/    # Editor, EditorNavbar, ShareModal, VersionComponent, ErrorMessage, …
 ├── context/       # socketContext (Yjs + Socket.IO), yjsSetup
@@ -54,12 +54,14 @@ frontend/src/
 **Prerequisites:** Node.js 20+ and the [DocWeave backend](https://github.com/Anonymo-Winter/docweave_backend) running.
 
 ```bash
-cd frontend
+git clone https://github.com/Anonymo-Winter/docweave_frontend.git
+cd docweave_frontend
 npm install
-npm run dev        # Vite dev server → http://localhost:5173
+cp .env.example .env   # only needed for Google sign-in
+npm run dev            # Vite dev server → http://localhost:5173
 ```
 
-Create a `.env` in `frontend/` for Google sign-in:
+For Google sign-in, set this in `.env`:
 
 ```ini
 VITE_GOOGLE_CLIENT_ID=your-google-oauth-client-id
@@ -91,3 +93,5 @@ To change either URL, edit `src/config.js`.
 ---
 
 <p align="center">Part of <a href="https://docweave.tarunsumanthpuli.me/">DocWeave</a> · backend repo: <a href="https://github.com/Anonymo-Winter/docweave_backend">docweave_backend</a></p>
+
+<p align="center"><sub>© 2026 Tarun Sumanth Puli. All rights reserved. This code is shared for portfolio viewing only and may not be copied, modified, or used without permission.</sub></p>
