@@ -51,11 +51,11 @@ src/
 
 ## 🚀 Getting started
 
-**Prerequisites:** Node.js 20+ and the [DocWeave backend](https://github.com/Anonymo-Winter/docweave_backend) running.
+**Prerequisites:** Node.js 20+ and the [DocWeave backend](../backend) running.
 
 ```bash
-git clone https://github.com/Anonymo-Winter/docweave_frontend.git
-cd docweave_frontend
+git clone https://github.com/Anonymo-Winter/docweave.git
+cd docweave/frontend
 npm install
 cp .env.example .env   # only needed for Google sign-in
 npm run dev            # Vite dev server → http://localhost:5173
@@ -92,6 +92,6 @@ To change either URL, edit `src/config.js`.
 
 ---
 
-<p align="center">Part of <a href="https://docweave.tarunsumanthpuli.me/">DocWeave</a> · backend repo: <a href="https://github.com/Anonymo-Winter/docweave_backend">docweave_backend</a></p>
+<p align="center">Part of <a href="https://docweave.tarunsumanthpuli.me/">DocWeave</a> · <a href="../backend">backend</a> · <a href="../README.md">project overview</a></p>
 
 <p align="center"><sub>© 2026 Tarun Sumanth Puli. All rights reserved. This code is shared for portfolio viewing only and may not be copied, modified, or used without permission.</sub></p>

@@ -1,0 +1,20 @@
+# Personal setup: connect the backend to a shared MongoDB running on a Docker
+# network called "devnet" (for example, a mongodb_8 container in ~/services).
+#
+# To use it:
+#   1. cp compose.override.example.yaml compose.override.yaml   (git-ignored)
+#   2. Create a root .env (git-ignored) containing:
+#        DOCKER_MONGO_URL=mongodb://USER:PASSWORD@mongodb_8:27017/?authSource=admin
+#   3. docker compose up --build        (no --profile db needed)
+#
+# Docker Compose merges compose.override.yaml into compose.yaml automatically.
+
+services:
+  backend:
+    networks:
+      - default
+      - devnet
+
+networks:
+  devnet:
+    external: true

@@ -1,0 +1,4 @@
+# Root-level local files (backend/ and frontend/ have their own .gitignore files)
+.env
+compose.override.yaml
+node_modules/

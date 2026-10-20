@@ -38,7 +38,7 @@ DocWeave lets a whole team write in the same document at once — with live curs
 ## 📂 Structure
 
 ```
-docweave_backend/
+backend/
 ├── index.js              # Entry: Express + Socket.IO server, graceful shutdown
 ├── connectDB.js          # Mongo connection
 ├── socket.js             # Yjs relay, autosave, chat, awareness, AI events
@@ -56,8 +56,8 @@ docweave_backend/
 **Prerequisites:** Node.js 20+, a MongoDB database, and a Groq API key (for AI features).
 
 ```bash
-git clone https://github.com/Anonymo-Winter/docweave_backend.git
-cd docweave_backend
+git clone https://github.com/Anonymo-Winter/docweave.git
+cd docweave/backend
 npm install
 cp .env.example .env   # then fill in your values
 npm run dev            # nodemon index.js  →  http://localhost:5000
@@ -165,6 +165,6 @@ The token is verified in `io.use()` before the connection upgrades. Key events:
 
 ---
 
-<p align="center">Part of <a href="https://docweave.tarunsumanthpuli.me/">DocWeave</a> · frontend repo: <a href="https://github.com/Anonymo-Winter/docweave_frontend">docweave_frontend</a></p>
+<p align="center">Part of <a href="https://docweave.tarunsumanthpuli.me/">DocWeave</a> · <a href="../frontend">frontend</a> · <a href="../README.md">project overview</a></p>
 
 <p align="center"><sub>© 2026 Tarun Sumanth Puli. All rights reserved. This code is shared for portfolio viewing only and may not be copied, modified, or used without permission.</sub></p>
