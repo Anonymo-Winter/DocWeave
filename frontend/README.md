@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="https://docweave.tarunsumanthpuli.me/">🔗 Live app</a>
+  <a href="https://docweave.tarunsumanthpuli.in/">🔗 Live app</a>
 </p>
 
 ---
@@ -69,12 +69,7 @@ VITE_GOOGLE_CLIENT_ID=your-google-oauth-client-id
 
 > Create the client ID in Google Cloud Console (OAuth 2.0 Client ID → Web application) and add your origins to **Authorized JavaScript origins**: `http://localhost:5173` and your production URL. Email/password auth works without it; only Google sign-in needs it.
 
-The **backend URL** is *not* an env var — it's resolved from **Vite's build mode** in [`src/config.js`](src/config.js):
-
-- `npm run dev` → `http://localhost:5000`
-- `npm run build` (production) → the production backend
-
-To change either URL, edit `src/config.js`.
+The **backend URL** comes from `VITE_BACKEND_URL` (see `src/config.js`). Leave it unset locally to use `http://localhost:5000`; in production, set it in your hosting provider's environment variables. Vite bakes it in at build time, so redeploy after changing it.
 
 ### Scripts
 
@@ -92,6 +87,6 @@ To change either URL, edit `src/config.js`.
 
 ---
 
-<p align="center">Part of <a href="https://docweave.tarunsumanthpuli.me/">DocWeave</a> · <a href="../backend">backend</a> · <a href="../README.md">project overview</a></p>
+<p align="center">Part of <a href="https://docweave.tarunsumanthpuli.in/">DocWeave</a> · <a href="../backend">backend</a> · <a href="../README.md">project overview</a></p>
 
 <p align="center"><sub>© 2026 Tarun Sumanth Puli. All rights reserved. This code is shared for portfolio viewing only and may not be copied, modified, or used without permission.</sub></p>

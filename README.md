@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="https://docweave.tarunsumanthpuli.me/">🔗 Live app</a>
+  <a href="https://docweave.tarunsumanthpuli.in/">🔗 Live app</a>
 </p>
 
 ---

@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="https://docweave.tarunsumanthpuli.me/">🔗 Live app</a>
+  <a href="https://docweave.tarunsumanthpuli.in/">🔗 Live app</a>
 </p>
 
 ---
@@ -97,7 +97,8 @@ BROWSER_WS_ENDPOINT=
 
 | Variable | Required | Purpose |
 | --- | --- | --- |
-| `NODE_ENV` | yes (prod) | `production` selects the production frontend URL (CORS + email links); otherwise localhost. The URLs live in `config.js`, not env. |
+| `NODE_ENV` | yes (prod) | `production` enables secure cross-site cookies and production-only behaviour |
+| `CLIENT_URL` | yes (prod) | Frontend URL used for CORS and email links; defaults to `http://localhost:5173` |
 | `PORT` | no (default `5000`) | Server port |
 | `MONGO_URL` | **yes** | MongoDB connection string |
 | `JWT_KEY` | **yes** | Secret for signing/verifying JWTs (REST + socket) |
@@ -165,6 +166,6 @@ The token is verified in `io.use()` before the connection upgrades. Key events:
 
 ---
 
-<p align="center">Part of <a href="https://docweave.tarunsumanthpuli.me/">DocWeave</a> · <a href="../frontend">frontend</a> · <a href="../README.md">project overview</a></p>
+<p align="center">Part of <a href="https://docweave.tarunsumanthpuli.in/">DocWeave</a> · <a href="../frontend">frontend</a> · <a href="../README.md">project overview</a></p>
 
 <p align="center"><sub>© 2026 Tarun Sumanth Puli. All rights reserved. This code is shared for portfolio viewing only and may not be copied, modified, or used without permission.</sub></p>
