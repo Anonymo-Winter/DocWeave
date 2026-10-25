@@ -12,6 +12,16 @@
 
 DocWeave lets a whole team edit the same document at once. Edits sync instantly through Yjs CRDTs over Socket.IO, an AI assistant can answer questions about a document or write and rewrite content in place, and every document has version history and fine-grained sharing controls.
 
+## 🖼️ Screenshots
+
+| Editor | Version history |
+| --- | --- |
+| ![Editor](docs/screenshots/editor.jpg) | ![Version history](docs/screenshots/version-history.jpg) |
+
+| Sharing and roles | Dashboard |
+| --- | --- |
+| ![Sharing](docs/screenshots/sharing.jpg) | ![Dashboard](docs/screenshots/dashboard.jpg) |
+
 ## ✨ Highlights
 
 - **Real-time multiplayer editing** — Tiptap + Yjs CRDTs over Socket.IO, with live cursors, presence, in-document chat, and offline tolerance.
@@ -60,4 +70,4 @@ See the [backend](backend/README.md) and [frontend](frontend/README.md) READMEs 
 
 ---
 
-<p align="center"><sub>© 2026 Tarun Sumanth Puli. All rights reserved. This code is shared for portfolio viewing only and may not be copied, modified, or used without permission.</sub></p>
+<p align="center"><sub>© 2026 Tarun Sumanth Puli. All rights reserved. This code is shared for portfolio viewing only and may not be copied, modified, or used without permission. See <a href="LICENSE">LICENSE</a>.</sub></p>
